@@ -1,0 +1,99 @@
+---
+alwaysApply: true
+---
+
+# AI Rules for Family Life Planner
+
+Both with wife we are parents of 3 kids - I have a work daily 8h, side projects and personal purposes 
+(fitness, hobby, shared together time 1:1 with wife / husband) - wife has maternity leave.
+We struggle not to have place where we can:
+- see all priorities on weekly schedule
+- quickly find all activities and meals fit to our family
+- balance all priorities: work, family, hobbies and relations
+
+
+## CODING_PRACTICES
+
+### Guidelines for SUPPORT_LEVEL
+
+#### SUPPORT_EXPERT
+
+- Favor elegant, maintainable solutions over verbose code. Assume understanding of language idioms and design patterns.
+- Highlight potential performance implications and optimization opportunities in suggested code.
+- Frame solutions within broader architectural contexts and suggest design alternatives when appropriate.
+- Focus comments on 'why' not 'what' - assume code readability through well-named functions and variables.
+- Proactively address edge cases, race conditions, and security considerations without being prompted.
+- When debugging, provide targeted diagnostic approaches rather than shotgun solutions.
+- Suggest comprehensive testing strategies rather than just example tests, including considerations for mocking, test organization, and coverage.
+
+### Guidelines for DOCUMENTATION
+
+#### DOC_UPDATES
+
+- Update relevant documentation in /docs when modifying features
+- Keep README.md in sync with new capabilities
+- Maintain changelog entries in CHANGELOG.md
+
+
+### Guidelines for ARCHITECTURE
+
+#### MONOREPO
+
+- Configure workspace-aware tooling to optimize build and test processes
+- Implement clear package boundaries with explicit dependencies between packages
+- Use consistent versioning strategy across all packages (independent or lockstep)
+- Configure CI/CD to build and test only affected packages for efficiency
+- Implement shared configurations for linting, testing, and {{development_tooling}}
+- Use code generators to maintain consistency across similar packages or modules
+
+
+### Guidelines for STATIC_ANALYSIS
+
+#### ESLINT
+
+- Implement custom rules for {{ PATTERNS TO DO }} to maintain codebase consistency
+- Configure integration with Prettier to avoid rule conflicts for code formatting
+- Use the --fix flag in CI/CD pipelines to automatically correct fixable issues
+
+#### PRETTIER
+
+- Configure editor integration to format on save for immediate feedback
+- Use .prettierignore to exclude generated files, build artifacts, and {{specific_excluded_patterns}}
+- Configure consistent quote style and semicolon usage to match team conventions
+- Implement CI checks to ensure all committed code adheres to the defined style
+
+## TESTING
+
+### Guidelines for UNIT
+
+#### JEST
+
+- Use Jest with TypeScript for type checking in tests
+- Use snapshot testing sparingly and only for stable UI components
+- Leverage mock functions and spies for isolating units of code
+- Implement test setup and teardown with beforeEach and afterEach
+- Use describe blocks for organizing related tests
+- Leverage expect assertions with specific matchers
+- Implement code coverage reporting with meaningful targets
+- Use mockResolvedValue and mockRejectedValue for async testing
+- Leverage fake timers for testing time-dependent functionality
+
+### Guidelines for E2E
+
+#### PLAYWRIGHT
+
+- Initialize configuration only with Chromium/Desktop Chrome browser
+- Use browser contexts for isolating test environments
+- Implement the Page Object Model for maintainable tests
+- Use locators for resilient element selection
+- Leverage API testing for backend validation
+- Implement visual comparison with expect(page).toHaveScreenshot()
+- Use the codegen tool for test recording
+- Leverage trace viewer for debugging test failures
+- Implement test hooks for setup and teardown
+- Use expect assertions with specific matchers
+- Leverage parallel execution for faster test runs
+
+
+
+

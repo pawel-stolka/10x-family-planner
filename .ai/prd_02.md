@@ -1,7 +1,7 @@
 # Dokument Wymagań Produktu (PRD) – Family Life Planner
 
 ## 1. Przegląd
-Family Life Planner to desktopowa aplikacja webowa, która konsoliduje wszystkie zobowiązania rodziny (praca, cele, posiłki, aktywności) i umożliwia generowanie tygodniowego planu za pomocą AI (Claude 4.5 Sonnet). Użytkownik wprowadza priorytety, a system podpowiada harmonogramy, pomysły na aktywności i posiłki, które można ręcznie dopracować.
+Family Life Planner to desktopowa aplikacja webowa, która konsoliduje wszystkie zobowiązania rodziny (praca, cele, posiłki, aktywności) i umożliwia generowanie tygodniowego planu za pomocą AI (GPT-4o Turbo). Użytkownik wprowadza priorytety, a system podpowiada harmonogramy, pomysły na aktywności i posiłki, które można ręcznie dopracować.
 
 ## 2. Problem użytkownika
 Jesteśmy rodzicami trójki dzieci; jedno z nas pracuje w ciągu dnia, ma poboczne projekty i osobiste cele (fitness, hobby, czas wspólny 1:1 z żoną/mężem), a druga osoba jest na urlopie wychowawczym. Brakuje nam jednego miejsca, w którym:
@@ -33,7 +33,7 @@ Jesteśmy rodzicami trójki dzieci; jedno z nas pracuje w ciągu dnia, ma pobocz
 
 ## 4. Wymagania niefunkcjonalne
 - Deklarowana dostępność na desktopie (web-first, responsywność w przyszłości).
-- Obsługa AI z czasem odpowiedzi ≤15 sekund (Claude 4.5 Sonnet).
+- Obsługa AI z czasem odpowiedzi ≤15 sekund (GPT-4o Turbo).
 - Brak powiadomień, udostępniania i Google Calendar w MVP.
 
 ## 5. Historyjki użytkowników
@@ -75,7 +75,7 @@ Jesteśmy rodzicami trójki dzieci; jedno z nas pracuje w ciągu dnia, ma pobocz
 ## 8. Stos technologiczny
 - **Frontend:** Angular 20+, standalone components, reactive forms, HttpClient, RxJS/Signals, SCSS.
 - **Backend:** NestJS, REST, OpenAI SDK, (Zod validation).
-- **AI:** Claude 4.5 Sonnet (max 15 s, fallback plan).
+- **AI:** GPT-4o Turbo (max 15 s, fallback plan).
 - **Deployment:** AWS (Lambda/API Gateway).
 - **Storage:** localStorage na start, potem Postgres.
 - **Auth:** login/hasło, (później Cognito).
