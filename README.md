@@ -1,96 +1,94 @@
-# FamilyPlanner
+# Family Life Planner
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+> A web-first desktop application that consolidates a family's commitments into one intelligent weekly schedule powered by GPT-4o Turbo.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Table of Contents
+1. [Project Description](#project-description)
+2. [Tech Stack](#tech-stack)
+3. [Getting Started Locally](#getting-started-locally)
+4. [Available Scripts](#available-scripts)
+5. [Project Scope](#project-scope)
+6. [Project Status](#project-status)
+7. [License](#license)
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## Project Description
+Family Life Planner helps busy parents automatically generate and fine-tune a balanced weekly plan that accounts for work, goals, meals and activities. Users enter fixed blocks (e.g. work) and recurring goals (fitness, hobbies, 1-on-1 time). The system leverages GPT-4o Turbo to propose realistic schedules, kid-friendly meals and activities tailored to location, weather and family preferences—all editable via a drag-and-drop calendar.
 
-## Run tasks
+Key features (MVP):
+* AI-generated weekly schedule with regenerate & feedback (thumbs up/down)
+* Day-by-day editing of time blocks
+* Basic authentication (sign-up / log-in / account deletion)
+* Local storage persistence with a future path to Postgres
+* Usage analytics & plan acceptance statistics
 
-To run tasks with Nx use:
+## Tech Stack
+| Layer     | Technology |
+|-----------|------------|
+| Frontend  | Angular 20+, Standalone Components, RxJS/Signals, SCSS |
+| Backend   | NestJS 11, REST API, OpenAI Node SDK |
+| AI        | GPT-4o Turbo (≤15 s response, fallback strategy) |
+| DevOps    | Nx Monorepo, Webpack, Jest, Playwright, ESLint + Prettier |
+| Deployment| AWS Lambda / API Gateway |
+| Storage   | localStorage (MVP) → Postgres |
+| Auth      | Email & password (MVP), future Cognito |
 
-```sh
-npx nx <target> <project-name>
+## Getting Started Locally
+```bash
+# 1. Clone the repo
+git clone https://github.com/your-org/family-planner.git
+cd family-planner
+
+# 2. Install dependencies (Node >=20 recommended)
+pm install
+
+# 3. Spin up the apps in watch mode (frontend + backend)
+# Requires Nx; it is installed locally, so npx is fine
+npx nx run-many --target=serve --projects frontend,backend --parallel
+
+# 4. Open the frontend
+open http://localhost:4200
 ```
 
-For example:
+### Environment Variables
+Create a `.env` file at the repo root (see `.env.example`) and set:
+* `OPENAI_API_KEY` – required for GPT-4o Turbo
+* `PORT` – optional backend port (default 3333)
 
-```sh
-npx nx build myproject
-```
+## Available Scripts
+The workspace is managed by **Nx**; common commands:
+| Purpose | Command |
+|---------|---------|
+| Run Angular frontend | `npx nx serve frontend` |
+| Run NestJS backend  | `npx nx serve backend` |
+| Build production bundles | `npx nx build frontend` / `backend` |
+| Unit tests (Jest) | `npx nx test <project>` |
+| E2E tests (Playwright) | `npx nx e2e <project>` |
+| Lint all projects | `npx nx lint` |
+| Affected apps/libs since last commit | `npx nx affected:graph` |
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+> ℹ️ The `package.json` currently contains no top-level `scripts`; Nx handles tasks via the CLI.
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Project Scope
+*Phase 1 (MVP – 2-4 weeks)*
+1. Weekly Schedule Generator (core)
+2. Activity Finder (location & weather aware)
+3. Meal Planner (quick, kid-friendly recipes)
 
-## Add new projects
+*Phase 2+ (Post-MVP)*
+- Shared family calendar, Google Calendar export
+- Responsive/mobile UI
+- Habit tracking, advanced analytics
+- Shopping list generation
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+For detailed requirements and future roadmap see [`docs/PRD.md`](.ai/prd.md).
 
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
-```
+## Project Status
+🚧 **Active development** – Phase 1 MVP in progress. Core generator module is being scaffolded; APIs and UI are subject to change.
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+Milestones:
+- [ ] AI schedule generation ≥80 % realistic plans
+- [ ] Basic auth & data persistence
+- [ ] Feedback loop for AI suggestions
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
-
-# Generate a library
-npx nx g @nx/react:lib some-lib
-```
-
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
-
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## License
+This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
