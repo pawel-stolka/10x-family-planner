@@ -95,5 +95,111 @@ We struggle not to have place where we can:
 - Leverage parallel execution for faster test runs
 
 
+### Folder Structure Pattern
 
+Follow below structure when creating/updating files
 
+family-planner/
+├── apps/
+│   ├── frontend/                    # Angular app
+│   └── backend/                     # NestJS app
+│
+└── libs/
+    ├── frontend/                    # Frontend-specific libs
+    │   ├── feature-schedule-generator/
+    │   │   ├── src/
+    │   │   │   ├── lib/
+    │   │   │   │   ├── components/
+    │   │   │   │   │   ├── schedule-generator.component.ts
+    │   │   │   │   │   ├── input-form/
+    │   │   │   │   │   └── calendar-view/
+    │   │   │   │   ├── services/
+    │   │   │   │   │   └── schedule-generator.facade.ts
+    │   │   │   │   └── schedule-generator.routes.ts
+    │   │   │   └── index.ts
+    │   │   ├── project.json
+    │   │   └── tsconfig.json
+    │   │
+    │   ├── ui-calendar/
+    │   │   ├── src/
+    │   │   │   ├── lib/
+    │   │   │   │   ├── weekly-calendar/
+    │   │   │   │   │   ├── weekly-calendar.component.ts
+    │   │   │   │   │   ├── weekly-calendar.component.html
+    │   │   │   │   │   └── weekly-calendar.component.scss
+    │   │   │   │   ├── schedule-block/
+    │   │   │   │   └── time-grid/
+    │   │   │   └── index.ts
+    │   │   └── project.json
+    │   │
+    │   ├── ui-forms/
+    │   │   ├── src/
+    │   │   │   ├── lib/
+    │   │   │   │   ├── time-picker/
+    │   │   │   │   ├── day-selector/
+    │   │   │   │   └── duration-input/
+    │   │   │   └── index.ts
+    │   │   └── project.json
+    │   │
+    │   └── data-access-schedule/
+    │       ├── src/
+    │       │   ├── lib/
+    │       │   │   ├── services/
+    │       │   │   │   ├── schedule-ai.service.ts
+    │       │   │   │   ├── storage.service.ts
+    │       │   │   │   └── conflict-detector.service.ts
+    │       │   │   └── state/
+    │       │   │       └── schedule.store.ts
+    │       │   └── index.ts
+    │       └── project.json
+    │
+    ├── backend/                     # Backend-specific libs
+    │   ├── feature-schedule/
+    │   │   ├── src/
+    │   │   │   ├── lib/
+    │   │   │   │   ├── schedule.module.ts
+    │   │   │   │   ├── schedule.controller.ts
+    │   │   │   │   └── schedule.service.ts
+    │   │   │   └── index.ts
+    │   │   └── project.json
+    │   │
+    │   └── data-access-ai/
+    │       ├── src/
+    │       │   ├── lib/
+    │       │   │   ├── ai.module.ts
+    │       │   │   └── openai.service.ts
+    │       │   └── index.ts
+    │       └── project.json
+    │
+    └── shared/                      # Shared between frontend & backend
+        ├── models-schedule/
+        │   ├── src/
+        │   │   ├── lib/
+        │   │   │   ├── interfaces/
+        │   │   │   │   ├── schedule.interface.ts
+        │   │   │   │   ├── block.interface.ts
+        │   │   │   │   └── user.interface.ts
+        │   │   │   ├── enums/
+        │   │   │   │   ├── block-type.enum.ts
+        │   │   │   │   └── day-of-week.enum.ts
+        │   │   │   └── types/
+        │   │   │       └── time-slot.type.ts
+        │   │   └── index.ts
+        │   └── project.json
+        │
+        ├── util-date/
+        │   ├── src/
+        │   │   ├── lib/
+        │   │   │   ├── format-time.util.ts
+        │   │   │   ├── parse-duration.util.ts
+        │   │   │   └── time-overlap.util.ts
+        │   │   └── index.ts
+        │   └── project.json
+        │
+        └── util-validation/
+            ├── src/
+            │   ├── lib/
+            │   │   ├── time-validation.ts
+            │   │   └── schedule-validation.ts
+            │   └── index.ts
+            └── project.json
