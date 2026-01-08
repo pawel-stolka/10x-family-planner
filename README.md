@@ -39,7 +39,7 @@ git clone https://github.com/your-org/family-planner.git
 cd family-planner
 
 # 2. Install dependencies (Node >=20 recommended)
-pm install
+npm install
 
 # 3. Spin up the apps in watch mode (frontend + backend)
 # Requires Nx; it is installed locally, so npx is fine
