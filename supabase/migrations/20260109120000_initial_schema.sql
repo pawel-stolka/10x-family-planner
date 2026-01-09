@@ -273,12 +273,11 @@ comment on index recurring_goals_rules_gin is 'GIN index for searching within JS
 create index suggestions_cache_payload_gin 
   on suggestions_cache using gin(payload);
 
-create index suggestions_cache_valid_idx 
-  on suggestions_cache(expires_at) 
-  where expires_at > now();
+create index suggestions_cache_expires_idx 
+  on suggestions_cache(expires_at);
 
 comment on index suggestions_cache_payload_gin is 'GIN index for searching within cached suggestion data';
-comment on index suggestions_cache_valid_idx is 'Partial index for quickly finding non-expired cache entries';
+comment on index suggestions_cache_expires_idx is 'Index on expires_at for filtering non-expired cache entries';
 
 -- Usage stats indexes
 create index usage_stats_date_idx 
