@@ -1,10 +1,28 @@
 # API Endpoint Implementation Plan: Get Weekly Schedule
 
+## Scope / Zakres implementacji
+
+**Ten plan obejmuje:**
+
+- ✅ **Backend (NestJS)**: Controllers, Services, Guards, Filters, Entities (TypeORM), DTOs
+- ✅ **Shared Types**: Interfaces i enums w `libs/shared/models-schedule/` używane przez frontend i backend
+- ❌ **Frontend (Angular)**: NIE jest częścią tego planu - komponenty Angular będą w osobnym planie
+
+**Technologie:**
+
+- NestJS (backend framework)
+- TypeORM (ORM dla PostgreSQL)
+- Supabase Auth (JWT validation)
+- PostgreSQL + RLS (Row Level Security)
+
+---
+
 ## 1. Przegląd punktu końcowego
 
 Endpoint `GET /v1/weekly-schedules/{scheduleId}` służy do pobierania szczegółów pojedynczego harmonogramu tygodniowego wraz ze wszystkimi powiązanymi blokami czasowymi. Jest to kluczowy endpoint dla wyświetlania kompletnego widoku tygodnia użytkownika, zawierającego wszystkie zaplanowane aktywności, posiłki, pracę i inne bloki czasowe.
 
 **Główne cele:**
+
 - Zwrócić pełne dane harmonogramu tygodniowego
 - Uwzględnić wszystkie bloki czasowe (time_blocks) z metadanymi
 - Zapewnić szybki odczyt dzięki eager loading
@@ -14,9 +32,11 @@ Endpoint `GET /v1/weekly-schedules/{scheduleId}` służy do pobierania szczegó�
 ## 2. Szczegóły żądania
 
 ### Metoda HTTP
+
 `GET`
 
 ### Struktura URL
+
 ```
 /v1/weekly-schedules/{scheduleId}
 ```
@@ -24,6 +44,7 @@ Endpoint `GET /v1/weekly-schedules/{scheduleId}` służy do pobierania szczegó�
 ### Parametry
 
 #### Wymagane (Path Parameters)
+
 - **scheduleId** (UUID, path parameter)
   - Format: UUID v4
   - Opis: Unikalny identyfikator harmonogramu tygodniowego
@@ -31,18 +52,22 @@ Endpoint `GET /v1/weekly-schedules/{scheduleId}` służy do pobierania szczegó�
   - Przykład: `550e8400-e29b-41d4-a716-446655440000`
 
 #### Opcjonalne
+
 Brak - endpoint zwraca pełne dane bez dodatkowych filtrów
 
 ### Headers
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 Content-Type: application/json
 ```
 
 ### Request Body
+
 Brak (GET request)
 
 ### Przykład wywołania
+
 ```bash
 curl -X GET "https://api.family-planner.com/v1/weekly-schedules/550e8400-e29b-41d4-a716-446655440000" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
@@ -54,32 +79,34 @@ curl -X GET "https://api.family-planner.com/v1/weekly-schedules/550e8400-e29b-41
 ### DTOs (Data Transfer Objects)
 
 #### WeeklyScheduleDto
+
 ```typescript
 export class WeeklyScheduleDto {
-  scheduleId: string;          // UUID
-  userId: string;              // UUID
-  weekStartDate: string;       // ISO 8601 date (YYYY-MM-DD)
+  scheduleId: string; // UUID
+  userId: string; // UUID
+  weekStartDate: string; // ISO 8601 date (YYYY-MM-DD)
   isAiGenerated: boolean;
   metadata: Record<string, any>;
   timeBlocks: TimeBlockDto[];
-  createdAt: string;           // ISO 8601 timestamp
-  updatedAt: string;           // ISO 8601 timestamp
+  createdAt: string; // ISO 8601 timestamp
+  updatedAt: string; // ISO 8601 timestamp
 }
 ```
 
 #### TimeBlockDto
+
 ```typescript
 export class TimeBlockDto {
-  blockId: string;             // UUID
-  scheduleId: string;          // UUID
-  recurringGoalId?: string;    // UUID, optional
-  familyMemberId?: string;     // UUID, optional
+  blockId: string; // UUID
+  scheduleId: string; // UUID
+  recurringGoalId?: string; // UUID, optional
+  familyMemberId?: string; // UUID, optional
   title: string;
-  blockType: BlockType;        // WORK | ACTIVITY | MEAL | OTHER
+  blockType: BlockType; // WORK | ACTIVITY | MEAL | OTHER
   timeRange: TimeRangeDto;
   isShared: boolean;
   metadata: Record<string, any>;
-  familyMember?: FamilyMemberDto;  // Populated if familyMemberId exists
+  familyMember?: FamilyMemberDto; // Populated if familyMemberId exists
   recurringGoal?: RecurringGoalDto; // Populated if recurringGoalId exists
   createdAt: string;
   updatedAt: string;
@@ -87,27 +114,30 @@ export class TimeBlockDto {
 ```
 
 #### TimeRangeDto
+
 ```typescript
 export class TimeRangeDto {
-  start: string;               // ISO 8601 timestamp with timezone
-  end: string;                 // ISO 8601 timestamp with timezone
+  start: string; // ISO 8601 timestamp with timezone
+  end: string; // ISO 8601 timestamp with timezone
 }
 ```
 
 #### FamilyMemberDto (nested)
+
 ```typescript
 export class FamilyMemberDto {
-  familyMemberId: string;      // UUID
+  familyMemberId: string; // UUID
   name: string;
-  role: FamilyMemberRole;      // USER | SPOUSE | CHILD
+  role: FamilyMemberRole; // USER | SPOUSE | CHILD
   age?: number;
 }
 ```
 
 #### RecurringGoalDto (nested, minimal)
+
 ```typescript
 export class RecurringGoalDto {
-  goalId: string;              // UUID
+  goalId: string; // UUID
   name: string;
   frequencyPerWeek: number;
 }
@@ -116,6 +146,7 @@ export class RecurringGoalDto {
 ### Validation DTOs
 
 #### GetScheduleParamsDto
+
 ```typescript
 export class GetScheduleParamsDto {
   @IsUUID('4')
@@ -130,13 +161,13 @@ export enum BlockType {
   WORK = 'WORK',
   ACTIVITY = 'ACTIVITY',
   MEAL = 'MEAL',
-  OTHER = 'OTHER'
+  OTHER = 'OTHER',
 }
 
 export enum FamilyMemberRole {
   USER = 'USER',
   SPOUSE = 'SPOUSE',
-  CHILD = 'CHILD'
+  CHILD = 'CHILD',
 }
 ```
 
@@ -215,6 +246,7 @@ export enum FamilyMemberRole {
 ### Error Responses
 
 #### 400 Bad Request - Invalid UUID
+
 ```json
 {
   "status": 400,
@@ -226,6 +258,7 @@ export enum FamilyMemberRole {
 ```
 
 #### 401 Unauthorized - Missing/Invalid Token
+
 ```json
 {
   "status": 401,
@@ -237,6 +270,7 @@ export enum FamilyMemberRole {
 ```
 
 #### 404 Not Found - Schedule Not Exists
+
 ```json
 {
   "status": 404,
@@ -248,6 +282,7 @@ export enum FamilyMemberRole {
 ```
 
 #### 500 Internal Server Error
+
 ```json
 {
   "status": 500,
@@ -309,24 +344,29 @@ Client
 ### Szczegółowy przepływ
 
 1. **Request Reception**
+
    - API Gateway otrzymuje request z JWT w nagłówku Authorization
    - Rate limiter sprawdza limit 60 req/min/user
    - Request przekazywany do NestJS
 
 2. **Authentication & Authorization**
+
    - `JwtAuthGuard` weryfikuje token JWT z Supabase
    - Ekstraktuje `userId` z tokenu (claim `sub`)
    - Dodaje `userId` do request context
 
 3. **Input Validation**
+
    - `ValidationPipe` waliduje `scheduleId` jako UUID v4
    - Zwraca 400 Bad Request przy błędnej walidacji
 
 4. **Controller Layer**
+
    - `ScheduleController.getScheduleById()` odbiera request
    - Przekazuje `scheduleId` i `userId` do serwisu
 
 5. **Service Layer**
+
    - `ScheduleService.findScheduleById()` wykonuje:
      - Ustawia sesję DB: `SET app.user_id = '<userId>'`
      - Query z eager loading relacji (time_blocks, family_members, recurring_goals)
@@ -334,11 +374,13 @@ Client
      - Weryfikuje ownership (403 jeśli user_id nie pasuje)
 
 6. **Database Layer**
+
    - RLS policy automatycznie filtruje po `user_id`
    - Partial indices na `deleted_at IS NULL` przyspieszają query
    - BTREE indeksy na foreign keys optymalizują JOINs
 
 7. **Transformation**
+
    - Konwersja entity → DTO
    - Transformacja TSTZRANGE → TimeRangeDto (start/end)
    - Serializacja JSONB metadata
@@ -352,11 +394,13 @@ Client
 ### Authentication
 
 **JWT Validation**
+
 - Token musi być podpisany przez Supabase Auth
 - Sprawdzanie `exp` (expiration time) - automatyczne w NestJS JwtModule
 - Weryfikacja issuer (`iss`) i audience (`aud`)
 
 **Implementation:**
+
 ```typescript
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -376,22 +420,26 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 ### Authorization
 
 **Row-Level Security (RLS)**
+
 - Postgres RLS policy: `user_id = current_setting('app.user_id')::uuid`
 - Ustawienie `app.user_id` na początku każdej transakcji
 - Automatyczna izolacja danych między użytkownikami
 
 **Application-Level Check**
+
 - Dodatkowo weryfikacja ownership w serwisie
 - Zwrócenie 404 zamiast 403 dla nieistniejących zasobów (security through obscurity)
 
 ### Input Validation
 
 **UUID Validation**
+
 - class-validator: `@IsUUID('4')`
 - Zapobiega SQL injection (używamy parametrized queries)
 - Zapobiega path traversal attacks
 
 **Sanitization**
+
 - Wszystkie dane wejściowe sanityzowane przez ValidationPipe
 - Transformacja typów (string → UUID)
 
@@ -411,11 +459,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 ### Data Privacy
 
 **Soft Delete**
+
 - Zapytania filtrują `deleted_at IS NULL`
 - Użytkownik nie ma dostępu do usuniętych danych
 - Hard delete job (GDPR compliance) po 30 dniach
 
 **Error Messages**
+
 - Nie ujawniają struktury bazy danych
 - Generic messages dla użytkownika
 - Szczegółowe logi tylko po stronie serwera
@@ -425,9 +475,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 ### Scenariusze błędów
 
 #### 1. Invalid UUID Format (400)
+
 **Przyczyna:** `scheduleId` nie jest poprawnym UUID  
 **Validation:** class-validator `@IsUUID('4')`  
 **Response:**
+
 ```json
 {
   "status": 400,
@@ -437,12 +489,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   "path": "/v1/weekly-schedules/invalid-id"
 }
 ```
+
 **Logging:** WARN level, bez PII
 
 #### 2. Missing Authentication Token (401)
+
 **Przyczyna:** Brak nagłówka `Authorization` lub pusty token  
 **Guard:** `JwtAuthGuard`  
 **Response:**
+
 ```json
 {
   "status": 401,
@@ -452,29 +507,34 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   "path": "/v1/weekly-schedules/550e8400-e29b-41d4-a716-446655440000"
 }
 ```
+
 **Logging:** INFO level, IP address logged
 
 #### 3. Invalid/Expired JWT Token (401)
+
 **Przyczyna:** Token wygasły lub niepoprawnie podpisany  
 **Guard:** `JwtAuthGuard`  
 **Response:** Jak wyżej  
 **Logging:** WARN level, token hash logged (nie pełny token)
 
 #### 4. Schedule Not Found (404)
-**Przyczyna:** 
+
+**Przyczyna:**
+
 - Schedule nie istnieje
 - Schedule jest soft-deleted
 - Schedule należy do innego użytkownika (RLS)
 
 **Service Logic:**
+
 ```typescript
 const schedule = await this.scheduleRepository.findOne({
-  where: { 
-    scheduleId, 
-    userId, 
-    deletedAt: IsNull() 
+  where: {
+    scheduleId,
+    userId,
+    deletedAt: IsNull(),
   },
-  relations: ['timeBlocks', 'timeBlocks.familyMember', 'timeBlocks.recurringGoal']
+  relations: ['timeBlocks', 'timeBlocks.familyMember', 'timeBlocks.recurringGoal'],
 });
 
 if (!schedule) {
@@ -483,6 +543,7 @@ if (!schedule) {
 ```
 
 **Response:**
+
 ```json
 {
   "status": 404,
@@ -492,15 +553,19 @@ if (!schedule) {
   "path": "/v1/weekly-schedules/550e8400-e29b-41d4-a716-446655440000"
 }
 ```
+
 **Logging:** INFO level, scheduleId + userId logged
 
 #### 5. Database Connection Error (500)
-**Przyczyna:** 
+
+**Przyczyna:**
+
 - Postgres niedostępny
 - Connection pool exhausted
 - Query timeout
 
 **Handling:**
+
 ```typescript
 try {
   return await this.scheduleRepository.findOne(...);
@@ -511,6 +576,7 @@ try {
 ```
 
 **Response:**
+
 ```json
 {
   "status": 500,
@@ -520,12 +586,15 @@ try {
   "path": "/v1/weekly-schedules/550e8400-e29b-41d4-a716-446655440000"
 }
 ```
+
 **Logging:** ERROR level, full stack trace, alert DevOps
 
 #### 6. Rate Limit Exceeded (429)
+
 **Przyczyna:** Użytkownik przekroczył 60 req/min  
 **Handled by:** AWS API Gateway  
 **Response:**
+
 ```json
 {
   "status": 429,
@@ -535,11 +604,13 @@ try {
   "timestamp": "2026-01-09T12:34:56Z"
 }
 ```
+
 **Logging:** WARN level, userId logged
 
 ### Error Handling Strategy
 
 **Global Exception Filter:**
+
 ```typescript
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -548,9 +619,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse();
     const request = ctx.getRequest();
 
-    const status = exception instanceof HttpException
-      ? exception.getStatus()
-      : 500;
+    const status = exception instanceof HttpException ? exception.getStatus() : 500;
 
     const errorResponse = {
       status,
@@ -577,37 +646,47 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 ### Potencjalne wąskie gardła
 
 #### 1. N+1 Query Problem
-**Problem:** 
+
+**Problem:**
+
 - Schedule → Time Blocks (1 query)
 - Dla każdego Time Block → Family Member (N queries)
 - Dla każdego Time Block → Recurring Goal (N queries)
 
 **Optymalizacja:**
+
 - Eager loading z TypeORM relations
 - Pojedynczy query z LEFT JOINs
+
 ```typescript
-relations: ['timeBlocks', 'timeBlocks.familyMember', 'timeBlocks.recurringGoal']
+relations: ['timeBlocks', 'timeBlocks.familyMember', 'timeBlocks.recurringGoal'];
 ```
 
 #### 2. Large Payload Size
+
 **Problem:** Schedule z wieloma time blocks (50+) może generować duży JSON
 
 **Optymalizacja:**
+
 - DTO projection - zwracaj tylko potrzebne pola
 - Kompresja gzip na poziomie API Gateway
 - Rozważenie paginacji time_blocks (jeśli > 100)
 
 #### 3. JSONB metadata parsing
+
 **Problem:** Postgres musi deserializować JSONB dla każdego rekordu
 
 **Optymalizacja:**
+
 - Indeks GIN na często query'owanych polach JSONB
-- Unikanie SELECT * - wybieraj tylko potrzebne kolumny JSONB
+- Unikanie SELECT \* - wybieraj tylko potrzebne kolumny JSONB
 
 #### 4. Timezone conversions
+
 **Problem:** TSTZRANGE → ISO 8601 string conversion dla każdego time_range
 
 **Optymalizacja:**
+
 - TypeORM transformer dla automatycznej konwersji
 - Caching format'ów dat w memory
 
@@ -616,20 +695,23 @@ relations: ['timeBlocks', 'timeBlocks.familyMember', 'timeBlocks.recurringGoal']
 #### Database Indexing
 
 **Istniejące indeksy (z db-plan.md):**
+
 - `weekly_schedules_unique_idx` - BTREE (user_id, week_start_date) WHERE deleted_at IS NULL
 - `time_blocks_type_idx` - BTREE (block_type) WHERE deleted_at IS NULL
 - `time_blocks_family_member_idx` - BTREE (family_member_id) WHERE deleted_at IS NULL
 
 **Dodatkowy indeks (rekomendowany):**
+
 ```sql
-CREATE INDEX time_blocks_schedule_idx 
-ON time_blocks(schedule_id) 
+CREATE INDEX time_blocks_schedule_idx
+ON time_blocks(schedule_id)
 WHERE deleted_at IS NULL;
 ```
 
 #### Query Optimization
 
 **Explain Analyze:**
+
 ```sql
 EXPLAIN ANALYZE
 SELECT ws.*, tb.*, fm.*, rg.*
@@ -643,46 +725,17 @@ WHERE ws.schedule_id = '550e8400-e29b-41d4-a716-446655440000'
 ```
 
 **Expected plan:**
+
 - Index Scan on weekly_schedules (using PK)
 - Nested Loop with time_blocks (using time_blocks_schedule_idx)
 - Nested Loop with family_members (using PK)
 - Nested Loop with recurring_goals (using PK)
 - Total cost: < 50 ms for typical schedule
 
-#### Caching Strategy
-
-**Redis Cache (Phase 2):**
-- Key: `schedule:${scheduleId}`
-- TTL: 5 minutes
-- Invalidate on UPDATE/DELETE
-- Cache hit ratio target: > 70%
-
-**Implementation sketch:**
-```typescript
-async findScheduleById(scheduleId: string, userId: string): Promise<WeeklyScheduleDto> {
-  const cacheKey = `schedule:${scheduleId}`;
-  
-  // Try cache first
-  const cached = await this.cacheService.get(cacheKey);
-  if (cached) {
-    this.logger.debug(`Cache HIT for ${scheduleId}`);
-    return cached;
-  }
-
-  // Cache MISS - query database
-  const schedule = await this.scheduleRepository.findOne({ ... });
-  
-  if (schedule) {
-    await this.cacheService.set(cacheKey, schedule, 300); // 5 min TTL
-  }
-  
-  return schedule;
-}
-```
-
 #### Connection Pooling
 
 **TypeORM Configuration:**
+
 ```typescript
 {
   type: 'postgres',
@@ -703,20 +756,21 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 #### Monitoring & Metrics
 
 **CloudWatch Metrics:**
+
 - Request latency (p50, p95, p99)
 - Database query time
-- Cache hit/miss ratio
 - Error rate per status code
 - Concurrent requests
 
 **Alerts:**
+
 - p99 latency > 500ms
 - Error rate > 1%
 - Database connection pool exhaustion
 
 ### Performance Targets
 
-- **Response time:** 
+- **Response time:**
   - p50: < 100ms
   - p95: < 200ms
   - p99: < 500ms
@@ -731,31 +785,33 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/shared/models-schedule/src/lib/`
 
 1. **Definicja enums** (`enums/`)
+
    ```typescript
    // block-type.enum.ts
    export enum BlockType {
      WORK = 'WORK',
      ACTIVITY = 'ACTIVITY',
      MEAL = 'MEAL',
-     OTHER = 'OTHER'
+     OTHER = 'OTHER',
    }
-   
+
    // family-member-role.enum.ts
    export enum FamilyMemberRole {
      USER = 'USER',
      SPOUSE = 'SPOUSE',
-     CHILD = 'CHILD'
+     CHILD = 'CHILD',
    }
    ```
 
 2. **Definicja interfaces** (`interfaces/`)
+
    ```typescript
    // time-range.interface.ts
    export interface TimeRange {
      start: Date;
      end: Date;
    }
-   
+
    // schedule.interface.ts
    export interface WeeklySchedule {
      scheduleId: string;
@@ -768,7 +824,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
      updatedAt: Date;
      deletedAt?: Date;
    }
-   
+
    // block.interface.ts
    export interface TimeBlock {
      blockId: string;
@@ -800,6 +856,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/backend/feature-schedule/src/lib/entities/`
 
 4. **TypeORM Entity dla WeeklySchedule**
+
    ```typescript
    // weekly-schedule.entity.ts
    @Entity('weekly_schedules')
@@ -834,6 +891,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
    ```
 
 5. **TypeORM Entity dla TimeBlock**
+
    ```typescript
    // time-block.entity.ts
    @Entity('time_blocks')
@@ -895,6 +953,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
    ```
 
 6. **Custom Transformer dla TSTZRANGE**
+
    ```typescript
    // transformers/time-range.transformer.ts
    export class TimeRangeTransformer implements ValueTransformer {
@@ -920,6 +979,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/backend/feature-schedule/src/lib/dto/`
 
 7. **Response DTOs**
+
    ```typescript
    // weekly-schedule.dto.ts
    export class WeeklyScheduleDto {
@@ -1015,6 +1075,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/backend/feature-schedule/src/lib/`
 
 9. **Schedule Service - podstawowa implementacja**
+
    ```typescript
    // schedule.service.ts
    @Injectable()
@@ -1025,29 +1086,19 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
        @InjectRepository(WeeklyScheduleEntity)
        private readonly scheduleRepository: Repository<WeeklyScheduleEntity>,
        @InjectDataSource()
-       private readonly dataSource: DataSource,
+       private readonly dataSource: DataSource
      ) {}
 
-     async findScheduleById(
-       scheduleId: string,
-       userId: string,
-     ): Promise<WeeklyScheduleEntity> {
+     async findScheduleById(scheduleId: string, userId: string): Promise<WeeklyScheduleEntity> {
        // Set RLS context
-       await this.dataSource.query(
-         `SET LOCAL app.user_id = $1`,
-         [userId]
-       );
+       await this.dataSource.query(`SET LOCAL app.user_id = $1`, [userId]);
 
        const schedule = await this.scheduleRepository.findOne({
          where: {
            scheduleId,
            deletedAt: IsNull(),
          },
-         relations: [
-           'timeBlocks',
-           'timeBlocks.familyMember',
-           'timeBlocks.recurringGoal',
-         ],
+         relations: ['timeBlocks', 'timeBlocks.familyMember', 'timeBlocks.recurringGoal'],
          order: {
            timeBlocks: {
              timeRange: 'ASC', // Sort blocks by start time
@@ -1061,16 +1112,12 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 
        // Additional ownership check (redundant with RLS, but defense in depth)
        if (schedule.userId !== userId) {
-         this.logger.warn(
-           `User ${userId} attempted to access schedule ${scheduleId} owned by ${schedule.userId}`
-         );
+         this.logger.warn(`User ${userId} attempted to access schedule ${scheduleId} owned by ${schedule.userId}`);
          throw new NotFoundException('Weekly schedule not found');
        }
 
        // Filter out soft-deleted time blocks
-       schedule.timeBlocks = schedule.timeBlocks.filter(
-         (block) => !block.deletedAt
-       );
+       schedule.timeBlocks = schedule.timeBlocks.filter((block) => !block.deletedAt);
 
        return schedule;
      }
@@ -1082,6 +1129,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/backend/feature-schedule/src/lib/mappers/`
 
 10. **Schedule Mapper**
+
     ```typescript
     // schedule.mapper.ts
     @Injectable()
@@ -1093,9 +1141,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
           weekStartDate: entity.weekStartDate.toISOString().split('T')[0],
           isAiGenerated: entity.isAiGenerated,
           metadata: entity.metadata,
-          timeBlocks: entity.timeBlocks
-            ? entity.timeBlocks.map((block) => this.timeBlockToDto(block))
-            : [],
+          timeBlocks: entity.timeBlocks ? entity.timeBlocks.map((block) => this.timeBlockToDto(block)) : [],
           createdAt: entity.createdAt.toISOString(),
           updatedAt: entity.updatedAt.toISOString(),
         };
@@ -1115,12 +1161,8 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
           },
           isShared: entity.isShared,
           metadata: entity.metadata,
-          familyMember: entity.familyMember
-            ? this.familyMemberToDto(entity.familyMember)
-            : undefined,
-          recurringGoal: entity.recurringGoal
-            ? this.recurringGoalToDto(entity.recurringGoal)
-            : undefined,
+          familyMember: entity.familyMember ? this.familyMemberToDto(entity.familyMember) : undefined,
+          recurringGoal: entity.recurringGoal ? this.recurringGoalToDto(entity.recurringGoal) : undefined,
           createdAt: entity.createdAt.toISOString(),
           updatedAt: entity.updatedAt.toISOString(),
         };
@@ -1150,6 +1192,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/backend/feature-schedule/src/lib/`
 
 11. **Schedule Controller**
+
     ```typescript
     // schedule.controller.ts
     @Controller('v1/weekly-schedules')
@@ -1159,10 +1202,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
     export class ScheduleController {
       private readonly logger = new Logger(ScheduleController.name);
 
-      constructor(
-        private readonly scheduleService: ScheduleService,
-        private readonly scheduleMapper: ScheduleMapper,
-      ) {}
+      constructor(private readonly scheduleService: ScheduleService, private readonly scheduleMapper: ScheduleMapper) {}
 
       @Get(':scheduleId')
       @ApiOperation({ summary: 'Get weekly schedule by ID' })
@@ -1190,18 +1230,10 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
         description: 'Schedule not found',
       })
       @ApiBearerAuth()
-      async getScheduleById(
-        @Param() params: GetScheduleParamsDto,
-        @CurrentUser() user: JwtPayload,
-      ): Promise<WeeklyScheduleDto> {
-        this.logger.log(
-          `User ${user.userId} fetching schedule ${params.scheduleId}`
-        );
+      async getScheduleById(@Param() params: GetScheduleParamsDto, @CurrentUser() user: JwtPayload): Promise<WeeklyScheduleDto> {
+        this.logger.log(`User ${user.userId} fetching schedule ${params.scheduleId}`);
 
-        const schedule = await this.scheduleService.findScheduleById(
-          params.scheduleId,
-          user.userId,
-        );
+        const schedule = await this.scheduleService.findScheduleById(params.scheduleId, user.userId);
 
         return this.scheduleMapper.toDto(schedule);
       }
@@ -1213,6 +1245,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/backend/feature-schedule/src/lib/guards/` i `decorators/`
 
 12. **JWT Auth Guard**
+
     ```typescript
     // guards/jwt-auth.guard.ts
     @Injectable()
@@ -1225,11 +1258,9 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 
       handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
         const request = context.switchToHttp().getRequest();
-        
+
         if (err || !user) {
-          this.logger.warn(
-            `Authentication failed for ${request.ip}: ${info?.message || err?.message}`
-          );
+          this.logger.warn(`Authentication failed for ${request.ip}: ${info?.message || err?.message}`);
           throw new UnauthorizedException('Invalid or expired token');
         }
 
@@ -1239,21 +1270,20 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
     ```
 
 13. **CurrentUser Decorator**
+
     ```typescript
     // decorators/current-user.decorator.ts
-    export const CurrentUser = createParamDecorator(
-      (data: unknown, ctx: ExecutionContext): JwtPayload => {
-        const request = ctx.switchToHttp().getRequest();
-        return request.user;
-      },
-    );
+    export const CurrentUser = createParamDecorator((data: unknown, ctx: ExecutionContext): JwtPayload => {
+      const request = ctx.switchToHttp().getRequest();
+      return request.user;
+    });
 
     // JWT Payload interface
     export interface JwtPayload {
-      userId: string;      // sub claim from Supabase
-      email: string;       // email claim
-      iat: number;         // issued at
-      exp: number;         // expiration
+      userId: string; // sub claim from Supabase
+      email: string; // email claim
+      iat: number; // issued at
+      exp: number; // expiration
     }
     ```
 
@@ -1262,6 +1292,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/backend/feature-schedule/src/lib/filters/`
 
 14. **Global Exception Filter**
+
     ```typescript
     // filters/global-exception.filter.ts
     @Catch()
@@ -1313,9 +1344,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
           const response = exception.getResponse();
           if (typeof response === 'string') return response;
           if (typeof response === 'object' && 'message' in response) {
-            return Array.isArray(response.message)
-              ? response.message.join(', ')
-              : response.message;
+            return Array.isArray(response.message) ? response.message.join(', ') : response.message;
           }
         }
         // Don't expose internal errors to client
@@ -1341,16 +1370,12 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/backend/feature-schedule/src/lib/`
 
 15. **Schedule Module**
+
     ```typescript
     // schedule.module.ts
     @Module({
       imports: [
-        TypeOrmModule.forFeature([
-          WeeklyScheduleEntity,
-          TimeBlockEntity,
-          FamilyMemberEntity,
-          RecurringGoalEntity,
-        ]),
+        TypeOrmModule.forFeature([WeeklyScheduleEntity, TimeBlockEntity, FamilyMemberEntity, RecurringGoalEntity]),
         JwtModule.register({
           secret: process.env.JWT_SECRET,
           signOptions: { expiresIn: '1h' },
@@ -1372,6 +1397,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
     ```
 
 16. **JWT Strategy**
+
     ```typescript
     // strategies/jwt.strategy.ts
     @Injectable()
@@ -1402,6 +1428,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `libs/backend/feature-schedule/src/lib/__tests__/`
 
 17. **Unit Tests - Service**
+
     ```typescript
     // schedule.service.spec.ts
     describe('ScheduleService', () => {
@@ -1436,17 +1463,10 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 
           const result = await service.findScheduleById(scheduleId, userId);
 
-          expect(dataSource.query).toHaveBeenCalledWith(
-            'SET LOCAL app.user_id = $1',
-            [userId]
-          );
+          expect(dataSource.query).toHaveBeenCalledWith('SET LOCAL app.user_id = $1', [userId]);
           expect(repository.findOne).toHaveBeenCalledWith({
             where: { scheduleId, deletedAt: IsNull() },
-            relations: expect.arrayContaining([
-              'timeBlocks',
-              'timeBlocks.familyMember',
-              'timeBlocks.recurringGoal',
-            ]),
+            relations: expect.arrayContaining(['timeBlocks', 'timeBlocks.familyMember', 'timeBlocks.recurringGoal']),
             order: expect.any(Object),
           });
           expect(result).toEqual(mockSchedule);
@@ -1455,9 +1475,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
         it('should throw NotFoundException when schedule not found', async () => {
           repository.findOne.mockResolvedValue(null);
 
-          await expect(
-            service.findScheduleById('schedule-456', 'user-123')
-          ).rejects.toThrow(NotFoundException);
+          await expect(service.findScheduleById('schedule-456', 'user-123')).rejects.toThrow(NotFoundException);
         });
 
         it('should throw NotFoundException when userId mismatch', async () => {
@@ -1470,19 +1488,14 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 
           repository.findOne.mockResolvedValue(mockSchedule);
 
-          await expect(
-            service.findScheduleById('schedule-456', 'user-123')
-          ).rejects.toThrow(NotFoundException);
+          await expect(service.findScheduleById('schedule-456', 'user-123')).rejects.toThrow(NotFoundException);
         });
 
         it('should filter soft-deleted time blocks', async () => {
           const mockSchedule = {
             scheduleId: 'schedule-456',
             userId: 'user-123',
-            timeBlocks: [
-              { blockId: 'block-1', deletedAt: null } as TimeBlockEntity,
-              { blockId: 'block-2', deletedAt: new Date() } as TimeBlockEntity,
-            ],
+            timeBlocks: [{ blockId: 'block-1', deletedAt: null } as TimeBlockEntity, { blockId: 'block-2', deletedAt: new Date() } as TimeBlockEntity],
             deletedAt: null,
           } as WeeklyScheduleEntity;
 
@@ -1498,6 +1511,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
     ```
 
 18. **Unit Tests - Controller**
+
     ```typescript
     // schedule.controller.spec.ts
     describe('ScheduleController', () => {
@@ -1529,10 +1543,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 
           const result = await controller.getScheduleById(params, user);
 
-          expect(service.findScheduleById).toHaveBeenCalledWith(
-            'schedule-123',
-            'user-456'
-          );
+          expect(service.findScheduleById).toHaveBeenCalledWith('schedule-123', 'user-456');
           expect(mapper.toDto).toHaveBeenCalledWith(mockEntity);
           expect(result).toEqual(mockDto);
         });
@@ -1541,19 +1552,16 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
           const params = { scheduleId: 'schedule-123' };
           const user = { userId: 'user-456' } as JwtPayload;
 
-          service.findScheduleById.mockRejectedValue(
-            new NotFoundException('Weekly schedule not found')
-          );
+          service.findScheduleById.mockRejectedValue(new NotFoundException('Weekly schedule not found'));
 
-          await expect(
-            controller.getScheduleById(params, user)
-          ).rejects.toThrow(NotFoundException);
+          await expect(controller.getScheduleById(params, user)).rejects.toThrow(NotFoundException);
         });
       });
     });
     ```
 
 19. **Unit Tests - Mapper**
+
     ```typescript
     // schedule.mapper.spec.ts
     describe('ScheduleMapper', () => {
@@ -1606,6 +1614,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 **Lokalizacja:** `apps/backend/test/`
 
 20. **E2E Test - Happy Path**
+
     ```typescript
     // schedule.e2e-spec.ts
     describe('GET /v1/weekly-schedules/:scheduleId (e2e)', () => {
@@ -1624,24 +1633,19 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
         await app.init();
 
         // Setup: Create user and get auth token
-        const authResponse = await request(app.getHttpServer())
-          .post('/v1/auth/register')
-          .send({
-            email: 'test@example.com',
-            password: 'SecurePass123!',
-            displayName: 'Test User',
-          });
+        const authResponse = await request(app.getHttpServer()).post('/v1/auth/register').send({
+          email: 'test@example.com',
+          password: 'SecurePass123!',
+          displayName: 'Test User',
+        });
 
         authToken = authResponse.body.token;
         userId = authResponse.body.user.id;
 
         // Setup: Create a schedule
-        const scheduleResponse = await request(app.getHttpServer())
-          .post('/v1/weekly-schedules')
-          .set('Authorization', `Bearer ${authToken}`)
-          .send({
-            weekStartDate: '2026-01-13',
-          });
+        const scheduleResponse = await request(app.getHttpServer()).post('/v1/weekly-schedules').set('Authorization', `Bearer ${authToken}`).send({
+          weekStartDate: '2026-01-13',
+        });
 
         scheduleId = scheduleResponse.body.scheduleId;
       });
@@ -1666,9 +1670,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
       });
 
       it('should return 401 without auth token', () => {
-        return request(app.getHttpServer())
-          .get(`/v1/weekly-schedules/${scheduleId}`)
-          .expect(401);
+        return request(app.getHttpServer()).get(`/v1/weekly-schedules/${scheduleId}`).expect(401);
       });
 
       it('should return 400 for invalid UUID', () => {
@@ -1682,28 +1684,20 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
       });
 
       it('should return 404 for non-existent schedule', () => {
-        return request(app.getHttpServer())
-          .get('/v1/weekly-schedules/00000000-0000-0000-0000-000000000000')
-          .set('Authorization', `Bearer ${authToken}`)
-          .expect(404);
+        return request(app.getHttpServer()).get('/v1/weekly-schedules/00000000-0000-0000-0000-000000000000').set('Authorization', `Bearer ${authToken}`).expect(404);
       });
 
       it('should return 404 when accessing another user schedule', async () => {
         // Create second user
-        const otherAuthResponse = await request(app.getHttpServer())
-          .post('/v1/auth/register')
-          .send({
-            email: 'other@example.com',
-            password: 'SecurePass123!',
-          });
+        const otherAuthResponse = await request(app.getHttpServer()).post('/v1/auth/register').send({
+          email: 'other@example.com',
+          password: 'SecurePass123!',
+        });
 
         const otherToken = otherAuthResponse.body.token;
 
         // Try to access first user's schedule
-        return request(app.getHttpServer())
-          .get(`/v1/weekly-schedules/${scheduleId}`)
-          .set('Authorization', `Bearer ${otherToken}`)
-          .expect(404);
+        return request(app.getHttpServer()).get(`/v1/weekly-schedules/${scheduleId}`).set('Authorization', `Bearer ${otherToken}`).expect(404);
       });
     });
     ```
@@ -1711,10 +1705,12 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 ### Faza 12: Documentation & Deployment
 
 21. **Swagger/OpenAPI dokumentacja**
+
     - Wszystkie dekoratory `@ApiOperation`, `@ApiResponse`, etc. już dodane w kontrolerze
     - Dostęp do dokumentacji: `http://localhost:3000/api/docs`
 
 22. **Environment Variables**
+
     ```bash
     # .env.example
     DB_HOST=localhost
@@ -1722,16 +1718,17 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
     DB_USER=postgres
     DB_PASSWORD=password
     DB_NAME=family_planner
-    
+
     JWT_SECRET=your-supabase-jwt-secret
     SUPABASE_URL=https://your-project.supabase.co
     SUPABASE_PROJECT_ID=your-project-id
-    
+
     NODE_ENV=development
     PORT=3000
     ```
 
 23. **Deployment checklist**
+
     - [ ] Migracje bazy danych uruchomione (Supabase migrations)
     - [ ] RLS policies włączone na tabelach
     - [ ] Indeksy utworzone zgodnie z db-plan.md
@@ -1743,6 +1740,7 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
     - [ ] Load testing wykonany (60 req/min/user)
 
 24. **Monitoring setup**
+
     ```typescript
     // CloudWatch custom metrics
     const logMetric = (name: string, value: number, unit: string) => {
@@ -1785,8 +1783,6 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 
 ### Potencjalne rozszerzenia (Phase 2)
 
-- Redis caching dla często odczytywanych schedules
-- GraphQL endpoint jako alternatywa dla REST
 - Webhook notifications przy zmianach w schedule
 - Audit log dla wszystkich operacji
 - Rate limiting per-endpoint (bardziej granularne)
@@ -1798,4 +1794,3 @@ async findScheduleById(scheduleId: string, userId: string): Promise<WeeklySchedu
 - [ ] Zero security incidents
 - [ ] Code coverage > 80%
 - [ ] Zero data leaks between users (RLS działa)
-
