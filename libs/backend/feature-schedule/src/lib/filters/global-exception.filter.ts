@@ -10,14 +10,14 @@ import { Request, Response } from 'express';
 
 /**
  * Global Exception Filter
- * 
+ *
  * Catches all exceptions across the application and formats them consistently.
  * Provides:
  * - Structured error responses
  * - Detailed server-side logging
  * - Safe client-facing messages (no internal details leaked)
  * - Request context tracking
- * 
+ *
  * Response format:
  * {
  *   status: number,

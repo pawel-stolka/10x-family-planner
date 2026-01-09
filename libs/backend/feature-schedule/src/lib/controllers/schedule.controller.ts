@@ -24,14 +24,14 @@ import { WeeklyScheduleDto } from '../dto/weekly-schedule.dto';
 
 /**
  * Schedule Controller
- * 
+ *
  * REST API endpoints for weekly schedule operations.
  * Base path: /v1/weekly-schedules
- * 
+ *
  * Security:
  * - All routes protected by JWT authentication
  * - Rate limiting: 60 req/min/user (handled by API Gateway)
- * 
+ *
  * Response format:
  * - Success: JSON with WeeklyScheduleDto
  * - Error: JSON with status, error, message, timestamp, path
@@ -50,15 +50,15 @@ export class ScheduleController {
 
   /**
    * GET /v1/weekly-schedules/:scheduleId
-   * 
+   *
    * Retrieve a single weekly schedule by ID with all time blocks.
    * Includes eager-loaded relations: family members, recurring goals.
-   * 
+   *
    * Security:
    * - Requires valid JWT token
    * - Only returns schedules owned by authenticated user
    * - RLS + application-level authorization
-   * 
+   *
    * Performance:
    * - Single database query with eager loading
    * - Typical response time: < 100ms (p50)

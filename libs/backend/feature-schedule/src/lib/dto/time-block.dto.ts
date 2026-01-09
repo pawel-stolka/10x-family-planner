@@ -6,7 +6,7 @@ import { RecurringGoalDto } from './recurring-goal.dto';
 
 /**
  * Time Block DTO
- * 
+ *
  * Represents a scheduled time block within a weekly schedule.
  * Used in API responses for GET /v1/weekly-schedules/:scheduleId
  */
@@ -35,7 +35,8 @@ export class TimeBlockDto {
   recurringGoalId?: string;
 
   @ApiProperty({
-    description: 'Optional reference to the family member this block is assigned to',
+    description:
+      'Optional reference to the family member this block is assigned to',
     format: 'uuid',
     required: false,
     nullable: true,
@@ -69,7 +70,8 @@ export class TimeBlockDto {
   isShared: boolean;
 
   @ApiProperty({
-    description: 'Additional metadata stored as JSON (e.g., location, notes, tags)',
+    description:
+      'Additional metadata stored as JSON (e.g., location, notes, tags)',
     example: { location: 'Home gym', intensity: 'high' },
   })
   metadata: Record<string, any>;

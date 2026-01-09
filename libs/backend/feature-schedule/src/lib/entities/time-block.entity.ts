@@ -14,15 +14,15 @@ import { RecurringGoalEntity } from './recurring-goal.entity';
 
 /**
  * Time Block Entity
- * 
+ *
  * TypeORM entity representing a scheduled time block in the database.
  * Maps to table: time_blocks
- * 
+ *
  * Relations:
  * - ManyToOne with WeeklyScheduleEntity (parent schedule)
  * - ManyToOne with FamilyMemberEntity (optional assignment)
  * - ManyToOne with RecurringGoalEntity (optional goal fulfillment)
- * 
+ *
  * Security: Protected by RLS (Row Level Security) via schedule.user_id
  */
 @Entity('time_blocks')

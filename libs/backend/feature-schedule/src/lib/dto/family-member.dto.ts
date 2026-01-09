@@ -3,7 +3,7 @@ import { FamilyMemberRole } from '@family-planner/shared-models-schedule';
 
 /**
  * Family Member DTO
- * 
+ *
  * Minimal representation of a family member for nested responses.
  * Used when time blocks include family member information.
  */
