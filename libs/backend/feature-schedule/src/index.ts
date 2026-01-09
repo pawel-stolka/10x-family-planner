@@ -1,3 +1,6 @@
+// Module
+export * from './lib/schedule.module';
+
 // Entities
 export * from './lib/entities/weekly-schedule.entity';
 export * from './lib/entities/time-block.entity';
@@ -13,6 +16,28 @@ export * from './lib/dto/recurring-goal.dto';
 
 // DTOs - Validation
 export * from './lib/dto/get-schedule-params.dto';
+
+// Services
+export * from './lib/services/schedule.service';
+
+// Mappers
+export * from './lib/mappers/schedule.mapper';
+
+// Controllers
+export * from './lib/controllers/schedule.controller';
+
+// Guards & Strategies
+export * from './lib/guards/jwt-auth.guard';
+export * from './lib/strategies/jwt.strategy';
+
+// Decorators
+export * from './lib/decorators/current-user.decorator';
+
+// Interfaces
+export * from './lib/interfaces/jwt-payload.interface';
+
+// Filters
+export * from './lib/filters/global-exception.filter';
 
 // Transformers
 export * from './lib/transformers/time-range.transformer';

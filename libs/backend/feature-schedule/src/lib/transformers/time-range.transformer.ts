@@ -1,5 +1,5 @@
 import { ValueTransformer } from 'typeorm';
-import { TimeRange } from '@family-planner/shared/models-schedule';
+import { TimeRange } from '@family-planner/shared-models-schedule';
 
 /**
  * TypeORM Value Transformer for PostgreSQL TSTZRANGE type

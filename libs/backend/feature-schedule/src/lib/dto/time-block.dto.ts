@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { BlockType } from '@family-planner/shared/models-schedule';
+import { BlockType } from '@family-planner/shared-models-schedule';
 import { TimeRangeDto } from './time-range.dto';
 import { FamilyMemberDto } from './family-member.dto';
 import { RecurringGoalDto } from './recurring-goal.dto';

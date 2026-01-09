@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { FamilyMemberRole } from '@family-planner/shared/models-schedule';
+import { FamilyMemberRole } from '@family-planner/shared-models-schedule';
 
 /**
  * Family Member DTO

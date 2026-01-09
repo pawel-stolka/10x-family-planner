@@ -5,7 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { FamilyMemberRole } from '@family-planner/shared/models-schedule';
+import { FamilyMemberRole } from '@family-planner/shared-models-schedule';
 
 /**
  * Family Member Entity

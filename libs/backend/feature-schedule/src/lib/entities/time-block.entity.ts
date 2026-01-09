@@ -7,7 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { BlockType, TimeRange } from '@family-planner/shared/models-schedule';
+import { BlockType, TimeRange } from '@family-planner/shared-models-schedule';
 import { TimeRangeTransformer } from '../transformers/time-range.transformer';
 import { FamilyMemberEntity } from './family-member.entity';
 import { RecurringGoalEntity } from './recurring-goal.entity';
