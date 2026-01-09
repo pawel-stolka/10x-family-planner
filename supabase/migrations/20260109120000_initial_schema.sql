@@ -709,10 +709,113 @@ comment on materialized view weekly_usage_stats is
   'Aggregated usage statistics by ISO week, refreshed periodically by cron job';
 
 -- =====================================================================================
+-- SECTION 8: DISABLE RLS POLICIES
+-- =====================================================================================
+
+-- -------------------------------------------------------------------------------------
+-- Drop all RLS policies for family_members
+-- -------------------------------------------------------------------------------------
+drop policy if exists "family_members_select_anon" on family_members;
+drop policy if exists "family_members_select_authenticated" on family_members;
+drop policy if exists "family_members_insert_anon" on family_members;
+drop policy if exists "family_members_insert_authenticated" on family_members;
+drop policy if exists "family_members_update_anon" on family_members;
+drop policy if exists "family_members_update_authenticated" on family_members;
+drop policy if exists "family_members_delete_anon" on family_members;
+drop policy if exists "family_members_delete_authenticated" on family_members;
+
+-- -------------------------------------------------------------------------------------
+-- Drop all RLS policies for weekly_schedules
+-- -------------------------------------------------------------------------------------
+drop policy if exists "weekly_schedules_select_anon" on weekly_schedules;
+drop policy if exists "weekly_schedules_select_authenticated" on weekly_schedules;
+drop policy if exists "weekly_schedules_insert_anon" on weekly_schedules;
+drop policy if exists "weekly_schedules_insert_authenticated" on weekly_schedules;
+drop policy if exists "weekly_schedules_update_anon" on weekly_schedules;
+drop policy if exists "weekly_schedules_update_authenticated" on weekly_schedules;
+drop policy if exists "weekly_schedules_delete_anon" on weekly_schedules;
+drop policy if exists "weekly_schedules_delete_authenticated" on weekly_schedules;
+
+-- -------------------------------------------------------------------------------------
+-- Drop all RLS policies for recurring_goals
+-- -------------------------------------------------------------------------------------
+drop policy if exists "recurring_goals_select_anon" on recurring_goals;
+drop policy if exists "recurring_goals_select_authenticated" on recurring_goals;
+drop policy if exists "recurring_goals_insert_anon" on recurring_goals;
+drop policy if exists "recurring_goals_insert_authenticated" on recurring_goals;
+drop policy if exists "recurring_goals_update_anon" on recurring_goals;
+drop policy if exists "recurring_goals_update_authenticated" on recurring_goals;
+drop policy if exists "recurring_goals_delete_anon" on recurring_goals;
+drop policy if exists "recurring_goals_delete_authenticated" on recurring_goals;
+
+-- -------------------------------------------------------------------------------------
+-- Drop all RLS policies for time_blocks
+-- -------------------------------------------------------------------------------------
+drop policy if exists "time_blocks_select_anon" on time_blocks;
+drop policy if exists "time_blocks_select_authenticated" on time_blocks;
+drop policy if exists "time_blocks_insert_anon" on time_blocks;
+drop policy if exists "time_blocks_insert_authenticated" on time_blocks;
+drop policy if exists "time_blocks_update_anon" on time_blocks;
+drop policy if exists "time_blocks_update_authenticated" on time_blocks;
+drop policy if exists "time_blocks_delete_anon" on time_blocks;
+drop policy if exists "time_blocks_delete_authenticated" on time_blocks;
+
+-- -------------------------------------------------------------------------------------
+-- Drop all RLS policies for feedback
+-- -------------------------------------------------------------------------------------
+drop policy if exists "feedback_select_anon" on feedback;
+drop policy if exists "feedback_select_authenticated" on feedback;
+drop policy if exists "feedback_insert_anon" on feedback;
+drop policy if exists "feedback_insert_authenticated" on feedback;
+drop policy if exists "feedback_update_anon" on feedback;
+drop policy if exists "feedback_update_authenticated" on feedback;
+drop policy if exists "feedback_delete_anon" on feedback;
+drop policy if exists "feedback_delete_authenticated" on feedback;
+
+-- -------------------------------------------------------------------------------------
+-- Drop all RLS policies for suggestions_cache
+-- -------------------------------------------------------------------------------------
+drop policy if exists "suggestions_cache_select_anon" on suggestions_cache;
+drop policy if exists "suggestions_cache_select_authenticated" on suggestions_cache;
+drop policy if exists "suggestions_cache_insert_anon" on suggestions_cache;
+drop policy if exists "suggestions_cache_insert_authenticated" on suggestions_cache;
+drop policy if exists "suggestions_cache_update_anon" on suggestions_cache;
+drop policy if exists "suggestions_cache_update_authenticated" on suggestions_cache;
+drop policy if exists "suggestions_cache_delete_anon" on suggestions_cache;
+drop policy if exists "suggestions_cache_delete_authenticated" on suggestions_cache;
+
+-- -------------------------------------------------------------------------------------
+-- Drop all RLS policies for usage_stats
+-- -------------------------------------------------------------------------------------
+drop policy if exists "usage_stats_select_anon" on usage_stats;
+drop policy if exists "usage_stats_select_authenticated" on usage_stats;
+drop policy if exists "usage_stats_insert_anon" on usage_stats;
+drop policy if exists "usage_stats_insert_authenticated" on usage_stats;
+drop policy if exists "usage_stats_update_anon" on usage_stats;
+drop policy if exists "usage_stats_update_authenticated" on usage_stats;
+drop policy if exists "usage_stats_delete_anon" on usage_stats;
+drop policy if exists "usage_stats_delete_authenticated" on usage_stats;
+
+-- -------------------------------------------------------------------------------------
+-- Disable RLS on all tables
+-- -------------------------------------------------------------------------------------
+alter table family_members disable row level security;
+alter table weekly_schedules disable row level security;
+alter table recurring_goals disable row level security;
+alter table time_blocks disable row level security;
+alter table feedback disable row level security;
+alter table suggestions_cache disable row level security;
+alter table usage_stats disable row level security;
+
+-- =====================================================================================
 -- MIGRATION COMPLETE
 -- =====================================================================================
 -- The schema is now ready for use. Next steps:
 -- 1. Set up pg_cron for periodic refresh of weekly_usage_stats
 -- 2. Set up cleanup job for expired suggestions_cache entries
 -- 3. Consider partitioning weekly_schedules and time_blocks by week_start_date for archival
+-- 
+-- NOTE: All RLS policies have been dropped and RLS has been disabled on all tables.
+--       All authenticated and anonymous users will have full access to all data.
+--       Re-enable RLS and create appropriate policies before deploying to production.
 -- =====================================================================================
