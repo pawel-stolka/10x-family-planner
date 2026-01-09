@@ -14,7 +14,11 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@family-planner/shared-models-schedule": [
+        "libs/shared/models-schedule/src/index.ts"
+      ]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }
