@@ -1736,7 +1736,6 @@ WHERE ws.schedule_id = '550e8400-e29b-41d4-a716-446655440000'
     - [ ] API Gateway skonfigurowane (rate limiting)
     - [ ] CloudWatch logging włączony
     - [ ] Monitoring & alerty skonfigurowane
-    - [ ] E2E testy przechodzą w środowisku staging
     - [ ] Load testing wykonany (60 req/min/user)
 
 24. **Monitoring setup**
