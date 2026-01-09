@@ -43,6 +43,59 @@ Jesteśmy rodzicami trójki dzieci; jedno z nas pracuje w ciągu dnia, ma pobocz
 - Poprawianie planu i feedback (thumbs up/down) → AI się uczy.
 - Znalezienie aktywności lub przepisów w oparciu o kontekst (czas, pogoda, składniki).
 
+## 5. Historyjki użytkowników
+
+ID: US-001
+Tytuł: Rejestracja konta
+Opis: Jako nowy użytkownik chcę się zarejestrować, aby mieć dostęp do własnych danych (harmonogramy tygodni, itd) i móc korzystać z generowania danych przez AI.
+Kryteria akceptacji:
+- Formularz rejestracyjny zawiera pola na adres e-mail i hasło.
+- Po poprawnym wypełnieniu formularza i weryfikacji danych konto jest aktywowane.
+- Użytkownik otrzymuje potwierdzenie pomyślnej rejestracji i zostaje zalogowany.
+
+ID: US-002
+Tytuł: Logowanie do aplikacji
+Opis: Jako zarejestrowany użytkownik chcę móc się zalogować, aby mieć dostęp do moich harmonogramów i historii generowania.
+Kryteria akceptacji:
+- Po podaniu prawidłowych danych logowania użytkownik zostaje przekierowany do widoku tygodni.
+- Błędne dane logowania wyświetlają komunikat o nieprawidłowych danych.
+- Dane dotyczące logowania przechowywane są w bezpieczny sposób.
+
+ID: US-003
+Tytuł: Generowanie nadchodzącego tygodnia przy użyciu AI
+Opis: Jako zalogowany użytkownik chcę zobaczyć nadchodzący tydzień w kalendarzu i za pomocą przycisku wygenerować propozycje wypełnienia go dzień po dniu, aby zaoszczędzić czas na ręcznym tworzeniu okien na każdą pozycję. 
+Kryteria akceptacji:
+- W widoku generowania tygodnia znajdują się zajęcia każdego z rodzicóuze swoimi parametrami (ilość w tygodniu, długość, preferencje godzinowe, itp).
+- AI generuje ich ustawienie na podstawie preferencji każdej z osób w rodzinie.
+- Każdy użytkownik przypisuje sobie współmałżonka (i dzieci jeśli są). Dla każdej osoby dobiera listę jej zajęć wraz z opisem. Dane są zapisywane do bazy i wykorzystywane w zapytaniach LLharmonogramów.
+- Po kliknięciu przycisku generowania aplikacja komunikuje się z API modelu LLM i wyświetla listę wygenerowanych propozycji tygodnia do akceptacji przez użytkownika.
+- W przypadku problemów z API lub braku odpowiedzi modelu użytkownik zobaczy stosowny komunikat o błędzie.
+
+ID: US-004
+Tytuł: Przegląd i zatwierdzanie propozycji harmonogramów
+Opis: Jako zalogowany użytkownik chcę móc przeglądać wygenerowane harmonogramy i decydować, które z nich chcę dodać do mojego zestawu, aby zachować tylko przydatne zestawy.
+Kryteria akceptacji:
+- Lista wygenerowanych harmonogramów jest wyświetlana pod formularzem generowania.
+- Przy każdym harmonogramie znajduje się przycisk pozwalający na jego zatwierdzenie, edycję lub odrzucenie.
+- Po zatwierdzeniu wybranego harmonogramu użytkownik może kliknąć przycisk zapisu i dodać je do bazy danych.
+
+ID: US-005
+Tytuł: Edycja harmonogramów utworzonych ręcznie i generowanych przez AI
+Opis: Jako zalogowany użytkownik chcę edytować stworzone lub wygenerowane harmonogramy, aby poprawić ewentualne błędy lub dostosować podpowiedzi do własnych potrzeb.
+Kryteria akceptacji:
+- Istnieje lista zapisanych harmonogramów (zarówno ręcznie tworzonych, jak i zatwierdzonych wygenerowanych).
+- Każdy harmonogram można kliknąć i wejść w tryb edycji.
+- Zmiany są zapisywane w bazie danych po zatwierdzeniu.
+
+ID: US-006
+Tytuł: Bezpieczny dostęp i autoryzacja
+Opis: Jako zalogowany użytkownik chcę mieć pewność, że moje harmonogramy nie są dostępne dla innych użytkowników, aby zachować prywatność i bezpieczeństwo danych.
+Kryteria akceptacji:
+- Tylko zalogowany użytkownik może wyświetlać, edytować i usuwać swoje harmonogramy.
+- Harmonogramy współmałżonka będą wprowadzone w następnej fazie developmentu do współdzielenia.
+
+
+
 ## 6. Moduły MVP (Phase 1)
 
 ### Module 1 – Weekly Schedule Generator
@@ -85,7 +138,8 @@ Jesteśmy rodzicami trójki dzieci; jedno z nas pracuje w ciągu dnia, ma pobocz
 - ≥80% AI-generated planów akceptowanych bez dużych poprawek.
 - Wskaźnik feedbacku (thumbs up/down) rosnący.
 - Zmniejszenie czasu planowania o ≥30 min tygodniowo.
-- Wykorzystanie modułów aktywności i posiłków 2–3 razy w tygodniu.
+(- Wykorzystanie modułów aktywności i posiłków 2–3 razy w tygodniu. - w następnej fazie projektu)
+
 
 ## 10. Otwarte pytania
 1. Czy integracja z Google Calendar wchodzi do Phase 1? 
