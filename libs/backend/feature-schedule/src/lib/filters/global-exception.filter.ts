@@ -90,10 +90,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         return response;
       }
 
-      if (typeof response === 'object' && 'message' in response) {
-        return Array.isArray(response.message)
-          ? response.message
-          : response.message;
+      if (
+        typeof response === 'object' &&
+        response !== null &&
+        'message' in response
+      ) {
+        const message = (response as any).message;
+        return Array.isArray(message) ? message : String(message);
       }
     }
 

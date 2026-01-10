@@ -20,9 +20,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false, // Reject expired tokens
-      secretOrKey: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-      issuer: process.env.JWT_ISSUER || 'https://supabase.io/auth',
-      audience: process.env.JWT_AUDIENCE || process.env.SUPABASE_PROJECT_ID,
+      secretOrKey: process.env['JWT_SECRET'] || 'your-secret-key-change-in-production',
+      issuer: process.env['JWT_ISSUER'] || 'https://supabase.io/auth',
+      audience: process.env['JWT_AUDIENCE'] || process.env['SUPABASE_PROJECT_ID'],
     });
   }
 

@@ -5,17 +5,6 @@
   "projectType": "library",
   "tags": [],
   "targets": {
-    "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "outputPath": "dist/libs/backend/feature-schedule",
-        "tsConfig": "libs/backend/feature-schedule/tsconfig.lib.json",
-        "packageJson": "libs/backend/feature-schedule/package.json",
-        "main": "libs/backend/feature-schedule/src/index.ts",
-        "assets": ["libs/backend/feature-schedule/*.md"]
-      }
-    },
     "test": {
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],

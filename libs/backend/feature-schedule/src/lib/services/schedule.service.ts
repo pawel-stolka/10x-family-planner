@@ -107,9 +107,13 @@ export class ScheduleService {
       }
 
       // Log and wrap database errors
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Database error fetching schedule ${scheduleId}: ${error.message}`,
-        error.stack
+        `Database error fetching schedule ${scheduleId}: ${errorMessage}`,
+        errorStack
       );
       throw new InternalServerErrorException('An unexpected error occurred');
     }

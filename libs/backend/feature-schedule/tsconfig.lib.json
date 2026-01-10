@@ -6,11 +6,12 @@
     "types": ["node"],
     "strictPropertyInitialization": false
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../../../libs/shared/**/*.ts"],
   "exclude": [
     "jest.config.ts",
     "jest.config.cts",
     "src/**/*.spec.ts",
-    "src/**/*.test.ts"
+    "src/**/*.test.ts",
+    "../../../libs/shared/**/*.spec.ts"
   ]
 }
