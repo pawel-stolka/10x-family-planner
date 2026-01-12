@@ -191,13 +191,12 @@ export class AuthService {
    * @returns Signed JWT token
    */
   private generateToken(user: UserEntity): string {
-    const payload: JwtPayload = {
+    const payload: Omit<JwtPayload, 'iat' | 'exp'> = {
       userId: user.userId,
       email: user.email,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour expiration
     };
 
+    // JwtModule is configured with expiresIn: '1h', so it will automatically add 'exp' and 'iat' claims
     return this.jwtService.sign(payload);
   }
 

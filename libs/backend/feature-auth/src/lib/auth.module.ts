@@ -33,8 +33,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
       secret: process.env['JWT_SECRET'] || 'your-secret-key-change-in-production',
       signOptions: {
         expiresIn: '1h',
-        issuer: process.env['JWT_ISSUER'] || 'https://supabase.io/auth',
-        audience: process.env['JWT_AUDIENCE'] || process.env['SUPABASE_PROJECT_ID'],
+        issuer: process.env['JWT_ISSUER'] || 'family-planner-api',
+        audience: process.env['JWT_AUDIENCE'] || 'family-planner-users',
       },
     }),
   ],

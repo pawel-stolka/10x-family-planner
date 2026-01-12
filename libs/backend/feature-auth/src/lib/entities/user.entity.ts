@@ -20,28 +20,28 @@ import {
  */
 @Entity('users')
 export class UserEntity {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn('uuid', { name: 'user_id' })
   userId!: string;
 
-  @Column('varchar', { length: 255, unique: true })
+  @Column('varchar', { name: 'email', length: 255, unique: true })
   @Index('idx_users_email')
   email!: string;
 
-  @Column('varchar', { length: 255 })
+  @Column('varchar', { name: 'password_hash', length: 255 })
   passwordHash!: string;
 
-  @Column('varchar', { length: 100, nullable: true })
+  @Column('varchar', { name: 'display_name', length: 100, nullable: true })
   displayName!: string | null;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date;
 
-  @Column('timestamptz', { nullable: true })
+  @Column('timestamptz', { name: 'deleted_at', nullable: true })
   deletedAt!: Date | null;
 
-  @Column('timestamptz', { nullable: true })
+  @Column('timestamptz', { name: 'last_login_at', nullable: true })
   lastLoginAt!: Date | null;
 }
