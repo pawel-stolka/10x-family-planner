@@ -16,9 +16,11 @@ import {
 } from '@nestjs/swagger';
 import { ScheduleService } from '../services/schedule.service';
 import { ScheduleMapper } from '../mappers/schedule.mapper';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import {
+  JwtAuthGuard,
+  CurrentUser,
+  JwtPayload,
+} from '@family-planner/backend/feature-auth';
 import { GetScheduleParamsDto } from '../dto/get-schedule-params.dto';
 import { WeeklyScheduleDto } from '../dto/weekly-schedule.dto';
 

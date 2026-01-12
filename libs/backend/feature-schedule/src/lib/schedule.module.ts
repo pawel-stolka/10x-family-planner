@@ -17,9 +17,8 @@ import { ScheduleController } from './controllers/schedule.controller';
 import { ScheduleService } from './services/schedule.service';
 import { ScheduleMapper } from './mappers/schedule.mapper';
 
-// Guards & Strategies
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { JwtStrategy } from './strategies/jwt.strategy';
+// Auth Module (for JWT guards and strategies)
+import { AuthModule } from '@family-planner/backend/feature-auth';
 
 // Filters
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
@@ -52,6 +51,9 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
       RecurringGoalEntity,
     ]),
 
+    // Import auth module for JWT guards and strategies
+    AuthModule,
+
     // Passport authentication
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
@@ -72,10 +74,6 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
     ScheduleService,
     ScheduleMapper,
 
-    // Auth
-    JwtAuthGuard,
-    JwtStrategy,
-
     // Global Exception Filter
     {
       provide: APP_FILTER,
@@ -86,8 +84,6 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
   exports: [
     ScheduleService,
     ScheduleMapper,
-    JwtAuthGuard,
-    JwtStrategy,
     PassportModule,
   ],
 })

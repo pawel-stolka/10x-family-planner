@@ -14,3 +14,15 @@ export * from './lib/dto/auth-response.dto';
 
 // Entities
 export * from './lib/entities/user.entity';
+
+// Interfaces
+export * from './lib/interfaces/jwt-payload.interface';
+
+// Guards
+export * from './lib/guards/jwt-auth.guard';
+
+// Strategies
+export * from './lib/strategies/jwt.strategy';
+
+// Decorators
+export * from './lib/decorators/current-user.decorator';

@@ -13,7 +13,7 @@ import { UserEntity } from '../entities/user.entity';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { AuthResponseDto, UserDto } from '../dto/auth-response.dto';
-import { JwtPayload } from '@family-planner/backend/feature-schedule';
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 /**
  * Auth Service

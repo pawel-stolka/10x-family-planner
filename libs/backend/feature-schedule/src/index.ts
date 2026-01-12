@@ -26,16 +26,6 @@ export * from './lib/mappers/schedule.mapper';
 // Controllers
 export * from './lib/controllers/schedule.controller';
 
-// Guards & Strategies
-export * from './lib/guards/jwt-auth.guard';
-export * from './lib/strategies/jwt.strategy';
-
-// Decorators
-export * from './lib/decorators/current-user.decorator';
-
-// Interfaces
-export * from './lib/interfaces/jwt-payload.interface';
-
 // Filters
 export * from './lib/filters/global-exception.filter';
 

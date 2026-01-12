@@ -17,20 +17,18 @@ import { AuthService } from '../services/auth.service';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { AuthResponseDto } from '../dto/auth-response.dto';
-import {
-  JwtAuthGuard,
-  CurrentUser,
-  JwtPayload,
-} from '@family-planner/backend/feature-schedule';
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { CurrentUser } from '../decorators/current-user.decorator';
 
 /**
  * Auth Controller
- * 
+ *
  * Handles authentication endpoints:
  * - POST /v1/auth/register - Create new account
  * - POST /v1/auth/login - Authenticate user
  * - POST /v1/auth/logout - Invalidate session
- * 
+ *
  * Note: All endpoints under /auth/** do NOT require JWT
  * except for logout which needs authentication.
  */
@@ -43,10 +41,10 @@ export class AuthController {
 
   /**
    * Register a new user account
-   * 
+   *
    * Creates a new user with email/password and returns JWT token.
    * Automatically creates a family member record with role=USER.
-   * 
+   *
    * @param registerDto - Registration data
    * @returns JWT token and user information
    */
@@ -77,9 +75,9 @@ export class AuthController {
 
   /**
    * Login existing user
-   * 
+   *
    * Authenticates user with email/password and returns JWT token.
-   * 
+   *
    * @param loginDto - Login credentials
    * @returns JWT token and user information
    */
@@ -105,11 +103,11 @@ export class AuthController {
 
   /**
    * Logout current user
-   * 
+   *
    * Invalidates the current session. With stateless JWT,
    * this is primarily handled client-side by removing the token.
    * This endpoint exists for logging and future token blacklisting.
-   * 
+   *
    * @param user - Current authenticated user from JWT
    * @returns 204 No Content
    */
@@ -119,8 +117,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Logout user',
-    description:
-      'Invalidate current session. Client should remove JWT token.',
+    description: 'Invalidate current session. Client should remove JWT token.',
   })
   @ApiResponse({
     status: 204,
