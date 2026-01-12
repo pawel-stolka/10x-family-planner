@@ -1,17 +1,21 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthResponse, LoginCredentials, RegistrationData } from '../models/user.model';
+import {
+  AuthResponse,
+  LoginCredentials,
+  RegistrationData,
+} from '../models/user.model';
 
 /**
  * AuthService - handles HTTP communication with auth API endpoints
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = '/api/auth'; // TODO: move to environment config
+  private readonly apiUrl = '/api/v1/auth'; // Backend uses /api/v1/auth prefix
 
   /**
    * Login user
@@ -31,7 +35,7 @@ export class AuthService {
 
   /**
    * Logout user
-   * POST /auth/logout
+   * POST /v1/auth/logout
    */
   logout(): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/logout`, {});
@@ -39,7 +43,10 @@ export class AuthService {
 
   /**
    * Refresh JWT token
-   * POST /auth/refresh
+   * POST /v1/auth/refresh
+   *
+   * NOTE: This endpoint is not yet implemented on backend.
+   * Uncomment when backend /v1/auth/refresh is ready.
    */
   refreshToken(): Observable<{ token: string }> {
     return this.http.post<{ token: string }>(`${this.apiUrl}/refresh`, {});
