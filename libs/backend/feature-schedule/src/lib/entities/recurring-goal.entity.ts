@@ -17,31 +17,31 @@ import {
 @Entity('recurring_goals')
 export class RecurringGoalEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'goal_id' })
-  goalId: string;
+  goalId!: string;
 
   @Column('uuid', { name: 'user_id' })
-  userId: string;
+  userId!: string;
 
   @Column('text')
-  name: string;
+  name!: string;
 
   @Column('integer', { name: 'frequency_per_week' })
-  frequencyPerWeek: number;
+  frequencyPerWeek!: number;
 
   @Column('integer', { name: 'duration_minutes' })
-  durationMinutes: number;
+  durationMinutes!: number;
 
   @Column('uuid', { nullable: true, name: 'family_member_id' })
   familyMemberId?: string;
 
   @Column('jsonb', { default: {} })
-  preferences: Record<string, any>;
+  preferences!: Record<string, any>;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column('timestamptz', { nullable: true, name: 'deleted_at' })
   deletedAt?: Date;

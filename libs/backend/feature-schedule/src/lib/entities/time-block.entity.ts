@@ -28,10 +28,10 @@ import { RecurringGoalEntity } from './recurring-goal.entity';
 @Entity('time_blocks')
 export class TimeBlockEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'block_id' })
-  blockId: string;
+  blockId!: string;
 
   @Column('uuid', { name: 'schedule_id' })
-  scheduleId: string;
+  scheduleId!: string;
 
   @Column('uuid', { nullable: true, name: 'recurring_goal_id' })
   recurringGoalId?: string;
@@ -40,7 +40,7 @@ export class TimeBlockEntity {
   familyMemberId?: string;
 
   @Column('text')
-  title: string;
+  title!: string;
 
   @Column({
     type: 'enum',
@@ -48,7 +48,7 @@ export class TimeBlockEntity {
     enumName: 'block_type',
     name: 'block_type',
   })
-  blockType: BlockType;
+  blockType!: BlockType;
 
   /**
    * Time range stored as PostgreSQL TSTZRANGE
@@ -59,13 +59,13 @@ export class TimeBlockEntity {
     name: 'time_range',
     transformer: new TimeRangeTransformer(),
   })
-  timeRange: TimeRange;
+  timeRange!: TimeRange;
 
   @Column('boolean', { default: false, name: 'is_shared' })
-  isShared: boolean;
+  isShared!: boolean;
 
   @Column('jsonb', { default: {} })
-  metadata: Record<string, any>;
+  metadata!: Record<string, any>;
 
   /**
    * Relation to FamilyMember (lazy loaded unless specified)
@@ -82,10 +82,10 @@ export class TimeBlockEntity {
   recurringGoal?: RecurringGoalEntity;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column('timestamptz', { nullable: true, name: 'deleted_at' })
   deletedAt?: Date;

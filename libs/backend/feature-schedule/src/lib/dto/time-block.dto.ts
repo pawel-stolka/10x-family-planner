@@ -16,14 +16,14 @@ export class TimeBlockDto {
     format: 'uuid',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  blockId: string;
+  blockId!: string;
 
   @ApiProperty({
     description: 'Reference to the parent weekly schedule',
     format: 'uuid',
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
-  scheduleId: string;
+  scheduleId!: string;
 
   @ApiProperty({
     description: 'Optional reference to a recurring goal this block fulfills',
@@ -48,33 +48,33 @@ export class TimeBlockDto {
     description: 'Display title for the time block',
     example: 'Morning Workout',
   })
-  title: string;
+  title!: string;
 
   @ApiProperty({
     description: 'Category of the time block',
     enum: BlockType,
     example: BlockType.ACTIVITY,
   })
-  blockType: BlockType;
+  blockType!: BlockType;
 
   @ApiProperty({
     description: 'Time range when this block is scheduled',
     type: TimeRangeDto,
   })
-  timeRange: TimeRangeDto;
+  timeRange!: TimeRangeDto;
 
   @ApiProperty({
     description: 'Whether this block is visible/shared with all family members',
     example: false,
   })
-  isShared: boolean;
+  isShared!: boolean;
 
   @ApiProperty({
     description:
       'Additional metadata stored as JSON (e.g., location, notes, tags)',
     example: { location: 'Home gym', intensity: 'high' },
   })
-  metadata: Record<string, any>;
+  metadata!: Record<string, any>;
 
   @ApiProperty({
     description: 'Populated family member data if familyMemberId exists',
@@ -96,11 +96,11 @@ export class TimeBlockDto {
     description: 'Timestamp when the block was created',
     example: '2026-01-09T12:00:00Z',
   })
-  createdAt: string;
+  createdAt!: string;
 
   @ApiProperty({
     description: 'Timestamp when the block was last updated',
     example: '2026-01-09T12:00:00Z',
   })
-  updatedAt: string;
+  updatedAt!: string;
 }

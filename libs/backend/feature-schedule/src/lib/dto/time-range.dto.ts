@@ -11,11 +11,11 @@ export class TimeRangeDto {
     description: 'Start time of the range (ISO 8601 timestamp with timezone)',
     example: '2026-01-13T06:00:00Z',
   })
-  start: string;
+  start!: string;
 
   @ApiProperty({
     description: 'End time of the range (ISO 8601 timestamp with timezone)',
     example: '2026-01-13T07:00:00Z',
   })
-  end: string;
+  end!: string;
 }

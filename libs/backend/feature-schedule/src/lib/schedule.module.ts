@@ -57,7 +57,8 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
 
     // JWT token handling
     JwtModule.register({
-      secret: process.env['JWT_SECRET'] || 'your-secret-key-change-in-production',
+      secret:
+        process.env['JWT_SECRET'] || 'your-secret-key-change-in-production',
       signOptions: {
         expiresIn: process.env['JWT_EXPIRES_IN'] || '1h',
       } as any,
@@ -82,6 +83,12 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
     },
   ],
 
-  exports: [ScheduleService, ScheduleMapper],
+  exports: [
+    ScheduleService,
+    ScheduleMapper,
+    JwtAuthGuard,
+    JwtStrategy,
+    PassportModule,
+  ],
 })
 export class ScheduleModule {}

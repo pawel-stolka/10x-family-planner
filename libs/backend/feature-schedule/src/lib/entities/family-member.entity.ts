@@ -18,32 +18,32 @@ import { FamilyMemberRole } from '@family-planner/shared-models-schedule';
 @Entity('family_members')
 export class FamilyMemberEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'family_member_id' })
-  familyMemberId: string;
+  familyMemberId!: string;
 
   @Column('uuid', { name: 'user_id' })
-  userId: string;
+  userId!: string;
 
   @Column('text')
-  name: string;
+  name!: string;
 
   @Column({
     type: 'enum',
     enum: FamilyMemberRole,
     enumName: 'family_member_role',
   })
-  role: FamilyMemberRole;
+  role!: FamilyMemberRole;
 
   @Column('integer', { nullable: true })
   age?: number;
 
   @Column('jsonb', { default: {} })
-  preferences: Record<string, any>;
+  preferences!: Record<string, any>;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column('timestamptz', { nullable: true, name: 'deleted_at' })
   deletedAt?: Date;

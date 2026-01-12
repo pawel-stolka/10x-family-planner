@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@family-planner/backend/feature-schedule';
+import { AuthModule } from '@family-planner/backend/feature-auth';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -13,6 +14,7 @@ import { AppService } from './app.service';
  * Configuration:
  * - ConfigModule: Loads .env files for environment variables
  * - TypeOrmModule: Connects to Supabase PostgreSQL database
+ * - AuthModule: Feature module for authentication (register, login, logout)
  * - ScheduleModule: Feature module for weekly schedule management
  */
 @Module({
@@ -47,6 +49,7 @@ import { AppService } from './app.service';
     }),
 
     // Feature modules
+    AuthModule,
     ScheduleModule,
   ],
   controllers: [AppController],

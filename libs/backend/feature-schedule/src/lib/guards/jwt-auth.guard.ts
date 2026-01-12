@@ -29,7 +29,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * Check if user can activate/access the route
    * Delegates to Passport JWT strategy
    */
-  canActivate(context: ExecutionContext) {
+  override canActivate(context: ExecutionContext) {
     return super.canActivate(context);
   }
 
@@ -44,7 +44,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * @returns User object to attach to request
    * @throws UnauthorizedException on auth failure
    */
-  handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
+  override handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
 
     if (err || !user) {

@@ -26,40 +26,40 @@ import { TimeBlockEntity } from './time-block.entity';
 @Entity('weekly_schedules')
 export class WeeklyScheduleEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'schedule_id' })
-  scheduleId: string;
+  scheduleId!: string;
 
   @Column('uuid', { name: 'user_id' })
-  userId: string;
+  userId!: string;
 
   /**
    * Start date of the week (Monday in YYYY-MM-DD format)
    * Stored as DATE type in PostgreSQL
    */
   @Column('date', { name: 'week_start_date' })
-  weekStartDate: Date;
+  weekStartDate!: Date;
 
   @Column('boolean', { default: false, name: 'is_ai_generated' })
-  isAiGenerated: boolean;
+  isAiGenerated!: boolean;
 
   /**
    * Additional metadata stored as JSONB
    * Examples: { generationStrategy: 'balanced', aiModel: 'gpt-4o' }
    */
   @Column('jsonb', { default: {} })
-  metadata: Record<string, any>;
+  metadata!: Record<string, any>;
 
   /**
    * One-to-Many relation with TimeBlocks
    * Lazy loaded by default - use relations: ['timeBlocks'] in find options for eager loading
    */
   @OneToMany(() => TimeBlockEntity, (block) => block.scheduleId)
-  timeBlocks: TimeBlockEntity[];
+  timeBlocks!: TimeBlockEntity[];
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column('timestamptz', { nullable: true, name: 'deleted_at' })
   deletedAt?: Date;

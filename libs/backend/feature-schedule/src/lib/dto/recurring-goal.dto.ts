@@ -12,13 +12,13 @@ export class RecurringGoalDto {
     format: 'uuid',
     example: 'abc12345-e89b-12d3-a456-426614174111',
   })
-  goalId: string;
+  goalId!: string;
 
   @ApiProperty({
     description: 'Name/title of the goal',
     example: 'Fitness routine',
   })
-  name: string;
+  name!: string;
 
   @ApiProperty({
     description: 'How many times per week this goal should be scheduled',
@@ -26,5 +26,5 @@ export class RecurringGoalDto {
     maximum: 21,
     example: 3,
   })
-  frequencyPerWeek: number;
+  frequencyPerWeek!: number;
 }
