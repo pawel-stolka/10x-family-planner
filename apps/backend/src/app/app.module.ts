@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@family-planner/backend/feature-schedule';
-import { AuthModule } from '@family-planner/backend/feature-auth';
+import { AuthModule, UserEntity } from '@family-planner/backend/feature-auth';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { InitializationService } from './initialization.service';
 
 /**
  * App Module
@@ -51,8 +52,11 @@ import { AppService } from './app.service';
     // Feature modules
     AuthModule,
     ScheduleModule,
+    
+    // Import UserEntity for InitializationService
+    TypeOrmModule.forFeature([UserEntity]),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, InitializationService],
 })
 export class AppModule {}

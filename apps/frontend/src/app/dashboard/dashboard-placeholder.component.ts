@@ -1,7 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthStore } from '@family-planner/frontend/data-access-auth';
+import { ScheduleStore } from '@family-planner/frontend/data-access-schedule';
+import { WeeklyCalendarComponent } from './weekly-calendar/weekly-calendar.component';
 
 /**
  * DashboardPlaceholderComponent - Temporary dashboard for testing navigation
@@ -14,7 +16,7 @@ import { AuthStore } from '@family-planner/frontend/data-access-auth';
  */
 @Component({
   selector: 'fp-dashboard-placeholder',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, WeeklyCalendarComponent],
   template: `
     <div class="dashboard-placeholder">
       <div class="dashboard-header">
@@ -36,13 +38,34 @@ import { AuthStore } from '@family-planner/frontend/data-access-auth';
         </div>
 
         <div class="info-card">
-          <h3 class="info-title">Dashboard Coming Soon</h3>
+          <h3 class="info-title">Generate Your Weekly Schedule 🪄</h3>
           <p class="info-text">
-            This is a placeholder dashboard. The full dashboard with weekly
-            schedule preview, quick actions, and usage statistics will be
-            implemented in the next phase.
+            Create an AI-powered weekly schedule tailored to your family's
+            needs.
           </p>
+          <button
+            class="generate-button"
+            (click)="onGenerateSchedule()"
+            [disabled]="scheduleStore.generating()"
+          >
+            @if (scheduleStore.generating()) {
+            <span class="spinner"></span>
+            Generating... } @else { Generate Week Schedule }
+          </button>
+
+          @if (scheduleStore.error()) {
+          <div class="error-message">❌ {{ scheduleStore.error() }}</div>
+          } @if (scheduleStore.lastGenerated(); as generated) {
+          <div class="success-message">
+            ✅ Schedule generated successfully!
+            <strong>{{ generated.summary.totalBlocks }}</strong> blocks created.
+          </div>
+          }
         </div>
+
+        @if (scheduleStore.lastGenerated(); as generated) {
+        <fp-weekly-calendar [timeBlocks]="generated.timeBlocks" />
+        }
 
         <div class="user-info-card">
           <h3 class="section-title">Your Account Information</h3>
@@ -186,6 +209,78 @@ import { AuthStore } from '@family-planner/frontend/data-access-auth';
         border: 1px solid #e2e8f0;
       }
 
+      .generate-button {
+        margin-top: 1.5rem;
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        &:focus {
+          outline: 2px solid #667eea;
+          outline-offset: 2px;
+        }
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error-message,
+      .success-message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 8px;
+        font-size: 0.95rem;
+      }
+
+      .error-message {
+        background: #fed7d7;
+        color: #c53030;
+        border-left: 3px solid #e53e3e;
+      }
+
+      .success-message {
+        background: #c6f6d5;
+        color: #22543d;
+        border-left: 3px solid #38a169;
+      }
+
       .info-title,
       .section-title {
         font-size: 1.25rem;
@@ -316,6 +411,7 @@ import { AuthStore } from '@family-planner/frontend/data-access-auth';
 })
 export class DashboardPlaceholderComponent {
   protected readonly authStore = inject(AuthStore);
+  protected readonly scheduleStore = inject(ScheduleStore);
 
   /**
    * Handle logout
@@ -329,5 +425,49 @@ export class DashboardPlaceholderComponent {
         console.error('Logout failed:', error);
       },
     });
+  }
+
+  /**
+   * Handle schedule generation
+   */
+  protected onGenerateSchedule(): void {
+    // Get next Monday as start date
+    // const nextMonday = this.getNextMonday();
+    const nextMonday = '2026-01-26';
+
+    console.log('🚀 Generating schedule for week starting:', nextMonday);
+
+    this.scheduleStore
+      .generateSchedule({
+        weekStartDate: nextMonday,
+        strategy: 'balanced',
+        preferences: {
+          respectFixedBlocks: true,
+          includeAllGoals: true,
+          preferMornings: false,
+          maximizeFamilyTime: true,
+        },
+      })
+      .subscribe({
+        next: (response) => {
+          console.log('✅ Schedule generated:', response);
+        },
+        error: (error) => {
+          console.error('❌ Generation failed:', error);
+        },
+      });
+  }
+
+  /**
+   * Get next Monday's date in ISO format (YYYY-MM-DD)
+   */
+  private getNextMonday(): string {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + daysUntilMonday);
+
+    return nextMonday.toISOString().split('T')[0];
   }
 }

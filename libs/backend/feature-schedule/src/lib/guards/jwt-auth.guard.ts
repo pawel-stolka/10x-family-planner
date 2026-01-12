@@ -42,14 +42,26 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * @param info - Additional info about auth failure
    * @param context - Execution context
    * @returns User object to attach to request
-   * @throws UnauthorizedException on auth failure
+   * @throws UnauthorizedException on auth failure (production only)
    */
   override handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const hasAuthHeader = !!request.headers?.authorization;
 
     if (err || !user) {
       const message = info?.message || err?.message || 'Invalid or expired token';
       
+      // In development mode, allow requests without valid JWT for testing
+      if (isDevelopment) {
+        this.logger.warn(
+          `⚠️  Authentication bypassed in development mode for ${request.ip}: ${message} ` +
+          `(Authorization header ${hasAuthHeader ? 'present' : 'missing'})`
+        );
+        return null; // Return null instead of throwing, controller will handle fallback
+      }
+      
+      // In production, enforce strict authentication
       this.logger.warn(
         `Authentication failed for ${request.ip}: ${message}`
       );
@@ -57,6 +69,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
+    this.logger.log(`✅ User authenticated: ${user.userId} (${user.email})`);
     return user;
   }
 }

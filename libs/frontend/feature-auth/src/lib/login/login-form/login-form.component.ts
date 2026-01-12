@@ -13,7 +13,6 @@ import { LoginCredentials } from '@family-planner/frontend/data-access-auth';
  * 
  * Features:
  * - Email and password fields with validation
- * - Remember me checkbox
  * - Password visibility toggle
  * - Loading state (disabled inputs + spinner)
  * - Error display
@@ -97,19 +96,6 @@ import { LoginCredentials } from '@family-planner/frontend/data-access-auth';
             Password is required
           </span>
         }
-      </div>
-
-      <!-- Remember me checkbox -->
-      <div class="form-group checkbox-group">
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            formControlName="rememberMe"
-            class="checkbox-input"
-            [disabled]="loading()"
-          />
-          <span>Remember me</span>
-        </label>
       </div>
 
       <!-- Submit button -->
@@ -276,36 +262,6 @@ import { LoginCredentials } from '@family-planner/frontend/data-access-auth';
       color: #e53e3e;
     }
 
-    .checkbox-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.9rem;
-      color: #4a5568;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .checkbox-input {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      
-      &:disabled {
-        cursor: not-allowed;
-        opacity: 0.5;
-      }
-
-      &:focus {
-        outline: 2px solid #667eea;
-        outline-offset: 2px;
-      }
-    }
-
     .submit-button {
       width: 100%;
       padding: 0.875rem 1.5rem;
@@ -383,8 +339,7 @@ export class LoginFormComponent implements OnInit {
   private initializeForm(): void {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required]],
-      rememberMe: [false]
+      password: ['', [Validators.required]]
     });
   }
 
@@ -410,8 +365,7 @@ export class LoginFormComponent implements OnInit {
     if (this.form.valid && !this.loading()) {
       const credentials: LoginCredentials = {
         email: this.form.value.email,
-        password: this.form.value.password,
-        rememberMe: this.form.value.rememberMe
+        password: this.form.value.password
       };
       this.submitLogin.emit(credentials);
     }

@@ -12,9 +12,12 @@ import { RecurringGoalEntity } from './entities/recurring-goal.entity';
 
 // Controllers
 import { ScheduleController } from './controllers/schedule.controller';
+import { ScheduleGeneratorController } from './controllers/schedule-generator.controller';
 
 // Services
 import { ScheduleService } from './services/schedule.service';
+import { ScheduleGeneratorService } from './services/schedule-generator.service';
+import { OpenAIService } from './services/openai.service';
 import { ScheduleMapper } from './mappers/schedule.mapper';
 
 // Auth Module (for JWT guards and strategies)
@@ -67,11 +70,13 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
     }),
   ],
 
-  controllers: [ScheduleController],
+  controllers: [ScheduleController, ScheduleGeneratorController],
 
   providers: [
     // Services
     ScheduleService,
+    ScheduleGeneratorService,
+    OpenAIService,
     ScheduleMapper,
 
     // Global Exception Filter

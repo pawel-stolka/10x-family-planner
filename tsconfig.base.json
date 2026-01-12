@@ -29,6 +29,9 @@
       ],
       "@family-planner/frontend/feature-auth": [
         "libs/frontend/feature-auth/src/index.ts"
+      ],
+      "@family-planner/frontend/data-access-schedule": [
+        "libs/frontend/data-access-schedule/src/index.ts"
       ]
     }
   },

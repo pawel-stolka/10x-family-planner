@@ -6,15 +6,18 @@ import { User, LoginCredentials, RegistrationData } from '../models/user.model';
 
 /**
  * AuthStore - manages authentication state using Angular Signals
- * 
+ *
  * Responsibilities:
  * - User authentication state (user, token, isAuthenticated)
  * - Login/Logout/Register actions
- * - Token storage (memory-based for XSS safety)
+ * - Token storage (localStorage for persistence across page refreshes)
  * - Token refresh mechanism
+ *
+ * Note: Token is stored in localStorage for development convenience.
+ * For production, consider using httpOnly cookies for better security.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthStore {
   private readonly authService = inject(AuthService);
@@ -43,17 +46,21 @@ export class AuthStore {
   }
 
   /**
-   * Initialize auth state from localStorage (optional persistent storage)
-   * Only user data is stored, token stays in memory
+   * Initialize auth state from localStorage
+   * Loads both user data and JWT token from storage
    */
   private initializeFromStorage(): void {
     try {
       const storedUser = localStorage.getItem('fp_user');
-      if (storedUser) {
+      const storedToken = localStorage.getItem('fp_token');
+
+      if (storedUser && storedToken) {
         const user = JSON.parse(storedUser) as User;
         // Convert createdAt string back to Date
         user.createdAt = new Date(user.createdAt);
         this.userSignal.set(user);
+        this.tokenSignal.set(storedToken);
+        console.log('✅ Restored auth from storage:', user.email);
       }
     } catch (error) {
       console.error('Failed to initialize auth from storage:', error);
@@ -69,13 +76,13 @@ export class AuthStore {
     this.errorSignal.set(null);
 
     return this.authService.register(data).pipe(
-      tap(response => {
+      tap((response) => {
         this.setAuthData(response.user, response.token);
         this.loadingSignal.set(false);
         // Auto-navigate to onboarding after successful registration
         this.router.navigate(['/onboarding']);
       }),
-      catchError(error => {
+      catchError((error) => {
         this.loadingSignal.set(false);
         this.errorSignal.set(this.extractErrorMessage(error));
         return throwError(() => error);
@@ -91,13 +98,13 @@ export class AuthStore {
     this.errorSignal.set(null);
 
     return this.authService.login(credentials).pipe(
-      tap(response => {
+      tap((response) => {
         this.setAuthData(response.user, response.token);
         this.loadingSignal.set(false);
         // Navigate to dashboard after successful login
         this.router.navigate(['/dashboard']);
       }),
-      catchError(error => {
+      catchError((error) => {
         this.loadingSignal.set(false);
         this.errorSignal.set(this.extractErrorMessage(error));
         return throwError(() => error);
@@ -117,7 +124,7 @@ export class AuthStore {
         this.loadingSignal.set(false);
         this.router.navigate(['/login']);
       }),
-      catchError(error => {
+      catchError((error) => {
         // Clear local state even if API call fails
         this.clearAuthData();
         this.loadingSignal.set(false);
@@ -132,10 +139,10 @@ export class AuthStore {
    */
   refreshToken() {
     return this.authService.refreshToken().pipe(
-      tap(response => {
+      tap((response) => {
         this.tokenSignal.set(response.token);
       }),
-      catchError(error => {
+      catchError((error) => {
         // If refresh fails, logout user
         this.clearAuthData();
         this.router.navigate(['/login']);
@@ -150,12 +157,14 @@ export class AuthStore {
   private setAuthData(user: User, token: string): void {
     this.userSignal.set(user);
     this.tokenSignal.set(token);
-    
-    // Store user data in localStorage (not token for security)
+
+    // Store user data and token in localStorage
+    // Note: For production, consider using httpOnly cookies instead
     try {
       localStorage.setItem('fp_user', JSON.stringify(user));
+      localStorage.setItem('fp_token', token);
     } catch (error) {
-      console.error('Failed to store user data:', error);
+      console.error('Failed to store auth data:', error);
     }
   }
 
@@ -175,6 +184,7 @@ export class AuthStore {
   private clearStorage(): void {
     try {
       localStorage.removeItem('fp_user');
+      localStorage.removeItem('fp_token');
     } catch (error) {
       console.error('Failed to clear storage:', error);
     }

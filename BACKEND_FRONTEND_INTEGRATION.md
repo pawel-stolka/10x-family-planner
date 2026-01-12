@@ -87,7 +87,7 @@ cp .env.example .env
 ```env
 PORT=3000
 NODE_ENV=development
-FRONTEND_URL=http://localhost:4200
+FRONTEND_URL=http://localhost:6400
 
 # Local Supabase (from: npm run supabase:start)
 DB_HOST=localhost
@@ -198,7 +198,7 @@ npx nx serve frontend
 Application bundle generation complete.
 Watch mode enabled. Watching for file changes...
 
-➜  Local:   http://localhost:4200/
+➜  Local:   http://localhost:6400/
 ```
 
 ---
@@ -238,7 +238,7 @@ You should see interactive API documentation with:
 
 #### Test 3: Register New User (Frontend)
 
-1. Open: `http://localhost:4200`
+1. Open: `http://localhost:6400`
 2. Click **"Sign up"**
 3. Fill registration form:
    - Email: `test@example.com`
@@ -260,7 +260,7 @@ You should see interactive API documentation with:
 
 ```
 AuthStore: User registered successfully
-POST http://localhost:4200/api/v1/auth/register 200 OK
+POST http://localhost:6400/api/v1/auth/register 200 OK
 ```
 
 **Check backend logs (Terminal 1):**
@@ -277,7 +277,7 @@ POST http://localhost:4200/api/v1/auth/register 200 OK
 #### Test 4: Login (Frontend)
 
 1. Click **"Logout"** (if logged in)
-2. Navigate to: `http://localhost:4200/login`
+2. Navigate to: `http://localhost:6400/login`
 3. Fill login form:
    - Email: `test@example.com`
    - Password: `TestPass123!`

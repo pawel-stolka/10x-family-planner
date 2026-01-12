@@ -25,17 +25,26 @@ export class RecurringGoalEntity {
   @Column('text')
   name!: string;
 
+  @Column('text', { nullable: true })
+  description?: string;
+
   @Column('integer', { name: 'frequency_per_week' })
   frequencyPerWeek!: number;
 
-  @Column('integer', { name: 'duration_minutes' })
-  durationMinutes!: number;
+  @Column('integer', { nullable: true, name: 'preferred_duration_minutes' })
+  preferredDurationMinutes?: number;
 
-  @Column('uuid', { nullable: true, name: 'family_member_id' })
-  familyMemberId?: string;
+  @Column('text', { array: true, nullable: true, name: 'preferred_time_of_day' })
+  preferredTimeOfDay?: string[];
+
+  @Column('smallint', { default: 0 })
+  priority!: number;
+
+  @Column('uuid', { name: 'family_member_id' })
+  familyMemberId!: string;
 
   @Column('jsonb', { default: {} })
-  preferences!: Record<string, any>;
+  rules!: Record<string, any>;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt!: Date;
