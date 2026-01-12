@@ -23,6 +23,12 @@
       ],
       "@family-planner/backend/feature-auth": [
         "libs/backend/feature-auth/src/index.ts"
+      ],
+      "@family-planner/frontend/data-access-auth": [
+        "libs/frontend/data-access-auth/src/index.ts"
+      ],
+      "@family-planner/frontend/feature-auth": [
+        "libs/frontend/feature-auth/src/index.ts"
       ]
     }
   },
