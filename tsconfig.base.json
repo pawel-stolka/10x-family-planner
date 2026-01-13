@@ -17,6 +17,21 @@
     "paths": {
       "@family-planner/shared-models-schedule": [
         "libs/shared/models-schedule/src/index.ts"
+      ],
+      "@family-planner/backend/feature-schedule": [
+        "libs/backend/feature-schedule/src/index.ts"
+      ],
+      "@family-planner/backend/feature-auth": [
+        "libs/backend/feature-auth/src/index.ts"
+      ],
+      "@family-planner/frontend/data-access-auth": [
+        "libs/frontend/data-access-auth/src/index.ts"
+      ],
+      "@family-planner/frontend/feature-auth": [
+        "libs/frontend/feature-auth/src/index.ts"
+      ],
+      "@family-planner/frontend/data-access-schedule": [
+        "libs/frontend/data-access-schedule/src/index.ts"
       ]
     }
   },
