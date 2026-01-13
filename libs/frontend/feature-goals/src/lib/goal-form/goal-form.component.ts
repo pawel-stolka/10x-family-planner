@@ -40,8 +40,14 @@ export class GoalFormComponent implements OnInit {
     familyMemberId: ['', Validators.required],
     name: ['', [Validators.required, Validators.maxLength(200)]],
     description: ['', Validators.maxLength(500)],
-    frequencyPerWeek: [3, [Validators.required, Validators.min(1), Validators.max(14)]],
-    preferredDurationMinutes: [30, [Validators.required, Validators.min(15), Validators.max(480)]],
+    frequencyPerWeek: [
+      3,
+      [Validators.required, Validators.min(1), Validators.max(14)],
+    ],
+    preferredDurationMinutes: [
+      30,
+      [Validators.required, Validators.min(15), Validators.max(480)],
+    ],
     preferredTimeOfDay: [[] as string[]],
     priority: [1, [Validators.required, Validators.min(0), Validators.max(2)]],
   });

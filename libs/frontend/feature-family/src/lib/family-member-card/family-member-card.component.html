@@ -12,7 +12,8 @@
     <p class="role">{{ getRoleLabel() }}</p>
     @if (member.age) {
     <p class="age">Age: {{ member.age }}</p>
-    }     @if (member.preferences && member.preferences.interests && member.preferences.interests.length > 0) {
+    } @if (member.preferences && member.preferences.interests &&
+    member.preferences.interests.length > 0) {
     <div class="interests">
       <strong>Interests:</strong>
       <ul>

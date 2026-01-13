@@ -10,6 +10,7 @@
 ### ✅ Phase 1: Family Members (COMPLETE)
 
 **Backend API:**
+
 - ✅ DTOs: `CreateFamilyMemberDto`, `UpdateFamilyMemberDto`
 - ✅ Service: `FamilyMemberService` (full CRUD with validation)
 - ✅ Controller: `FamilyMemberController` (5 endpoints)
@@ -17,6 +18,7 @@
 - ✅ Authorization: User-scoped access, JWT protected
 
 **Endpoints:**
+
 ```
 POST   /api/v1/family-members       - Create member
 GET    /api/v1/family-members       - List all members
@@ -26,12 +28,13 @@ DELETE /api/v1/family-members/:id   - Soft delete member
 ```
 
 **Frontend:**
+
 - ✅ Library: `@family-planner/frontend/data-access-family`
   - Models: `FamilyMember`, `CreateFamilyMemberRequest`, `UpdateFamilyMemberRequest`
   - Service: `FamilyApiService` (HTTP client)
   - Store: `FamilyStore` (Angular signals-based state)
-  
 - ✅ Library: `@family-planner/frontend/feature-family`
+
   - Component: `FamilyListComponent` (list view with filtering)
   - Component: `FamilyMemberCardComponent` (card display)
   - Component: `FamilyMemberFormComponent` (create/edit form)
@@ -44,6 +47,7 @@ DELETE /api/v1/family-members/:id   - Soft delete member
 ### ✅ Phase 2: Recurring Goals (COMPLETE)
 
 **Backend API:**
+
 - ✅ DTOs: `CreateRecurringGoalDto`, `UpdateRecurringGoalDto`, `QueryRecurringGoalsDto`
 - ✅ Service: `RecurringGoalService` (full CRUD with filtering/sorting)
 - ✅ Controller: `RecurringGoalController` (5 endpoints)
@@ -53,6 +57,7 @@ DELETE /api/v1/family-members/:id   - Soft delete member
 - ✅ Sorting: By name, priority, createdAt (ASC/DESC)
 
 **Endpoints:**
+
 ```
 POST   /api/v1/recurring-goals       - Create goal
 GET    /api/v1/recurring-goals       - List goals (with filters)
@@ -62,12 +67,13 @@ DELETE /api/v1/recurring-goals/:id   - Soft delete goal
 ```
 
 **Frontend:**
+
 - ✅ Library: `@family-planner/frontend/data-access-goals`
   - Models: `RecurringGoal`, `CreateGoalRequest`, `UpdateGoalRequest`, `QueryGoalsParams`
   - Service: `GoalsApiService` (HTTP client with query params)
   - Store: `GoalsStore` (Angular signals-based state)
-  
 - ✅ Library: `@family-planner/frontend/feature-goals`
+
   - Component: `GoalsListComponent` (list view with filtering by member & sorting)
   - Component: `GoalCardComponent` (card display with priority colors)
   - Component: `GoalFormComponent` (create/edit form with validation)
@@ -80,10 +86,12 @@ DELETE /api/v1/recurring-goals/:id   - Soft delete goal
 ## 📊 VERIFICATION
 
 ### Build Status:
+
 - ✅ Backend: Builds successfully (no errors)
 - ✅ Frontend: All libraries generated (Angular Material errors need addressing)
 
 ### Code Quality:
+
 - ✅ No ESLint errors in backend code
 - ✅ No ESLint errors in frontend code
 - ✅ TypeScript compilation successful
@@ -95,6 +103,7 @@ DELETE /api/v1/recurring-goals/:id   - Soft delete goal
 ## 🔧 TECHNICAL DETAILS
 
 ### Backend Architecture:
+
 - **Framework:** NestJS with TypeORM
 - **Database:** PostgreSQL (Supabase)
 - **Authentication:** JWT (Supabase Auth)
@@ -102,6 +111,7 @@ DELETE /api/v1/recurring-goals/:id   - Soft delete goal
 - **API Documentation:** Swagger/OpenAPI
 
 ### Frontend Architecture:
+
 - **Framework:** Angular (standalone components)
 - **State Management:** Angular Signals
 - **Routing:** Lazy-loaded feature routes
@@ -109,6 +119,7 @@ DELETE /api/v1/recurring-goals/:id   - Soft delete goal
 - **HTTP:** HttpClient with interceptors (JWT)
 
 ### Libraries Structure:
+
 ```
 libs/
 ├── backend/
@@ -150,6 +161,7 @@ libs/
 ## 🚀 NEXT STEPS (Remaining Phases)
 
 ### Phase 3: Onboarding Flow (4-6 hours)
+
 - [ ] Create onboarding wizard component
 - [ ] Step 1: Welcome + Add first family member
 - [ ] Step 2: Add first goal
@@ -157,6 +169,7 @@ libs/
 - [ ] Store onboarding completion status
 
 ### Phase 4: Schedule Generation Enhancement (3-5 hours)
+
 - [ ] Improve generation UI (better button placement)
 - [ ] Add progress indicator during generation
 - [ ] Success/error feedback messages
@@ -164,6 +177,7 @@ libs/
 - [ ] Display generation parameters
 
 ### Phase 5: Calendar View (8-12 hours)
+
 - [ ] Create weekly calendar component
 - [ ] Time grid layout (7 days x 24 hours)
 - [ ] Time block rendering with colors
@@ -176,11 +190,13 @@ libs/
 ## 📝 NOTES
 
 ### Known Issues:
+
 1. ⚠️ Frontend server has Angular Material import errors (need to install @angular/material)
 2. ⚠️ Backend server running but needs restart to register new endpoints
 3. ⚠️ No navigation menu yet (users can't easily switch between features)
 
 ### Recommendations:
+
 1. Install Angular Material: `ng add @angular/material`
 2. Restart backend server to load new Family & Goals endpoints
 3. Add navigation menu/header with links to Dashboard, Family, Goals

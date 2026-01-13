@@ -13,9 +13,7 @@
     }
 
     <div class="goal-details">
-      <div class="detail-item">
-        <strong>Member:</strong> {{ memberName }}
-      </div>
+      <div class="detail-item"><strong>Member:</strong> {{ memberName }}</div>
       <div class="detail-item">
         <strong>Frequency:</strong> {{ goal.frequencyPerWeek }}x per week
       </div>
@@ -29,7 +27,10 @@
       }
       <div class="detail-item">
         <strong>Priority:</strong>
-        <span class="priority-badge" [style.background-color]="getPriorityColor()">
+        <span
+          class="priority-badge"
+          [style.background-color]="getPriorityColor()"
+        >
           {{ getPriorityLabel() }}
         </span>
       </div>

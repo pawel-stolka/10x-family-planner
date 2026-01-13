@@ -17,7 +17,10 @@
 
     <div class="filter-group">
       <label>Sort by:</label>
-      <select [value]="sortBy()" (change)="onSortChange($any($event.target).value)">
+      <select
+        [value]="sortBy()"
+        (change)="onSortChange($any($event.target).value)"
+      >
         <option value="priority">Priority</option>
         <option value="name">Name</option>
         <option value="createdAt">Date Created</option>
@@ -29,25 +32,19 @@
   <div class="loading-state">
     <p>Loading goals...</p>
   </div>
-  }
-
-  @if (error()) {
+  } @if (error()) {
   <div class="error-state">
     <p class="error-message">{{ error() }}</p>
     <button (click)="loadGoals()">Retry</button>
   </div>
-  }
-
-  @if (!isLoading() && !error()) {
+  } @if (!isLoading() && !error()) {
   <div class="goals-content">
     @if (goals().length === 0) {
     <div class="empty-state">
       <p>No goals yet. Add your first goal to get started!</p>
       <button class="btn-primary" (click)="onAddGoal()">Add Goal</button>
     </div>
-    }
-
-    @if (goals().length > 0) {
+    } @if (goals().length > 0) {
     <!-- High Priority -->
     @if (goalsByPriority().high.length > 0) {
     <div class="priority-section">
@@ -97,8 +94,7 @@
         }
       </div>
     </div>
-    }
-    }
+    } }
   </div>
   }
 </div>

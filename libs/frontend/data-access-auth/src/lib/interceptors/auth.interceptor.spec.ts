@@ -1,4 +1,4 @@
-import { HttpRequest, HttpHandlerFn } from '@angular/common/http';
+import { HttpRequest, HttpHandlerFn, HttpResponse } from '@angular/common/http';
 import { signal, runInInjectionContext, Injector } from '@angular/core';
 import { of } from 'rxjs';
 import { authInterceptor } from './auth.interceptor';
@@ -17,7 +17,7 @@ describe('authInterceptor', () => {
       token: tokenSignal.asReadonly(),
     };
 
-    mockNext = jest.fn(() => of(null));
+    mockNext = jest.fn(() => of(new HttpResponse({ status: 200 })));
 
     // Create a simple mock injector
     mockInjector = {
