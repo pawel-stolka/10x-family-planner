@@ -1,6 +1,6 @@
 /**
  * Family Planner Backend API
- * 
+ *
  * Production-ready NestJS application with:
  * - Swagger/OpenAPI documentation
  * - Global validation pipe
@@ -15,7 +15,7 @@ import { AppModule } from './app/app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  
+
   // Create NestJS application
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
@@ -51,7 +51,7 @@ async function bootstrap() {
     .setTitle('Family Planner API')
     .setDescription(
       'REST API for managing family schedules, activities, meals, and recurring goals. ' +
-      'This API provides endpoints for creating, retrieving, updating, and deleting weekly schedules with AI-powered generation.'
+        'This API provides endpoints for creating, retrieving, updating, and deleting weekly schedules with AI-powered generation.'
     )
     .setVersion('1.0')
     .addTag('Weekly Schedules', 'Endpoints for managing weekly schedules')
@@ -67,7 +67,10 @@ async function bootstrap() {
       },
       'JWT-auth'
     )
-    .addServer(`http://localhost:${process.env.PORT || 3000}`, 'Development server')
+    .addServer(
+      `http://localhost:${process.env.PORT || 3000}`,
+      'Development server'
+    )
     .addServer('https://api.family-planner.com', 'Production server')
     .build();
 
@@ -95,13 +98,25 @@ async function bootstrap() {
   logger.log('');
   logger.log(`🚀 Server:        http://localhost:${port}/${globalPrefix}`);
   logger.log(`📚 Swagger Docs:  http://localhost:${port}/${globalPrefix}/docs`);
-  logger.log(`📊 Health Check:  http://localhost:${port}/${globalPrefix}/health`);
+  logger.log(
+    `📊 Health Check:  http://localhost:${port}/${globalPrefix}/health`
+  );
   logger.log(`🔒 Auth:          JWT Bearer Token (Supabase)`);
   logger.log(`🗄️  Database:      PostgreSQL (Supabase)`);
   logger.log(`🌍 Environment:   ${process.env.NODE_ENV || 'development'}`);
   logger.log('');
   logger.log('Available endpoints:');
-  logger.log(`  GET  /${globalPrefix}/v1/weekly-schedules/:id`);
+  logger.log('  ┌─ Health & Info (🌐 Public)');
+  logger.log(`  │  GET    /${globalPrefix}`);
+  logger.log(`  │  GET    /${globalPrefix}/health`);
+  logger.log('  ├─ Authentication (🌐 Public / 🔒 Protected)');
+  logger.log(`  │  POST   /${globalPrefix}/v1/auth/register 🌐`);
+  logger.log(`  │  POST   /${globalPrefix}/v1/auth/login 🌐`);
+  logger.log(`  │  POST   /${globalPrefix}/v1/auth/logout 🔒`);
+  logger.log('  ├─ Schedule Management (🔒 Protected)');
+  logger.log(`  │  GET    /${globalPrefix}/v1/weekly-schedules/:scheduleId`);
+  logger.log('  └─ AI Schedule Generation (🔒 Protected)');
+  logger.log(`     POST   /${globalPrefix}/v1/schedule-generator`);
   logger.log('');
 
   // Graceful shutdown
