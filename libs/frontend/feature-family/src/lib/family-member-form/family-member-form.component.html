@@ -17,6 +17,9 @@
         <option [value]="role.value">{{ role.label }}</option>
         }
       </select>
+      @if (isEditMode) {
+      <small class="hint">⚠️ Role cannot be changed after creation</small>
+      }
     </div>
 
     @if (form.get('role')?.value === 'CHILD') {

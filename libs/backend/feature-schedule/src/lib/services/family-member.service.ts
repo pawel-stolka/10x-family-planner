@@ -51,8 +51,8 @@ export class FamilyMemberService {
       throw new BadRequestException('Maximum 10 family members allowed');
     }
 
-    // Validate age for children
-    if (dto.role === FamilyMemberRole.CHILD && !dto.age) {
+    // Validate age for children (age 0 is valid for newborns)
+    if (dto.role === FamilyMemberRole.CHILD && (dto.age === null || dto.age === undefined)) {
       throw new BadRequestException('Age is required for children');
     }
 

@@ -36,7 +36,7 @@ import { JwtPayload } from '../interfaces/jwt-payload.interface';
  */
 @ApiTags('Family Members')
 @ApiBearerAuth()
-@Controller('family-members')
+@Controller('v1/family-members')
 @UseGuards(JwtAuthGuard)
 export class FamilyMemberController {
   constructor(private readonly familyMemberService: FamilyMemberService) {}

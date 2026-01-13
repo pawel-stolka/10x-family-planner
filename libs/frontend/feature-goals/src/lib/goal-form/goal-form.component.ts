@@ -87,6 +87,9 @@ export class GoalFormComponent implements OnInit {
         preferredTimeOfDay: goal.preferredTimeOfDay || [],
         priority: goal.priority,
       });
+
+      // Disable owner field in edit mode (cannot be changed)
+      this.form.get('familyMemberId')?.disable();
     }
   }
 
@@ -114,23 +117,35 @@ export class GoalFormComponent implements OnInit {
     }
 
     const formValue = this.form.value;
-    const request = {
-      familyMemberId: formValue.familyMemberId!,
-      name: formValue.name!,
-      description: formValue.description || undefined,
-      frequencyPerWeek: formValue.frequencyPerWeek!,
-      preferredDurationMinutes: formValue.preferredDurationMinutes!,
-      preferredTimeOfDay: formValue.preferredTimeOfDay?.length
-        ? formValue.preferredTimeOfDay
-        : undefined,
-      priority: formValue.priority!,
-    };
 
     let result;
     if (this.isEditMode && this.goalId) {
-      result = await this.goalsStore.updateGoal(this.goalId, request);
+      // Update request - exclude familyMemberId (cannot be changed)
+      const updateRequest = {
+        name: formValue.name!,
+        description: formValue.description || undefined,
+        frequencyPerWeek: formValue.frequencyPerWeek!,
+        preferredDurationMinutes: formValue.preferredDurationMinutes!,
+        preferredTimeOfDay: formValue.preferredTimeOfDay?.length
+          ? formValue.preferredTimeOfDay
+          : undefined,
+        priority: formValue.priority!,
+      };
+      result = await this.goalsStore.updateGoal(this.goalId, updateRequest);
     } else {
-      result = await this.goalsStore.createGoal(request);
+      // Create request - include familyMemberId
+      const createRequest = {
+        familyMemberId: formValue.familyMemberId!,
+        name: formValue.name!,
+        description: formValue.description || undefined,
+        frequencyPerWeek: formValue.frequencyPerWeek!,
+        preferredDurationMinutes: formValue.preferredDurationMinutes!,
+        preferredTimeOfDay: formValue.preferredTimeOfDay?.length
+          ? formValue.preferredTimeOfDay
+          : undefined,
+        priority: formValue.priority!,
+      };
+      result = await this.goalsStore.createGoal(createRequest);
     }
 
     if (result) {

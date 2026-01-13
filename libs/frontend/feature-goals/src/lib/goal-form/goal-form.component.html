@@ -13,6 +13,8 @@
       @if (form.get('familyMemberId')?.invalid &&
       form.get('familyMemberId')?.touched) {
       <div class="error">Please select a family member</div>
+      } @if (isEditMode) {
+      <small class="hint">⚠️ Owner cannot be changed after creation</small>
       }
     </div>
 

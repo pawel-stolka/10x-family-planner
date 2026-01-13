@@ -74,9 +74,12 @@ export class FamilyMemberFormComponent implements OnInit {
       this.form.patchValue({
         name: member.name,
         role: member.role,
-        age: member.age || null,
+        age: member.age !== undefined ? member.age : null,
         interests: member.preferences?.interests?.join(', ') || '',
       });
+      
+      // Disable role field in edit mode (cannot be changed)
+      this.form.get('role')?.disable();
     }
   }
 
@@ -87,25 +90,39 @@ export class FamilyMemberFormComponent implements OnInit {
     }
 
     const formValue = this.form.value;
-    const request = {
-      name: formValue.name!,
-      role: formValue.role as 'USER' | 'SPOUSE' | 'CHILD',
-      age: formValue.age || undefined,
-      preferences: {
-        interests: formValue.interests
-          ? formValue.interests
-              .split(',')
-              .map((i) => i.trim())
-              .filter(Boolean)
-          : [],
-      },
-    };
-
+    
     let result;
     if (this.isEditMode && this.memberId) {
-      result = await this.familyStore.updateMember(this.memberId, request);
+      // Update request - exclude role (cannot be changed)
+      const updateRequest = {
+        name: formValue.name!,
+        age: formValue.age !== null ? formValue.age : undefined,
+        preferences: {
+          interests: formValue.interests
+            ? formValue.interests
+                .split(',')
+                .map((i) => i.trim())
+                .filter(Boolean)
+            : [],
+        },
+      };
+      result = await this.familyStore.updateMember(this.memberId, updateRequest);
     } else {
-      result = await this.familyStore.createMember(request);
+      // Create request - include role
+      const createRequest = {
+        name: formValue.name!,
+        role: formValue.role as 'USER' | 'SPOUSE' | 'CHILD',
+        age: formValue.age !== null ? formValue.age : undefined,
+        preferences: {
+          interests: formValue.interests
+            ? formValue.interests
+                .split(',')
+                .map((i) => i.trim())
+                .filter(Boolean)
+            : [],
+        },
+      };
+      result = await this.familyStore.createMember(createRequest);
     }
 
     if (result) {

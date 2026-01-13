@@ -38,7 +38,7 @@ import { JwtPayload } from '../interfaces/jwt-payload.interface';
  */
 @ApiTags('Recurring Goals')
 @ApiBearerAuth()
-@Controller('recurring-goals')
+@Controller('v1/recurring-goals')
 @UseGuards(JwtAuthGuard)
 export class RecurringGoalController {
   constructor(private readonly goalService: RecurringGoalService) {}

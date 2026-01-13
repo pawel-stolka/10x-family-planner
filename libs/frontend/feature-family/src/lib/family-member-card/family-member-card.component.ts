@@ -42,8 +42,17 @@ export class FamilyMemberCardComponent {
   }
 
   getRoleLabel(): string {
-    return (
-      this.member.role.charAt(0) + this.member.role.slice(1).toLowerCase()
+    return this.member.role.charAt(0) + this.member.role.slice(1).toLowerCase();
+  }
+
+  hasInterests(): boolean {
+    return !!(
+      this.member.preferences?.interests &&
+      this.member.preferences.interests.length > 0
     );
+  }
+
+  getInterests(): string[] {
+    return this.member.preferences?.interests || [];
   }
 }
