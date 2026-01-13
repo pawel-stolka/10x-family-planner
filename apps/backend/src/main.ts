@@ -1,6 +1,6 @@
 /**
  * Family Planner Backend API
- * 
+ *
  * Production-ready NestJS application with:
  * - Swagger/OpenAPI documentation
  * - Global validation pipe
@@ -15,7 +15,7 @@ import { AppModule } from './app/app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  
+
   // Create NestJS application
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
@@ -51,7 +51,7 @@ async function bootstrap() {
     .setTitle('Family Planner API')
     .setDescription(
       'REST API for managing family schedules, activities, meals, and recurring goals. ' +
-      'This API provides endpoints for creating, retrieving, updating, and deleting weekly schedules with AI-powered generation.'
+        'This API provides endpoints for creating, retrieving, updating, and deleting weekly schedules with AI-powered generation.'
     )
     .setVersion('1.0')
     .addTag('Weekly Schedules', 'Endpoints for managing weekly schedules')
@@ -67,7 +67,10 @@ async function bootstrap() {
       },
       'JWT-auth'
     )
-    .addServer(`http://localhost:${process.env.PORT || 3000}`, 'Development server')
+    .addServer(
+      `http://localhost:${process.env.PORT || 3000}`,
+      'Development server'
+    )
     .addServer('https://api.family-planner.com', 'Production server')
     .build();
 
@@ -95,13 +98,82 @@ async function bootstrap() {
   logger.log('');
   logger.log(`🚀 Server:        http://localhost:${port}/${globalPrefix}`);
   logger.log(`📚 Swagger Docs:  http://localhost:${port}/${globalPrefix}/docs`);
-  logger.log(`📊 Health Check:  http://localhost:${port}/${globalPrefix}/health`);
+  logger.log(
+    `📊 Health Check:  http://localhost:${port}/${globalPrefix}/health`
+  );
   logger.log(`🔒 Auth:          JWT Bearer Token (Supabase)`);
   logger.log(`🗄️  Database:      PostgreSQL (Supabase)`);
   logger.log(`🌍 Environment:   ${process.env.NODE_ENV || 'development'}`);
+  // Auto-discover and display all registered routes
   logger.log('');
   logger.log('Available endpoints:');
-  logger.log(`  GET  /${globalPrefix}/v1/weekly-schedules/:id`);
+
+  try {
+    const server = app.getHttpAdapter();
+    const router = server.getInstance()._router;
+
+    if (router?.stack) {
+      const routes = router.stack
+        .filter((layer: any) => layer.route)
+        .map((layer: any) => ({
+          method: Object.keys(layer.route.methods)[0].toUpperCase().padEnd(6),
+          path: layer.route.path,
+          isPublic:
+            layer.route.path.includes('/register') ||
+            layer.route.path.includes('/login') ||
+            !layer.route.path.includes('/v1'),
+        }))
+        .sort((a: any, b: any) => a.path.localeCompare(b.path));
+
+      // Group by category
+      const groups = {
+        health: routes.filter((r: any) => !r.path.includes('/v1')),
+        auth: routes.filter((r: any) => r.path.includes('/auth')),
+        schedules: routes.filter((r: any) =>
+          r.path.includes('/weekly-schedules')
+        ),
+        generator: routes.filter((r: any) =>
+          r.path.includes('/schedule-generator')
+        ),
+      };
+
+      if (groups.health.length) {
+        logger.log('  ┌─ Health & Info');
+        groups.health.forEach((r: any) =>
+          logger.log(`  │  ${r.method} ${r.path}`)
+        );
+      }
+
+      if (groups.auth.length) {
+        logger.log('  ├─ Authentication');
+        groups.auth.forEach((r: any) =>
+          logger.log(`  │  ${r.method} ${r.path} ${r.isPublic ? '🔓' : '🔒'}`)
+        );
+      }
+
+      if (groups.schedules.length) {
+        logger.log('  ├─ Schedule Management');
+        groups.schedules.forEach((r: any) =>
+          logger.log(`  │  ${r.method} ${r.path} 🔒`)
+        );
+      }
+
+      if (groups.generator.length) {
+        logger.log('  └─ AI Schedule Generation');
+        groups.generator.forEach((r: any) =>
+          logger.log(`     ${r.method} ${r.path} 🔒`)
+        );
+      }
+
+      logger.log(`\n  📝 Total: ${routes.length} endpoints`);
+    }
+  } catch {
+    logger.warn('⚠️  Route auto-discovery failed');
+    logger.log(
+      `  📚 See Swagger: http://localhost:${port}/${globalPrefix}/docs`
+    );
+  }
+
   logger.log('');
 
   // Graceful shutdown
