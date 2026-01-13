@@ -30,7 +30,23 @@ export const appRoutes: Route[] = [
       import('./dashboard/dashboard-placeholder.component').then(
         (m) => m.DashboardPlaceholderComponent
       ),
-    // canActivate: [authGuard]
+    canActivate: [authGuard],
+  },
+  {
+    path: 'family',
+    loadChildren: () =>
+      import('@family-planner/frontend/feature-family').then(
+        (m) => m.familyRoutes
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'goals',
+    loadChildren: () =>
+      import('@family-planner/frontend/feature-goals').then(
+        (m) => m.goalsRoutes
+      ),
+    canActivate: [authGuard],
   },
 
   // Default redirect

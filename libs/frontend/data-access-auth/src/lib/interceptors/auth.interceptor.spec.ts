@@ -64,7 +64,7 @@ describe('authInterceptor', () => {
   it('should not add Authorization header for login endpoint', () => {
     // Arrange
     tokenSignal.set('test-token-123');
-    const request = new HttpRequest('POST', '/api/v1/auth/login');
+    const request = new HttpRequest('POST', '/api/v1/auth/login', null);
 
     // Act
     runInInjectionContext(mockInjector, () => {
@@ -78,7 +78,7 @@ describe('authInterceptor', () => {
   it('should not add Authorization header for register endpoint', () => {
     // Arrange
     tokenSignal.set('test-token-123');
-    const request = new HttpRequest('POST', '/api/v1/auth/register');
+    const request = new HttpRequest('POST', '/api/v1/auth/register', null);
 
     // Act
     runInInjectionContext(mockInjector, () => {

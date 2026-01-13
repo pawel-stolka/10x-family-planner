@@ -1,0 +1,26 @@
+<div class="member-card">
+  <div class="member-card-header">
+    <span class="role-icon">{{ getRoleIcon() }}</span>
+    <div class="member-actions">
+      <button class="btn-icon" (click)="onEdit()" title="Edit">✏️</button>
+      <button class="btn-icon" (click)="onDelete()" title="Delete">🗑️</button>
+    </div>
+  </div>
+
+  <div class="member-card-body">
+    <h3>{{ member.name }}</h3>
+    <p class="role">{{ getRoleLabel() }}</p>
+    @if (member.age) {
+    <p class="age">Age: {{ member.age }}</p>
+    }     @if (member.preferences && member.preferences.interests && member.preferences.interests.length > 0) {
+    <div class="interests">
+      <strong>Interests:</strong>
+      <ul>
+        @for (interest of member.preferences.interests; track interest) {
+        <li>{{ interest }}</li>
+        }
+      </ul>
+    </div>
+    }
+  </div>
+</div>

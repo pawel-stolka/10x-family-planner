@@ -1,0 +1,38 @@
+<div class="goal-card" [style.border-left-color]="getPriorityColor()">
+  <div class="goal-card-header">
+    <h3>{{ goal.name }}</h3>
+    <div class="actions">
+      <button class="btn-icon" (click)="onEdit()" title="Edit">✏️</button>
+      <button class="btn-icon" (click)="onDelete()" title="Delete">🗑️</button>
+    </div>
+  </div>
+
+  <div class="goal-card-body">
+    @if (goal.description) {
+    <p class="description">{{ goal.description }}</p>
+    }
+
+    <div class="goal-details">
+      <div class="detail-item">
+        <strong>Member:</strong> {{ memberName }}
+      </div>
+      <div class="detail-item">
+        <strong>Frequency:</strong> {{ goal.frequencyPerWeek }}x per week
+      </div>
+      <div class="detail-item">
+        <strong>Duration:</strong> {{ goal.preferredDurationMinutes }} minutes
+      </div>
+      @if (goal.preferredTimeOfDay && goal.preferredTimeOfDay.length > 0) {
+      <div class="detail-item">
+        <strong>Time:</strong> {{ goal.preferredTimeOfDay.join(', ') }}
+      </div>
+      }
+      <div class="detail-item">
+        <strong>Priority:</strong>
+        <span class="priority-badge" [style.background-color]="getPriorityColor()">
+          {{ getPriorityLabel() }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

@@ -32,6 +32,18 @@
       ],
       "@family-planner/frontend/data-access-schedule": [
         "libs/frontend/data-access-schedule/src/index.ts"
+      ],
+      "@family-planner/frontend/data-access-family": [
+        "libs/frontend/data-access-family/src/index.ts"
+      ],
+      "@family-planner/frontend/feature-family": [
+        "libs/frontend/feature-family/src/index.ts"
+      ],
+      "@family-planner/frontend/data-access-goals": [
+        "libs/frontend/data-access-goals/src/index.ts"
+      ],
+      "@family-planner/frontend/feature-goals": [
+        "libs/frontend/feature-goals/src/index.ts"
       ]
     }
   },

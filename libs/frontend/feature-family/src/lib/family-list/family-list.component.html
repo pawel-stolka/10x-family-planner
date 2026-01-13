@@ -1,0 +1,52 @@
+<div class="family-list-container">
+  <header class="family-list-header">
+    <h1>Family Members</h1>
+    <button class="btn-primary" (click)="onAddMember()">+ Add Member</button>
+  </header>
+
+  @if (isLoading()) {
+  <div class="loading-state">
+    <p>Loading family members...</p>
+  </div>
+  } @if (error()) {
+  <div class="error-state">
+    <p class="error-message">{{ error() }}</p>
+    <button (click)="loadMembers()">Retry</button>
+  </div>
+  } @if (!isLoading() && !error()) {
+  <div class="family-list-content">
+    @if (members().length === 0) {
+    <div class="empty-state">
+      <p>No family members yet. Add your first member to get started!</p>
+      <button class="btn-primary" (click)="onAddMember()">
+        Add Family Member
+      </button>
+    </div>
+    } @if (members().length > 0) {
+    <div class="members-grid">
+      @for (member of members(); track member.familyMemberId) {
+      <fp-family-member-card
+        [member]="member"
+        (edit)="onEditMember($event)"
+        (delete)="onDeleteMember($event)"
+      />
+      }
+    </div>
+
+    <div class="family-summary">
+      <h3>Family Structure</h3>
+      <ul>
+        <li>
+          Parents:
+          {{
+            membersByRole().user.length + membersByRole().spouse.length
+          }}
+        </li>
+        <li>Children: {{ membersByRole().children.length }}</li>
+        <li>Total: {{ members().length }}</li>
+      </ul>
+    </div>
+    }
+  </div>
+  }
+</div>
