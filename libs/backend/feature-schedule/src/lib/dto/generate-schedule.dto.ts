@@ -1,4 +1,10 @@
-import { IsDateString, IsOptional, IsEnum, IsObject, IsBoolean } from 'class-validator';
+import {
+  IsDateString,
+  IsOptional,
+  IsEnum,
+  IsObject,
+  IsBoolean,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class GenerateScheduleDto {

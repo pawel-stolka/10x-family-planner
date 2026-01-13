@@ -27,7 +27,8 @@ export class ScheduleStore {
   private readonly generatingSignal = signal<boolean>(false);
   private readonly loadingSignal = signal<boolean>(false);
   private readonly errorSignal = signal<string | null>(null);
-  private readonly lastGeneratedSignal = signal<GenerateScheduleResponse | null>(null);
+  private readonly lastGeneratedSignal =
+    signal<GenerateScheduleResponse | null>(null);
 
   // Public readonly signals
   readonly currentSchedule = this.currentScheduleSignal.asReadonly();

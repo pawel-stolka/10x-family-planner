@@ -9,6 +9,7 @@
 ## 📋 Overview
 
 ### 🎯 Goal
+
 Enable users to generate their first weekly schedule with basic family data and recurring goals.
 
 ### 📊 Current State
@@ -16,6 +17,7 @@ Enable users to generate their first weekly schedule with basic family data and 
 #### ✅ What We Have:
 
 **Backend:**
+
 - ✅ Database schema (migrations complete)
 - ✅ Entity models (WeeklySchedule, TimeBlock, FamilyMember, RecurringGoal)
 - ✅ GET endpoint for schedules (`GET /v1/weekly-schedules/:scheduleId`)
@@ -23,6 +25,7 @@ Enable users to generate their first weekly schedule with basic family data and 
 - ✅ Supabase integration
 
 **Frontend:**
+
 - ✅ AuthStore + Guards (authGuard, publicOnlyGuard)
 - ✅ Login/Register flow working
 - ✅ Dashboard placeholder
@@ -32,6 +35,7 @@ Enable users to generate their first weekly schedule with basic family data and 
 #### ❌ What's Missing:
 
 **Backend:**
+
 1. ❌ `POST /v1/family-members` - create member
 2. ❌ `GET /v1/family-members` - list members
 3. ❌ `POST /v1/recurring-goals` - create goal
@@ -40,6 +44,7 @@ Enable users to generate their first weekly schedule with basic family data and 
 6. ❌ `GET /v1/weekly-schedules` - list schedules
 
 **Frontend:**
+
 1. ❌ Quick Setup Flow (simplified onboarding)
 2. ❌ Schedule Generator View
 3. ❌ Weekly Calendar View (display generated schedule)
@@ -54,6 +59,7 @@ Enable users to generate their first weekly schedule with basic family data and 
 #### Step 1.1: Family Members Endpoints
 
 **Files to create/modify:**
+
 ```
 libs/backend/feature-schedule/src/lib/
 ├── controllers/
@@ -67,6 +73,7 @@ libs/backend/feature-schedule/src/lib/
 ```
 
 **Endpoints:**
+
 ```typescript
 POST   /v1/family-members       // Create member
 GET    /v1/family-members       // List all user's members
@@ -76,6 +83,7 @@ DELETE /v1/family-members/:id   // Soft delete
 ```
 
 **CreateFamilyMemberDto:**
+
 ```typescript
 {
   name: string;              // required, 1-100 chars
@@ -89,6 +97,7 @@ DELETE /v1/family-members/:id   // Soft delete
 ```
 
 **Validation Rules:**
+
 - `name`: required, min 1, max 100 chars
 - `role`: must be enum value
 - `age`: required when `role = CHILD`, must be > 0
@@ -97,6 +106,7 @@ DELETE /v1/family-members/:id   // Soft delete
 - Owner (current user) created automatically on registration
 
 **Business Logic:**
+
 - Auto-link to authenticated user (`user_id` from JWT)
 - RLS: user can only access their own family members
 - Soft delete pattern (set `deleted_at`)
@@ -105,7 +115,11 @@ DELETE /v1/family-members/:id   // Soft delete
 
 #### Step 1.2: Recurring Goals Endpoints
 
+> **📎 Note:** This backend implementation is shared with `.ai/goals-plan.md`.  
+> For a dedicated goals management UI, see that plan's Phase 3.
+
 **Files to create/modify:**
+
 ```
 libs/backend/feature-schedule/src/lib/
 ├── controllers/
@@ -119,6 +133,7 @@ libs/backend/feature-schedule/src/lib/
 ```
 
 **Endpoints:**
+
 ```typescript
 POST   /v1/recurring-goals       // Create goal
 GET    /v1/recurring-goals       // List goals (query: ?memberId=uuid)
@@ -128,6 +143,7 @@ DELETE /v1/recurring-goals/:id   // Soft delete
 ```
 
 **CreateRecurringGoalDto:**
+
 ```typescript
 {
   familyMemberId: string;              // UUID, required
@@ -145,6 +161,7 @@ DELETE /v1/recurring-goals/:id   // Soft delete
 ```
 
 **Validation Rules:**
+
 - `familyMemberId`: must be valid UUID, must belong to user
 - `name`: required, min 1, max 200 chars
 - `frequencyPerWeek`: required, must be > 0, max 14 (2x per day)
@@ -153,6 +170,7 @@ DELETE /v1/recurring-goals/:id   // Soft delete
 - User can have max 50 goals per family member
 
 **Business Logic:**
+
 - Verify `familyMemberId` belongs to authenticated user
 - RLS: user can only access goals for their family members
 - Soft delete pattern
@@ -162,6 +180,7 @@ DELETE /v1/recurring-goals/:id   // Soft delete
 #### Step 1.3: Schedule Generator Endpoint (AI Integration)
 
 **Files to create/modify:**
+
 ```
 libs/backend/feature-schedule/src/lib/
 ├── controllers/
@@ -176,11 +195,13 @@ libs/backend/feature-schedule/src/lib/
 ```
 
 **Main Endpoint:**
+
 ```typescript
-POST /v1/schedule-generator
+POST / v1 / schedule - generator;
 ```
 
 **GenerateScheduleDto:**
+
 ```typescript
 {
   weekStartDate: string;     // ISO date, must be Monday, future date
@@ -195,6 +216,7 @@ POST /v1/schedule-generator
 ```
 
 **Response:**
+
 ```typescript
 {
   scheduleId: string;        // UUID of created schedule
@@ -219,17 +241,20 @@ POST /v1/schedule-generator
 ##### **Option A: OpenAI GPT-4 Integration** (Recommended for production)
 
 **Setup:**
+
 ```bash
 npm install openai
 ```
 
 **Environment variables:**
+
 ```env
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4-turbo-preview
 ```
 
 **Implementation:**
+
 ```typescript
 // libs/backend/feature-schedule/src/lib/services/openai.service.ts
 import OpenAI from 'openai';
@@ -244,22 +269,17 @@ export class OpenAIService {
     });
   }
 
-  async generateSchedule(params: {
-    familyMembers: FamilyMember[];
-    recurringGoals: RecurringGoal[];
-    weekStartDate: Date;
-    strategy: string;
-  }): Promise<TimeBlock[]> {
+  async generateSchedule(params: { familyMembers: FamilyMember[]; recurringGoals: RecurringGoal[]; weekStartDate: Date; strategy: string }): Promise<TimeBlock[]> {
     const prompt = this.buildPrompt(params);
-    
+
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4-turbo-preview',
       messages: [
-        { 
-          role: 'system', 
-          content: 'You are a family schedule optimization assistant...' 
+        {
+          role: 'system',
+          content: 'You are a family schedule optimization assistant...',
         },
-        { role: 'user', content: prompt }
+        { role: 'user', content: prompt },
       ],
       temperature: 0.7,
       max_tokens: 2000,
@@ -274,12 +294,10 @@ export class OpenAIService {
       Generate a weekly schedule for the following family:
       
       Family Members:
-      ${params.familyMembers.map(m => `- ${m.name} (${m.role}, age: ${m.age})`).join('\n')}
+      ${params.familyMembers.map((m) => `- ${m.name} (${m.role}, age: ${m.age})`).join('\n')}
       
       Recurring Goals:
-      ${params.recurringGoals.map(g => 
-        `- ${g.name}: ${g.frequencyPerWeek}x/week, ${g.preferredDurationMinutes}min, priority: ${g.priority}`
-      ).join('\n')}
+      ${params.recurringGoals.map((g) => `- ${g.name}: ${g.frequencyPerWeek}x/week, ${g.preferredDurationMinutes}min, priority: ${g.priority}`).join('\n')}
       
       Week: ${params.weekStartDate} to ${addDays(params.weekStartDate, 6)}
       Strategy: ${params.strategy}
@@ -309,12 +327,14 @@ export class OpenAIService {
 ```
 
 **Pros:**
+
 - Intelligent scheduling
 - Considers complex constraints
 - Natural language understanding
 - Adapts to feedback over time
 
 **Cons:**
+
 - Requires OpenAI API key (costs money)
 - Latency (5-15 seconds per generation)
 - Rate limits (need to handle)
@@ -325,126 +345,110 @@ export class OpenAIService {
 ##### **Option B: Mock Algorithm** (For MVP testing - faster)
 
 **Implementation:**
+
 ```typescript
 // libs/backend/feature-schedule/src/lib/services/schedule-generator.service.ts
 
 @Injectable()
 export class ScheduleGeneratorService {
-  async generateSchedule(params: {
-    userId: string;
-    weekStartDate: Date;
-    strategy: string;
-  }): Promise<{ schedule: WeeklySchedule; blocks: TimeBlock[] }> {
-    
+  async generateSchedule(params: { userId: string; weekStartDate: Date; strategy: string }): Promise<{ schedule: WeeklySchedule; blocks: TimeBlock[] }> {
     // 1. Load family members
     const members = await this.familyMemberService.findByUserId(params.userId);
-    
+
     // 2. Load recurring goals
     const goals = await this.recurringGoalService.findByUserId(params.userId);
-    
+
     // 3. Create weekly schedule
     const schedule = await this.scheduleService.create({
       userId: params.userId,
       weekStartDate: params.weekStartDate,
       isAiGenerated: true,
-      metadata: { strategy: params.strategy }
+      metadata: { strategy: params.strategy },
     });
-    
+
     // 4. Generate time blocks using simple algorithm
     const blocks = this.distributeGoalsAcrossWeek(goals, members, params.weekStartDate);
-    
+
     // 5. Save time blocks
-    const savedBlocks = await Promise.all(
-      blocks.map(block => this.timeBlockService.create(schedule.scheduleId, block))
-    );
-    
+    const savedBlocks = await Promise.all(blocks.map((block) => this.timeBlockService.create(schedule.scheduleId, block)));
+
     return { schedule, blocks: savedBlocks };
   }
 
-  private distributeGoalsAcrossWeek(
-    goals: RecurringGoal[],
-    members: FamilyMember[],
-    weekStart: Date
-  ): CreateTimeBlockDto[] {
+  private distributeGoalsAcrossWeek(goals: RecurringGoal[], members: FamilyMember[], weekStart: Date): CreateTimeBlockDto[] {
     const blocks: CreateTimeBlockDto[] = [];
     const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    
+
     // Sort goals by priority
     const sortedGoals = goals.sort((a, b) => {
       const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
-    
+
     // Simple distribution algorithm
-    sortedGoals.forEach(goal => {
-      const member = members.find(m => m.familyMemberId === goal.familyMemberId);
+    sortedGoals.forEach((goal) => {
+      const member = members.find((m) => m.familyMemberId === goal.familyMemberId);
       if (!member) return;
-      
+
       // Distribute across week based on frequency
       const daysToSchedule = this.selectDays(goal.frequencyPerWeek, daysOfWeek);
-      
+
       daysToSchedule.forEach((day, index) => {
         const dayIndex = daysOfWeek.indexOf(day);
         const date = addDays(weekStart, dayIndex);
-        
+
         // Choose time based on preference
-        const { startTime, endTime } = this.getPreferredTimeSlot(
-          goal.preferredTimeOfDay,
-          goal.preferredDurationMinutes
-        );
-        
+        const { startTime, endTime } = this.getPreferredTimeSlot(goal.preferredTimeOfDay, goal.preferredDurationMinutes);
+
         blocks.push({
           title: goal.name,
           blockType: this.mapGoalToBlockType(goal),
           familyMemberId: goal.familyMemberId,
           timeRange: {
             start: `${format(date, 'yyyy-MM-dd')}T${startTime}`,
-            end: `${format(date, 'yyyy-MM-dd')}T${endTime}`
+            end: `${format(date, 'yyyy-MM-dd')}T${endTime}`,
           },
           isShared: false,
           metadata: {
             goalId: goal.goalId,
-            generatedBy: 'algorithm'
-          }
+            generatedBy: 'algorithm',
+          },
         });
       });
     });
-    
+
     return blocks;
   }
-  
+
   private selectDays(frequency: number, days: string[]): string[] {
     // Distribute evenly across week
     const step = Math.floor(days.length / frequency);
     const selected: string[] = [];
-    
+
     for (let i = 0; i < frequency && i < days.length; i++) {
-      selected.push(days[i * step % days.length]);
+      selected.push(days[(i * step) % days.length]);
     }
-    
+
     return selected;
   }
-  
-  private getPreferredTimeSlot(
-    timeOfDay: string | null,
-    durationMinutes: number
-  ): { startTime: string; endTime: string } {
+
+  private getPreferredTimeSlot(timeOfDay: string | null, durationMinutes: number): { startTime: string; endTime: string } {
     // Default time slots
     const slots = {
       MORNING: { start: '07:00', end: '12:00' },
       AFTERNOON: { start: '12:00', end: '17:00' },
-      EVENING: { start: '17:00', end: '21:00' }
+      EVENING: { start: '17:00', end: '21:00' },
     };
-    
+
     const slot = timeOfDay ? slots[timeOfDay] : slots.MORNING;
     const startHour = parseInt(slot.start.split(':')[0]);
-    
+
     return {
       startTime: slot.start,
-      endTime: `${String(startHour + Math.floor(durationMinutes / 60)).padStart(2, '0')}:${String(durationMinutes % 60).padStart(2, '0')}`
+      endTime: `${String(startHour + Math.floor(durationMinutes / 60)).padStart(2, '0')}:${String(durationMinutes % 60).padStart(2, '0')}`,
     };
   }
-  
+
   private mapGoalToBlockType(goal: RecurringGoal): string {
     // Simple heuristic based on goal name
     const name = goal.name.toLowerCase();
@@ -456,6 +460,7 @@ export class ScheduleGeneratorService {
 ```
 
 **Pros:**
+
 - Fast (< 1 second)
 - Free (no API costs)
 - Deterministic
@@ -463,6 +468,7 @@ export class ScheduleGeneratorService {
 - Good for MVP testing
 
 **Cons:**
+
 - Less intelligent
 - Simple rule-based
 - No learning capability
@@ -477,11 +483,13 @@ export class ScheduleGeneratorService {
 #### Step 1.4: Weekly Schedules List Endpoint
 
 **File to modify:**
+
 ```
 libs/backend/feature-schedule/src/lib/controllers/schedule.controller.ts
 ```
 
 **Add endpoint:**
+
 ```typescript
 @Get()
 @ApiOperation({ summary: 'List weekly schedules' })
@@ -496,7 +504,7 @@ async listSchedules(
     limit: query.limit || 20,
     offset: query.offset || 0
   });
-  
+
   return {
     data: schedules.map(s => this.scheduleMapper.toDto(s)),
     total: schedules.length,
@@ -507,6 +515,7 @@ async listSchedules(
 ```
 
 **ListSchedulesDto:**
+
 ```typescript
 {
   weekStartDate?: string;    // Filter by week
@@ -523,6 +532,7 @@ async listSchedules(
 #### Step 2.1: Create Frontend Data Access Library
 
 **Generate library:**
+
 ```bash
 npx nx g @nx/js:lib data-access-schedule \
   --directory=libs/frontend/data-access-schedule \
@@ -533,6 +543,7 @@ npx nx g @nx/js:lib data-access-schedule \
 ```
 
 **Structure:**
+
 ```
 libs/frontend/data-access-schedule/
 ├── src/
@@ -558,6 +569,7 @@ libs/frontend/data-access-schedule/
 #### Step 2.2: Models
 
 **family-member.model.ts:**
+
 ```typescript
 export interface FamilyMember {
   familyMemberId: string;
@@ -588,6 +600,7 @@ export interface UpdateFamilyMemberData {
 ```
 
 **recurring-goal.model.ts:**
+
 ```typescript
 export interface RecurringGoal {
   goalId: string;
@@ -615,6 +628,7 @@ export interface CreateRecurringGoalData {
 ```
 
 **schedule.model.ts:**
+
 ```typescript
 export interface WeeklySchedule {
   scheduleId: string;
@@ -671,6 +685,7 @@ export interface GenerateScheduleResponse {
 #### Step 2.3: Services
 
 **family.service.ts:**
+
 ```typescript
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -705,6 +720,7 @@ export class FamilyService {
 ```
 
 **goals.service.ts:**
+
 ```typescript
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -743,15 +759,12 @@ export class GoalsService {
 ```
 
 **schedule.service.ts:**
+
 ```typescript
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { 
-  WeeklySchedule, 
-  GenerateScheduleRequest, 
-  GenerateScheduleResponse 
-} from '../models/schedule.model';
+import { WeeklySchedule, GenerateScheduleRequest, GenerateScheduleResponse } from '../models/schedule.model';
 
 @Injectable({ providedIn: 'root' })
 export class ScheduleService {
@@ -784,6 +797,7 @@ export class ScheduleService {
 #### Step 2.4: Stores (Angular Signals)
 
 **family.store.ts:**
+
 ```typescript
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { tap, catchError, throwError } from 'rxjs';
@@ -816,11 +830,11 @@ export class FamilyStore {
     this.errorSignal.set(null);
 
     return this.familyService.list().pipe(
-      tap(members => {
+      tap((members) => {
         this.membersSignal.set(members);
         this.loadingSignal.set(false);
       }),
-      catchError(error => {
+      catchError((error) => {
         this.loadingSignal.set(false);
         this.errorSignal.set(this.extractErrorMessage(error));
         return throwError(() => error);
@@ -836,11 +850,11 @@ export class FamilyStore {
     this.errorSignal.set(null);
 
     return this.familyService.create(data).pipe(
-      tap(member => {
-        this.membersSignal.update(members => [...members, member]);
+      tap((member) => {
+        this.membersSignal.update((members) => [...members, member]);
         this.loadingSignal.set(false);
       }),
-      catchError(error => {
+      catchError((error) => {
         this.loadingSignal.set(false);
         this.errorSignal.set(this.extractErrorMessage(error));
         return throwError(() => error);
@@ -855,13 +869,11 @@ export class FamilyStore {
     this.loadingSignal.set(true);
 
     return this.familyService.update(id, data).pipe(
-      tap(updatedMember => {
-        this.membersSignal.update(members =>
-          members.map(m => m.familyMemberId === id ? updatedMember : m)
-        );
+      tap((updatedMember) => {
+        this.membersSignal.update((members) => members.map((m) => (m.familyMemberId === id ? updatedMember : m)));
         this.loadingSignal.set(false);
       }),
-      catchError(error => {
+      catchError((error) => {
         this.loadingSignal.set(false);
         this.errorSignal.set(this.extractErrorMessage(error));
         return throwError(() => error);
@@ -877,12 +889,10 @@ export class FamilyStore {
 
     return this.familyService.delete(id).pipe(
       tap(() => {
-        this.membersSignal.update(members =>
-          members.filter(m => m.familyMemberId !== id)
-        );
+        this.membersSignal.update((members) => members.filter((m) => m.familyMemberId !== id));
         this.loadingSignal.set(false);
       }),
-      catchError(error => {
+      catchError((error) => {
         this.loadingSignal.set(false);
         this.errorSignal.set(this.extractErrorMessage(error));
         return throwError(() => error);
@@ -909,9 +919,13 @@ export class FamilyStore {
 
 ### **PHASE 3: Frontend - Quick Setup Flow**
 
+> **📎 Alternative:** For a full-featured goals management UI instead of quick setup,  
+> see `.ai/goals-plan.md` Phase 3 (Goals List, Card, Form components).
+
 #### Step 3.1: Create Feature Library
 
 **Generate library:**
+
 ```bash
 npx nx g @nx/angular:lib feature-schedule \
   --directory=libs/frontend/feature-schedule \
@@ -929,6 +943,7 @@ npx nx g @nx/angular:lib feature-schedule \
 **Purpose:** Minimal configuration before first generation
 
 **Files structure:**
+
 ```
 libs/frontend/feature-schedule/src/lib/quick-setup/
 ├── quick-setup-view.component.ts
@@ -943,6 +958,7 @@ libs/frontend/feature-schedule/src/lib/quick-setup/
 ```
 
 **UI Flow:**
+
 ```
 ┌─────────────────────────────────────┐
 │  Quick Setup (Step 1 of 2)          │
@@ -985,6 +1001,7 @@ libs/frontend/feature-schedule/src/lib/quick-setup/
 ```
 
 **Implementation details:**
+
 - Reactive forms with validation
 - Add/Remove members dynamically
 - Add/Remove goals dynamically
@@ -1001,6 +1018,7 @@ libs/frontend/feature-schedule/src/lib/quick-setup/
 **Route:** `/generate`
 
 **Files:**
+
 ```
 libs/frontend/feature-schedule/src/lib/generator/
 ├── generator-view.component.ts
@@ -1013,6 +1031,7 @@ libs/frontend/feature-schedule/src/lib/generator/
 ```
 
 **UI Layout:**
+
 ```
 ┌────────────────────────────────────────┐
 │  🪄 Generate Week Schedule             │
@@ -1080,6 +1099,7 @@ libs/frontend/feature-schedule/src/lib/generator/
 ```
 
 **Flow:**
+
 1. User configures generation parameters
 2. Click "Generate" → POST /v1/schedule-generator
 3. Progress modal shows (with cancel option)
@@ -1096,6 +1116,7 @@ libs/frontend/feature-schedule/src/lib/generator/
 **Route:** `/schedule` or `/schedule/:scheduleId`
 
 **Files:**
+
 ```
 libs/frontend/feature-schedule/src/lib/calendar/
 ├── calendar-view.component.ts
@@ -1108,6 +1129,7 @@ libs/frontend/feature-schedule/src/lib/calendar/
 ```
 
 **UI Layout:**
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  ← Week: Jan 13-19, 2026 →   [All Members ▼]  [+ Add Block]    │
@@ -1135,6 +1157,7 @@ libs/frontend/feature-schedule/src/lib/calendar/
 ```
 
 **Features:**
+
 - 7-column CSS Grid layout (one per day)
 - Time rows (6am-11pm, 30-minute increments)
 - Time blocks positioned with CSS Grid
@@ -1155,6 +1178,7 @@ libs/frontend/feature-schedule/src/lib/calendar/
 ### **Sprint 1: Backend Foundation** (4-6 hours)
 
 **Tasks:**
+
 1. Create FamilyMember controller + service
 2. Create RecurringGoal controller + service
 3. Add GET /v1/weekly-schedules endpoint
@@ -1163,6 +1187,7 @@ libs/frontend/feature-schedule/src/lib/calendar/
 6. Test with Swagger/Postman
 
 **Testing:**
+
 ```bash
 # Test family members
 POST /api/v1/family-members
@@ -1181,6 +1206,7 @@ GET  /api/v1/weekly-schedules
 ### **Sprint 2: AI Schedule Generator** (6-8 hours)
 
 **Tasks:**
+
 1. Create ScheduleGeneratorController
 2. Decide: OpenAI vs Mock algorithm
 3. Implement generation logic
@@ -1189,6 +1215,7 @@ GET  /api/v1/weekly-schedules
 6. Test generation endpoint
 
 **Testing:**
+
 ```bash
 POST /api/v1/schedule-generator
 {
@@ -1202,6 +1229,7 @@ POST /api/v1/schedule-generator
 ### **Sprint 3: Frontend Stores & Services** (3-4 hours)
 
 **Tasks:**
+
 1. Create data-access-schedule library
 2. Implement FamilyStore + FamilyService
 3. Implement GoalsStore + GoalsService
@@ -1214,6 +1242,7 @@ POST /api/v1/schedule-generator
 ### **Sprint 4: Quick Setup Flow** (4-5 hours)
 
 **Tasks:**
+
 1. Create feature-schedule library
 2. Quick Setup View component
 3. Family Form component
@@ -1227,6 +1256,7 @@ POST /api/v1/schedule-generator
 ### **Sprint 5: Schedule Generator UI** (5-6 hours)
 
 **Tasks:**
+
 1. Generator View component
 2. Generator Form component
 3. Progress Modal component
@@ -1240,6 +1270,7 @@ POST /api/v1/schedule-generator
 ### **Sprint 6: Weekly Calendar View** (6-8 hours)
 
 **Tasks:**
+
 1. Calendar View component
 2. Calendar Header component
 3. Week Grid component (CSS Grid)
@@ -1254,6 +1285,7 @@ POST /api/v1/schedule-generator
 ### **Sprint 7: Integration & Testing** (3-4 hours)
 
 **Tasks:**
+
 1. End-to-end flow testing
 2. Error handling refinement
 3. Loading states polish
@@ -1270,12 +1302,15 @@ POST /api/v1/schedule-generator
 **Goal:** Get the entire flow working ASAP with minimal features
 
 **Implementation:**
+
 1. **Backend Mock Generator** (3 hours)
+
    - Simple algorithm that creates fixed pattern blocks
    - No family members/goals required
    - Just generates dummy schedule
 
 2. **Frontend Button on Dashboard** (3 hours)
+
    - "Generate Mock Week" button
    - Calls generator API
    - Shows loading spinner
@@ -1287,6 +1322,7 @@ POST /api/v1/schedule-generator
    - Week navigation
 
 **Result:**
+
 - ✅ Complete flow working
 - ✅ Test database integration
 - ✅ Test frontend-backend communication
@@ -1303,6 +1339,7 @@ POST /api/v1/schedule-generator
 ### **Option 3: Incremental (Flexible)**
 
 **Phase by phase:**
+
 1. Sprint 1 + 2 → Backend complete
 2. Test backend with Postman/Swagger
 3. Sprint 3 + 4 → Frontend setup
@@ -1317,6 +1354,7 @@ POST /api/v1/schedule-generator
 ### 1. AI Integration Strategy?
 
 **Options:**
+
 - **A) OpenAI GPT-4** - Realistic, requires API key, costs money, 5-15s latency
 - **B) Mock Algorithm** - Fast, free, deterministic, good for MVP
 - **C) Hybrid** - Start with mock, add AI later
@@ -1328,6 +1366,7 @@ POST /api/v1/schedule-generator
 ### 2. Implementation Approach?
 
 **Options:**
+
 - **Full** (all 7 sprints) → 5-7 days
 - **Ultra-MVP** (mock + basic UI) → 1-2 days
 - **Incremental** (backend first, then frontend) → flexible
@@ -1339,6 +1378,7 @@ POST /api/v1/schedule-generator
 ### 3. Scope?
 
 **Minimal (MVP):**
+
 - [ ] Family members CRUD
 - [ ] Recurring goals CRUD
 - [ ] Mock schedule generator
@@ -1346,6 +1386,7 @@ POST /api/v1/schedule-generator
 - [ ] No editing of generated schedule
 
 **Extended:**
+
 - [ ] AI generation (OpenAI)
 - [ ] Time block editing
 - [ ] Conflict detection UI
@@ -1360,18 +1401,21 @@ POST /api/v1/schedule-generator
 ## 📊 ESTIMATED TIMELINE
 
 ### Ultra-MVP:
+
 - **1-2 days** (6-8 hours coding)
 - Working end-to-end flow
 - Mock generator
 - Basic display
 
 ### Full MVP:
+
 - **5-7 days** (31-41 hours coding)
 - Complete feature set
 - Production-ready
 - All UI components
 
 ### With AI Integration:
+
 - **+2-3 days** (additional 10-15 hours)
 - OpenAI integration
 - Prompt engineering
@@ -1383,6 +1427,7 @@ POST /api/v1/schedule-generator
 ## 🎯 SUCCESS CRITERIA
 
 **MVP Complete When:**
+
 - [ ] User can add family members
 - [ ] User can add recurring goals
 - [ ] User can generate a weekly schedule
@@ -1393,6 +1438,7 @@ POST /api/v1/schedule-generator
 - [ ] Frontend compiles without errors
 
 **Production Ready When:**
+
 - [ ] All MVP criteria met
 - [ ] Error handling robust
 - [ ] Loading states smooth

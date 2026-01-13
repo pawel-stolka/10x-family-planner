@@ -34,27 +34,32 @@ NestJS backend application for the Family Planner project.
 ### Installation
 
 1. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 2. **Start Supabase locally:**
+
    ```bash
    npm run supabase:start
    ```
 
 3. **Run database migrations:**
+
    ```bash
    npm run supabase:reset
    ```
 
 4. **Create `.env` file in project root:**
+
    ```bash
    # Copy from template
    cp .env.example .env
    ```
 
    Required environment variables:
+
    ```env
    # Application
    NODE_ENV=development
@@ -93,6 +98,7 @@ npm run start:backend
 ```
 
 The API will be available at:
+
 - **Base URL:** http://localhost:3000/api
 - **Swagger Docs:** http://localhost:3000/api/docs
 - **Health Check:** http://localhost:3000/api/health
@@ -112,11 +118,13 @@ node dist/apps/backend/main.js
 ### Swagger UI
 
 Interactive API documentation is available at:
+
 ```
 http://localhost:3000/api/docs
 ```
 
 Features:
+
 - Try out endpoints directly in the browser
 - See request/response schemas
 - JWT authentication support
@@ -134,6 +142,7 @@ Features:
 - `GET /api/v1/weekly-schedules/:scheduleId` - Get schedule by ID
 
 **Authentication Required:** All schedule endpoints require JWT token in Authorization header:
+
 ```
 Authorization: Bearer <your-jwt-token>
 ```
@@ -263,12 +272,14 @@ npm run supabase:gen:types
 ### Database Schema
 
 The database includes these main tables:
+
 - `weekly_schedules` - Weekly schedule metadata
 - `time_blocks` - Individual time blocks within schedules
 - `family_members` - Family member profiles
 - `recurring_goals` - Recurring goals to schedule
 
 All tables have:
+
 - Row-Level Security (RLS) policies
 - Soft-delete support (`deleted_at` column)
 - JSONB metadata columns
@@ -308,6 +319,7 @@ All tables have:
 ### Monitoring
 
 Health check endpoint provides:
+
 - Uptime
 - Memory usage
 - Database connection status
@@ -377,20 +389,24 @@ CMD ["node", "main.js"]
 ### Common Issues
 
 **"Cannot connect to database"**
+
 - Check if Supabase is running: `npm run supabase:status`
 - Verify DB credentials in `.env`
 - Check port 54322 is not in use
 
 **"JWT validation failed"**
+
 - Verify JWT_SECRET matches Supabase
 - Check token expiration
 - Ensure Authorization header format: `Bearer <token>`
 
 **"Module not found: @family-planner/..."**
+
 - Build libraries first: `npx nx build shared-models-schedule`
 - Check tsconfig.base.json paths
 
 **"TypeORM synchronize error"**
+
 - Never use `synchronize: true` in production
 - Use migrations instead: `npm run supabase:migration:up`
 

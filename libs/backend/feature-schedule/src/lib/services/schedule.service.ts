@@ -10,10 +10,10 @@ import { WeeklyScheduleEntity } from '../entities/weekly-schedule.entity';
 
 /**
  * Schedule Service
- * 
+ *
  * Business logic layer for weekly schedule operations.
  * Handles database queries, RLS context setup, and ownership verification.
- * 
+ *
  * Security:
  * - Sets PostgreSQL RLS context (app.user_id) for each query
  * - Verifies ownership at application level (defense in depth)
@@ -32,7 +32,7 @@ export class ScheduleService {
 
   /**
    * Find weekly schedule by ID with all related data
-   * 
+   *
    * @param scheduleId - UUID of the schedule to retrieve
    * @param userId - UUID of the authenticated user (from JWT)
    * @returns WeeklyScheduleEntity with eager-loaded time blocks and relations
@@ -96,7 +96,9 @@ export class ScheduleService {
       }
 
       this.logger.log(
-        `Successfully retrieved schedule ${scheduleId} for user ${userId} with ${schedule.timeBlocks?.length || 0} blocks`
+        `Successfully retrieved schedule ${scheduleId} for user ${userId} with ${
+          schedule.timeBlocks?.length || 0
+        } blocks`
       );
 
       return schedule;

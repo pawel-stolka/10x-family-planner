@@ -86,10 +86,6 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
     },
   ],
 
-  exports: [
-    ScheduleService,
-    ScheduleMapper,
-    PassportModule,
-  ],
+  exports: [ScheduleService, ScheduleMapper, PassportModule],
 })
 export class ScheduleModule {}
