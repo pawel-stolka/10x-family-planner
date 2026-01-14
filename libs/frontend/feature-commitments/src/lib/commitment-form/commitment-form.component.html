@@ -17,6 +17,11 @@
         <option [value]="m.familyMemberId">{{ m.name }}</option>
         }
       </select>
+      @if (members().length === 0) {
+      <small class="hint warning">
+        ⚠️ No family members found. <a routerLink="/family">Add family members first</a>.
+      </small>
+      }
     </div>
 
     <div class="form-row">

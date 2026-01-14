@@ -69,6 +69,30 @@ form {
   color: #2d3748;
 }
 
+.hint {
+  font-size: 0.875rem;
+  color: #718096;
+  margin-top: 0.25rem;
+
+  &.warning {
+    color: #d97706;
+    background-color: #fef3c7;
+    padding: 0.5rem;
+    border-radius: 6px;
+    border-left: 3px solid #f59e0b;
+
+    a {
+      color: #2563eb;
+      text-decoration: underline;
+      font-weight: 600;
+
+      &:hover {
+        color: #1d4ed8;
+      }
+    }
+  }
+}
+
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: 1fr;

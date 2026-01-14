@@ -1,14 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommitmentsStore } from '@family-planner/frontend/data-access-commitments';
 import { FamilyStore } from '@family-planner/frontend/data-access-family';
 
 @Component({
   selector: 'fp-commitment-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './commitment-form.component.html',
   styleUrls: ['./commitment-form.component.scss'],
 })

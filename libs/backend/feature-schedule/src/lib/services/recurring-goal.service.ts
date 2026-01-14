@@ -59,6 +59,7 @@ export class RecurringGoalService {
     }
 
     const goal = this.goalRepo.create({
+      userId, // Add the authenticated user ID
       familyMemberId: dto.familyMemberId,
       name: dto.name,
       description: dto.description,
