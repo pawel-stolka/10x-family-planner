@@ -69,6 +69,16 @@ export class OpenAIService {
       priority: string;
       familyMemberId: string;
     }>;
+    recurringCommitments?: Array<{
+      id: string;
+      title: string;
+      blockType: string;
+      dayOfWeek: string;
+      startTime: string;
+      endTime: string;
+      familyMemberId: string | null;
+      isShared: boolean;
+    }>;
     strategy?: string;
   }): Promise<
     Array<{
@@ -77,7 +87,9 @@ export class OpenAIService {
       day: string;
       startTime: string;
       endTime: string;
-      familyMemberId: string;
+      familyMemberId?: string | null;
+      recurringGoalId?: string | null;
+      isShared?: boolean;
       notes?: string;
     }>
   > {
@@ -155,13 +167,19 @@ export class OpenAIService {
     weekStartDate: Date;
     familyMembers: Array<any>;
     recurringGoals: Array<any>;
+    recurringCommitments?: Array<any>;
     strategy?: string;
   }): string {
     const weekEnd = new Date(params.weekStartDate);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
     const familyMembersText = params.familyMembers
-      .map((m) => `  - ${m.name} (${m.role}${m.age ? `, age ${m.age}` : ''})`)
+      .map(
+        (m) =>
+          `  - ${m.name} (${m.role}${m.age ? `, age ${m.age}` : ''}) [id: ${
+            m.id
+          }]`
+      )
       .join('\n');
 
     const goalsText = params.recurringGoals
@@ -173,9 +191,24 @@ export class OpenAIService {
           g.preferredDurationMinutes
         } min, ${g.preferredTimeOfDay || 'flexible'} time, ${
           g.priority
-        } priority`;
+        } priority [goalId: ${g.id}, ownerId: ${g.familyMemberId}]`;
       })
       .join('\n');
+
+    const commitmentsText =
+      params.recurringCommitments && params.recurringCommitments.length > 0
+        ? params.recurringCommitments
+            .map((c) => {
+              const member = c.familyMemberId
+                ? params.familyMembers.find((m) => m.id === c.familyMemberId)
+                : null;
+              const owner = c.isShared
+                ? 'Shared/Family'
+                : member?.name || 'Unknown';
+              return `  - ${c.title} (${owner}): ${c.dayOfWeek} ${c.startTime}-${c.endTime} [FIXED - DO NOT OVERLAP]`;
+            })
+            .join('\n')
+        : '  (none)';
 
     return `Generate a weekly schedule for the following family:
 
@@ -190,17 +223,21 @@ ${familyMembersText}
 **Recurring Goals:**
 ${goalsText}
 
+**Fixed Commitments (MUST NOT OVERLAP - These are hard constraints):**
+${commitmentsText}
+
 **Requirements:**
 1. Schedule ALL goals exactly ${params.recurringGoals.reduce(
       (sum, g) => sum + g.frequencyPerWeek,
       0
     )} times total across the week
-2. Respect time preferences (MORNING: 6-12am, AFTERNOON: 12-5pm, EVENING: 5-10pm)
-3. Distribute goals evenly across days (avoid cramming all on one day)
-4. Consider priority levels (HIGH first, then MEDIUM, then LOW)
-5. Avoid overlapping blocks for same family member
-6. Balance workload across days
-7. Each block must be realistic (start before end)
+2. **CRITICAL: Never overlap with fixed commitments** - they are non-negotiable time blocks
+3. Respect time preferences (MORNING: 6-12am, AFTERNOON: 12-5pm, EVENING: 5-10pm)
+4. Distribute goals evenly across days (avoid cramming all on one day)
+5. Consider priority levels (HIGH first, then MEDIUM, then LOW)
+6. Avoid overlapping blocks for same family member
+7. Balance workload across days
+8. Each block must be realistic (start before end)
 
 **Return format:** JSON object with "timeBlocks" array containing:
 - title: string (goal name)
@@ -208,7 +245,9 @@ ${goalsText}
 - day: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
 - startTime: "HH:MM" (24h format)
 - endTime: "HH:MM" (24h format)
-- familyMemberId: string (from family members above)
+- recurringGoalId: string | null (must match one of the goalId values above; null only for non-goal/shared blocks)
+- familyMemberId: string | null (must match a family member id; null only when isShared=true)
+- isShared: boolean (true means family-wide/shared; must use familyMemberId=null)
 - notes: string (why scheduled here, optional)
 
 Example:
@@ -220,7 +259,9 @@ Example:
       "day": "monday",
       "startTime": "07:00",
       "endTime": "07:45",
+      "recurringGoalId": "goal-id",
       "familyMemberId": "member-id",
+      "isShared": false,
       "notes": "Scheduled in morning as preferred, allows cool morning air"
     }
   ]
@@ -253,7 +294,9 @@ Always return valid JSON matching the requested format exactly.`;
     day: string;
     startTime: string;
     endTime: string;
-    familyMemberId: string;
+    familyMemberId?: string | null;
+    recurringGoalId?: string | null;
+    isShared?: boolean;
     notes?: string;
   }> {
     try {
@@ -274,8 +317,7 @@ Always return valid JSON matching the requested format exactly.`;
             !block.blockType ||
             !block.day ||
             !block.startTime ||
-            !block.endTime ||
-            !block.familyMemberId
+            !block.endTime
           ) {
             this.logger.warn(
               `⚠️  Block ${index} missing required fields, skipping`
@@ -310,6 +352,31 @@ Always return valid JSON matching the requested format exactly.`;
             );
           }
 
+          const isShared = !!block.isShared;
+          const familyMemberId =
+            block.familyMemberId === null || block.familyMemberId === undefined
+              ? null
+              : String(block.familyMemberId);
+          const recurringGoalId =
+            block.recurringGoalId === null ||
+            block.recurringGoalId === undefined
+              ? null
+              : String(block.recurringGoalId);
+
+          // Validation: shared blocks must not have a member id; non-shared blocks must have a member id
+          if (isShared && familyMemberId) {
+            this.logger.warn(
+              `⚠️  Block ${index} marked isShared=true but has familyMemberId, skipping`
+            );
+            return null;
+          }
+          if (!isShared && !familyMemberId) {
+            this.logger.warn(
+              `⚠️  Block ${index} isShared=false but missing familyMemberId, skipping`
+            );
+            return null;
+          }
+
           return {
             title: block.title,
             blockType: validTypes.includes(normalizedType)
@@ -318,7 +385,9 @@ Always return valid JSON matching the requested format exactly.`;
             day: normalizedDay,
             startTime: block.startTime,
             endTime: block.endTime,
-            familyMemberId: block.familyMemberId,
+            familyMemberId,
+            recurringGoalId,
+            isShared,
             notes: block.notes || undefined,
           };
         })

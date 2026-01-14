@@ -1,0 +1,55 @@
+<div class="page">
+  <header class="header">
+    <div>
+      <h1>Recurring Commitments</h1>
+      <p class="sub">
+        Fixed weekly blocks like work, school, sleep — used as hard constraints for AI schedule generation.
+      </p>
+    </div>
+    <button class="btn-primary" (click)="onAdd()">Add</button>
+  </header>
+
+  <section class="filters">
+    <label>
+      Filter:
+      <select
+        [value]="filterMemberId()"
+        (change)="filterMemberId.set(($any($event.target).value))"
+      >
+        <option value="all">All</option>
+        <option value="shared">Shared</option>
+        @for (m of members(); track m.familyMemberId) {
+        <option [value]="m.familyMemberId">{{ m.name }}</option>
+        }
+      </select>
+    </label>
+  </section>
+
+  @if (isLoading()) {
+  <div class="state">Loading...</div>
+  } @else if (error()) {
+  <div class="state error">{{ error() }}</div>
+  } @else if (filtered().length === 0) {
+  <div class="state">No recurring commitments yet.</div>
+  } @else {
+  <div class="list">
+    @for (c of filtered(); track c.commitmentId) {
+    <div class="card">
+      <div class="card-main">
+        <div class="title">{{ c.title }}</div>
+        <div class="meta">
+          <span class="pill">{{ getMemberLabel(c) }}</span>
+          <span class="pill">{{ c.blockType }}</span>
+          <span class="pill">D{{ c.dayOfWeek }} {{ c.startTime }}–{{ c.endTime }}</span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-secondary" (click)="onEdit(c.commitmentId)">Edit</button>
+        <button class="btn-danger" (click)="onDelete(c.commitmentId)">Delete</button>
+      </div>
+    </div>
+    }
+  </div>
+  }
+</div>
+

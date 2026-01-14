@@ -1,0 +1,70 @@
+<div class="page">
+  <h1>{{ isEditMode ? 'Edit' : 'Add' }} Recurring Commitment</h1>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="form-row">
+      <label class="checkbox">
+        <input type="checkbox" formControlName="isShared" />
+        Shared (applies to whole family)
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label for="familyMemberId">Owner (required if not shared)</label>
+      <select id="familyMemberId" formControlName="familyMemberId">
+        <option value="">Select a member</option>
+        @for (m of members(); track m.familyMemberId) {
+        <option [value]="m.familyMemberId">{{ m.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label for="title">Title *</label>
+      <input id="title" type="text" formControlName="title" />
+    </div>
+
+    <div class="form-row">
+      <label for="blockType">Type *</label>
+      <select id="blockType" formControlName="blockType">
+        <option value="WORK">WORK</option>
+        <option value="ACTIVITY">ACTIVITY</option>
+        <option value="MEAL">MEAL</option>
+        <option value="OTHER">OTHER</option>
+      </select>
+    </div>
+
+    <div class="grid">
+      <div class="form-row">
+        <label for="dayOfWeek">Day *</label>
+        <select id="dayOfWeek" formControlName="dayOfWeek">
+          <option [value]="1">Monday</option>
+          <option [value]="2">Tuesday</option>
+          <option [value]="3">Wednesday</option>
+          <option [value]="4">Thursday</option>
+          <option [value]="5">Friday</option>
+          <option [value]="6">Saturday</option>
+          <option [value]="7">Sunday</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="startTime">Start *</label>
+        <input id="startTime" type="time" step="60" formControlName="startTime" />
+      </div>
+
+      <div class="form-row">
+        <label for="endTime">End *</label>
+        <input id="endTime" type="time" step="60" formControlName="endTime" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn-secondary" (click)="onCancel()">Cancel</button>
+      <button type="submit" class="btn-primary" [disabled]="form.invalid">
+        {{ isEditMode ? 'Update' : 'Create' }}
+      </button>
+    </div>
+  </form>
+</div>
+

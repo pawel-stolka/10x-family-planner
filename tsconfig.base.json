@@ -44,6 +44,12 @@
       ],
       "@family-planner/frontend/feature-goals": [
         "libs/frontend/feature-goals/src/index.ts"
+      ],
+      "@family-planner/frontend/data-access-commitments": [
+        "libs/frontend/data-access-commitments/src/index.ts"
+      ],
+      "@family-planner/frontend/feature-commitments": [
+        "libs/frontend/feature-commitments/src/index.ts"
       ]
     }
   },

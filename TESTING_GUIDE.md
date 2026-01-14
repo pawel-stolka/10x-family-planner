@@ -110,7 +110,54 @@ Navigate to http://localhost:6400/goals
 4. The goal will appear in the list
 5. Use Edit and Delete buttons on each card
 
-### 5. Dashboard ✅
+### 5. Fixed Commitments (Work/School/Sleep) ✅
+
+Navigate to http://localhost:6400/commitments
+
+#### Features:
+
+- ✅ View all recurring fixed commitments
+- ✅ Add new commitment
+- ✅ Edit existing commitment
+- ✅ Delete commitment
+- ✅ Weekly schedule (specify day of week + time range)
+- ✅ Block types: WORK, ACTIVITY, MEAL, OTHER
+- ✅ Can be assigned to individual family members or marked as shared
+- ✅ Used as hard constraints during AI schedule generation
+- ✅ Displayed with "Fixed" badge in weekly calendar
+
+#### How to Test:
+
+1. Click "Add New Commitment" button
+2. Fill in the form:
+   - Title (required): e.g., "Work Hours", "School", "Sleep"
+   - Owner (optional): Select family member or leave empty for shared
+   - Is Shared (checkbox): Check if this commitment applies to multiple people
+   - Day of Week (required): Select Monday-Sunday
+   - Start Time (required): e.g., "09:00"
+   - End Time (required): e.g., "17:00"
+   - Block Type (required): WORK, ACTIVITY, MEAL, or OTHER
+3. Click "Save Commitment"
+4. The commitment will appear in the list
+5. Use Edit and Delete buttons on each card
+
+#### Purpose:
+
+Fixed commitments are "non-negotiable" blocks that:
+
+- **Must appear every week** (e.g., work hours, school pickup, sleep)
+- **Cannot be moved** by the AI schedule generator
+- **Block out time** so the AI won't schedule goals during those times
+- **Are displayed in the calendar** with a "Fixed" badge
+
+Example commitments:
+
+- Work: Monday-Friday 9am-5pm (per parent)
+- School: Monday-Friday 8am-3pm (per child)
+- Sleep: Every day 10pm-6am (per person)
+- Family Dinner: Every day 6pm-7pm (shared)
+
+### 6. Dashboard & Weekly Calendar ✅
 
 Navigate to http://localhost:6400/dashboard
 
@@ -119,8 +166,25 @@ Navigate to http://localhost:6400/dashboard
 - ✅ Welcome message with user name
 - ✅ Account information display
 - ✅ Schedule generation button (connects to backend AI)
-- ✅ Weekly calendar view
+- ✅ **Enhanced family-wide weekly calendar view**:
+  - Groups blocks by day and family member
+  - Shows shared blocks separately
+  - Displays badges: "Shared", "Goal" (for recurring goals), "Fixed" (for commitments)
+  - Filter buttons: All, Shared, or by individual family member
+  - Color-coded by block type (WORK, ACTIVITY, MEAL, OTHER)
 - ✅ Next steps guide
+
+#### How the AI Schedule Generator Works:
+
+1. Loads all family members
+2. Loads all recurring goals
+3. **Loads all fixed commitments as hard constraints**
+4. Calls OpenAI GPT-4 to generate schedule
+5. **AI respects fixed commitments and never schedules over them**
+6. AI schedules each goal the specified number of times per week
+7. Creates shared blocks when `maximizeFamilyTime=true`
+8. Saves schedule with links to recurring goals
+9. Displays complete week in calendar with all badges
 
 ## Testing Workflow
 
@@ -150,23 +214,37 @@ Navigate to http://localhost:6400/dashboard
 4. **Create Goals**
 
    - Navigate to `/goals`
-   - Create daily goals (e.g., "Morning Exercise", "Work Session")
-   - Create weekly goals (e.g., "Family Movie Night")
+   - Create goals with desired frequency (e.g., "Morning Run" 3x/week, "Guitar Practice" 2x/week)
    - Assign owners to goals
+   - Set preferred times of day and priorities
 
-5. **Test Schedule Generation** (Dashboard)
+5. **Add Fixed Commitments**
+
+   - Navigate to `/commitments`
+   - Add work hours for parents (Monday-Friday 9am-5pm)
+   - Add school time for children (Monday-Friday 8am-3pm)
+   - Add sleep blocks for everyone (daily 10pm-6am)
+   - Add shared family dinner (daily 6pm-7pm)
+   - These will act as hard constraints the AI cannot violate
+
+6. **Test Schedule Generation** (Dashboard)
 
    - Click "Generate Week Schedule"
    - View AI-generated schedule in calendar
-   - Check that schedule respects goals and preferences
+   - **Verify fixed commitments appear with "Fixed" badge**
+   - **Verify goal-linked blocks appear with "Goal" badge**
+   - **Verify shared blocks appear with "Shared" badge**
+   - **Use filter buttons to view specific family members**
+   - Check that schedule respects goals, preferences, and commitments
+   - Confirm AI did not schedule goals during fixed commitment times
 
-6. **Test Navigation**
+7. **Test Navigation**
 
    - Use navigation bar to switch between sections
    - Verify active state highlighting
    - Check responsive design (resize browser)
 
-7. **Test Auth Flow**
+8. **Test Auth Flow**
    - Logout from user menu
    - Try accessing `/dashboard` directly (should redirect to login)
    - Login again
@@ -186,15 +264,19 @@ The frontend is configured to work with the backend API:
 - `POST /api/v1/auth/login` - User login
 - `GET /api/v1/auth/me` - Get current user
 - `POST /api/v1/auth/logout` - Logout
-- `GET /api/v1/family` - List family members
-- `POST /api/v1/family` - Create family member
-- `PUT /api/v1/family/:id` - Update family member
-- `DELETE /api/v1/family/:id` - Delete family member
+- `GET /api/v1/family-members` - List family members
+- `POST /api/v1/family-members` - Create family member
+- `PATCH /api/v1/family-members/:id` - Update family member
+- `DELETE /api/v1/family-members/:id` - Delete family member
 - `GET /api/v1/recurring-goals` - List goals
 - `POST /api/v1/recurring-goals` - Create goal
-- `PUT /api/v1/recurring-goals/:id` - Update goal
+- `PATCH /api/v1/recurring-goals/:id` - Update goal
 - `DELETE /api/v1/recurring-goals/:id` - Delete goal
-- `POST /api/v1/schedule-generator/generate` - Generate schedule
+- `GET /api/v1/recurring-commitments` - List fixed commitments
+- `POST /api/v1/recurring-commitments` - Create commitment
+- `PATCH /api/v1/recurring-commitments/:id` - Update commitment
+- `DELETE /api/v1/recurring-commitments/:id` - Delete commitment
+- `POST /api/v1/schedule-generator/generate` - Generate schedule (includes goals + commitments)
 
 ## Known Issues & Limitations
 
@@ -214,13 +296,15 @@ family-planner/
 │   └── backend/           # NestJS app
 └── libs/
     ├── frontend/
-    │   ├── feature-auth/         # Login/Register components
-    │   ├── feature-family/       # Family management
-    │   ├── feature-goals/        # Goals management
-    │   ├── data-access-auth/     # Auth store & services
-    │   ├── data-access-family/   # Family store & services
-    │   ├── data-access-goals/    # Goals store & services
-    │   └── data-access-schedule/ # Schedule store & services
+    │   ├── feature-auth/              # Login/Register components
+    │   ├── feature-family/            # Family management
+    │   ├── feature-goals/             # Goals management
+    │   ├── feature-commitments/       # Fixed commitments management
+    │   ├── data-access-auth/          # Auth store & services
+    │   ├── data-access-family/        # Family store & services
+    │   ├── data-access-goals/         # Goals store & services
+    │   ├── data-access-commitments/   # Commitments store & services
+    │   └── data-access-schedule/      # Schedule store & services
     ├── backend/
     │   ├── feature-auth/         # Auth module
     │   └── feature-schedule/     # Schedule module

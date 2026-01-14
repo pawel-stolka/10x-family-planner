@@ -48,6 +48,14 @@ export const appRoutes: Route[] = [
       ),
     canActivate: [authGuard],
   },
+  {
+    path: 'commitments',
+    loadChildren: () =>
+      import('@family-planner/frontend/feature-commitments').then(
+        (m) => m.commitmentsRoutes
+      ),
+    canActivate: [authGuard],
+  },
 
   // Default redirect
   {

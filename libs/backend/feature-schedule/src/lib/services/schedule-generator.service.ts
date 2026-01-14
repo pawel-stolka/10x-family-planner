@@ -5,6 +5,7 @@ import { WeeklyScheduleEntity } from '../entities/weekly-schedule.entity';
 import { TimeBlockEntity } from '../entities/time-block.entity';
 import { FamilyMemberEntity } from '../entities/family-member.entity';
 import { RecurringGoalEntity } from '../entities/recurring-goal.entity';
+import { RecurringCommitmentEntity } from '../entities/recurring-commitment.entity';
 import { OpenAIService } from './openai.service';
 import { GenerateScheduleDto } from '../dto/generate-schedule.dto';
 import { ScheduleGenerationResponseDto } from '../dto/schedule-generation-response.dto';
@@ -35,6 +36,8 @@ export class ScheduleGeneratorService {
     private readonly familyMemberRepository: Repository<FamilyMemberEntity>,
     @InjectRepository(RecurringGoalEntity)
     private readonly recurringGoalRepository: Repository<RecurringGoalEntity>,
+    @InjectRepository(RecurringCommitmentEntity)
+    private readonly recurringCommitmentRepository: Repository<RecurringCommitmentEntity>,
     private readonly openAIService: OpenAIService
   ) {}
 
@@ -67,7 +70,15 @@ export class ScheduleGeneratorService {
     );
     this.logger.log(`🎯 Found ${recurringGoals.length} recurring goals`);
 
-    // 4. Generate schedule using OpenAI
+    // 4. Load recurring commitments (fixed blocks)
+    const recurringCommitments = await this.recurringCommitmentRepository.find({
+      where: { userId, deletedAt: IsNull() },
+    });
+    this.logger.log(
+      `📌 Found ${recurringCommitments.length} recurring commitments`
+    );
+
+    // 5. Generate schedule using OpenAI
     this.logger.log('🤖 Calling OpenAI to generate schedule...');
     const aiBlocks = await this.openAIService.generateSchedule({
       weekStartDate: weekStart,
@@ -89,6 +100,16 @@ export class ScheduleGeneratorService {
             : undefined,
         priority: 'MEDIUM',
         familyMemberId: g.familyMemberId,
+      })),
+      recurringCommitments: recurringCommitments.map((c) => ({
+        id: c.commitmentId,
+        title: c.title,
+        blockType: c.blockType as string,
+        dayOfWeek: this.getDayName(c.dayOfWeek),
+        startTime: c.startTime,
+        endTime: c.endTime,
+        familyMemberId: c.familyMemberId || null,
+        isShared: c.isShared,
       })),
       strategy: dto.strategy || 'balanced',
     });
@@ -147,8 +168,8 @@ export class ScheduleGeneratorService {
       familyMemberMap.set(fm.name, fm.familyMemberId);
     });
 
-    // 7. Create time blocks
-    const timeBlockEntities = aiBlocks.map((block) => {
+    // 7. Create time blocks from AI-generated schedule
+    const aiTimeBlockEntities = aiBlocks.map((block) => {
       // Convert day name + time to full datetime
       const dayIndex = this.getDayIndex(block.day);
       const blockDate = new Date(weekStart);
@@ -163,34 +184,96 @@ export class ScheduleGeneratorService {
       const endDateTime = new Date(blockDate);
       endDateTime.setHours(endHour, endMin, 0, 0);
 
-      // Map familyMemberId from AI response to actual UUID
-      const actualFamilyMemberId = block.familyMemberId
-        ? familyMemberMap.get(block.familyMemberId) || undefined
-        : undefined;
+      const isShared = !!block.isShared;
+
+      // Map familyMemberId from AI response to actual UUID (shared blocks must not have a member)
+      const actualFamilyMemberId =
+        !isShared && block.familyMemberId
+          ? familyMemberMap.get(block.familyMemberId) || undefined
+          : undefined;
+
+      // Persist link to the recurring goal, if provided
+      const recurringGoalId = block.recurringGoalId || undefined;
 
       const entity = new TimeBlockEntity();
       entity.scheduleId = savedSchedule.scheduleId;
       entity.title = block.title;
       entity.blockType = block.blockType as any;
       entity.familyMemberId = actualFamilyMemberId;
+      entity.recurringGoalId = recurringGoalId;
       entity.timeRange = {
         start: startDateTime,
         end: endDateTime,
       };
-      entity.isShared = false;
+      entity.isShared = isShared;
       entity.metadata = {
         notes: block.notes,
         generatedBy: 'ai',
+        source: recurringGoalId ? 'goal' : isShared ? 'shared' : 'other',
       };
 
       return entity;
     });
 
-    const savedBlocks = await this.timeBlockRepository.save(timeBlockEntities);
-    this.logger.log(`✅ Saved ${savedBlocks.length} time blocks`);
+    // 8. Create fixed time blocks from recurring commitments
+    const fixedTimeBlockEntities = recurringCommitments.flatMap(
+      (commitment) => {
+        // Expand each commitment to the specific week dates
+        // dayOfWeek is 1=Monday ... 7=Sunday, we need 0-based for array offset
+        const dayIndex = commitment.dayOfWeek - 1;
+        const blockDate = new Date(weekStart);
+        blockDate.setDate(blockDate.getDate() + dayIndex);
 
-    // 8. Calculate summary
-    const summary = this.calculateSummary(savedBlocks, recurringGoals.length);
+        const [startHour, startMin] = commitment.startTime
+          .split(':')
+          .map(Number);
+        const [endHour, endMin] = commitment.endTime.split(':').map(Number);
+
+        const startDateTime = new Date(blockDate);
+        startDateTime.setHours(startHour, startMin, 0, 0);
+
+        const endDateTime = new Date(blockDate);
+        endDateTime.setHours(endHour, endMin, 0, 0);
+
+        const entity = new TimeBlockEntity();
+        entity.scheduleId = savedSchedule.scheduleId;
+        entity.title = commitment.title;
+        entity.blockType = commitment.blockType as any;
+        entity.familyMemberId = commitment.familyMemberId || undefined;
+        entity.recurringGoalId = undefined; // Commitments are not goals
+        entity.timeRange = {
+          start: startDateTime,
+          end: endDateTime,
+        };
+        entity.isShared = commitment.isShared;
+        entity.metadata = {
+          ...commitment.metadata,
+          source: 'fixed',
+          generatedBy: 'commitment',
+          commitmentId: commitment.commitmentId,
+        };
+
+        return entity;
+      }
+    );
+
+    // 9. Combine AI and fixed blocks
+    const timeBlockEntities = [
+      ...fixedTimeBlockEntities,
+      ...aiTimeBlockEntities,
+    ];
+
+    const savedBlocks = await this.timeBlockRepository.save(timeBlockEntities);
+    this.logger.log(
+      `✅ Saved ${savedBlocks.length} time blocks (${fixedTimeBlockEntities.length} fixed + ${aiTimeBlockEntities.length} AI-generated)`
+    );
+
+    // 10. Calculate summary
+    const summary = this.calculateSummary(
+      savedBlocks,
+      recurringGoals.length,
+      recurringCommitments.length
+    );
 
     // 9. Return response
     return {
@@ -200,6 +283,7 @@ export class ScheduleGeneratorService {
       timeBlocks: savedBlocks.map((block) => ({
         blockId: block.blockId,
         scheduleId: block.scheduleId,
+        recurringGoalId: block.recurringGoalId,
         title: block.title,
         blockType: block.blockType,
         familyMemberId: block.familyMemberId,
@@ -329,9 +413,29 @@ export class ScheduleGeneratorService {
   }
 
   /**
+   * Convert day number to name (1 = Monday, 7 = Sunday)
+   */
+  private getDayName(dayNum: number): string {
+    const days = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
+    return days[dayNum - 1] || 'monday';
+  }
+
+  /**
    * Calculate summary statistics
    */
-  private calculateSummary(blocks: TimeBlockEntity[], totalGoals: number) {
+  private calculateSummary(
+    blocks: TimeBlockEntity[],
+    totalGoals: number,
+    totalCommitments: number
+  ) {
     const distribution: Record<string, number> = {
       monday: 0,
       tuesday: 0,
@@ -341,6 +445,9 @@ export class ScheduleGeneratorService {
       saturday: 0,
       sunday: 0,
     };
+
+    let fixedBlocksCount = 0;
+    let goalBlocksCount = 0;
 
     blocks.forEach((block) => {
       const dayOfWeek = block.timeRange.start.getDay();
@@ -355,12 +462,22 @@ export class ScheduleGeneratorService {
       ];
       const dayName = dayNames[dayOfWeek];
       distribution[dayName]++;
+
+      // Count fixed vs goal blocks
+      if (block.metadata?.source === 'fixed') {
+        fixedBlocksCount++;
+      } else if (block.recurringGoalId) {
+        goalBlocksCount++;
+      }
     });
 
     return {
       totalBlocks: blocks.length,
+      fixedBlocksCount,
+      goalBlocksCount,
       goalsScheduled: totalGoals, // Simplified for MVP
       totalGoals,
+      totalCommitments,
       conflicts: 0, // Would need conflict detection logic
       distribution,
     };

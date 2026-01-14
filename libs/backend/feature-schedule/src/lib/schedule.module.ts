@@ -9,12 +9,14 @@ import { WeeklyScheduleEntity } from './entities/weekly-schedule.entity';
 import { TimeBlockEntity } from './entities/time-block.entity';
 import { FamilyMemberEntity } from './entities/family-member.entity';
 import { RecurringGoalEntity } from './entities/recurring-goal.entity';
+import { RecurringCommitmentEntity } from './entities/recurring-commitment.entity';
 
 // Controllers
 import { ScheduleController } from './controllers/schedule.controller';
 import { ScheduleGeneratorController } from './controllers/schedule-generator.controller';
 import { FamilyMemberController } from './controllers/family-member.controller';
 import { RecurringGoalController } from './controllers/recurring-goal.controller';
+import { RecurringCommitmentController } from './controllers/recurring-commitment.controller';
 
 // Services
 import { ScheduleService } from './services/schedule.service';
@@ -22,6 +24,7 @@ import { ScheduleGeneratorService } from './services/schedule-generator.service'
 import { OpenAIService } from './services/openai.service';
 import { FamilyMemberService } from './services/family-member.service';
 import { RecurringGoalService } from './services/recurring-goal.service';
+import { RecurringCommitmentService } from './services/recurring-commitment.service';
 import { ScheduleMapper } from './mappers/schedule.mapper';
 
 // Auth Module (for JWT guards and strategies)
@@ -56,6 +59,7 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
       TimeBlockEntity,
       FamilyMemberEntity,
       RecurringGoalEntity,
+      RecurringCommitmentEntity,
     ]),
 
     // Import auth module for JWT guards and strategies
@@ -79,6 +83,7 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
     ScheduleGeneratorController,
     FamilyMemberController,
     RecurringGoalController,
+    RecurringCommitmentController,
   ],
 
   providers: [
@@ -88,6 +93,7 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
     OpenAIService,
     FamilyMemberService,
     RecurringGoalService,
+    RecurringCommitmentService,
     ScheduleMapper,
 
     // Global Exception Filter
