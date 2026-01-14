@@ -47,7 +47,17 @@ export class RecurringCommitmentService {
       metadata: dto.metadata || {},
     });
 
-    return await this.repo.save(entity);
+    try {
+      return await this.repo.save(entity);
+    } catch (error: any) {
+      // Handle foreign key constraint violation for user_id
+      if (error?.code === '23503' && error?.constraint === 'recurring_commitments_user_id_fkey') {
+        throw new BadRequestException(
+          'User account not found. Please logout and login again.'
+        );
+      }
+      throw error;
+    }
   }
 
   async findAll(

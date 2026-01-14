@@ -70,7 +70,20 @@ export class RecurringGoalService {
       rules: dto.rules || {},
     });
 
-    return await this.goalRepo.save(goal);
+    try {
+      return await this.goalRepo.save(goal);
+    } catch (error: any) {
+      // Handle foreign key constraint violation for user_id
+      if (
+        error?.code === '23503' &&
+        error?.constraint === 'recurring_goals_user_id_fkey'
+      ) {
+        throw new BadRequestException(
+          'User account not found. Please logout and login again.'
+        );
+      }
+      throw error;
+    }
   }
 
   /**
