@@ -1,0 +1,100 @@
+<div class="goals-list-container">
+  <header class="goals-list-header">
+    <h1>Recurring Goals & Activities</h1>
+    <button class="btn-primary" (click)="onAddGoal()">+ Add Goal</button>
+  </header>
+
+  <div class="filters-bar">
+    <div class="filter-group">
+      <label>Filter by Member:</label>
+      <select (change)="onFilterChange($any($event.target).value || null)">
+        <option value="">All Members</option>
+        @for (member of members(); track member.familyMemberId) {
+        <option [value]="member.familyMemberId">{{ member.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Sort by:</label>
+      <select
+        [value]="sortBy()"
+        (change)="onSortChange($any($event.target).value)"
+      >
+        <option value="priority">Priority</option>
+        <option value="name">Name</option>
+        <option value="createdAt">Date Created</option>
+      </select>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+  <div class="loading-state">
+    <p>Loading goals...</p>
+  </div>
+  } @if (error()) {
+  <div class="error-state">
+    <p class="error-message">{{ error() }}</p>
+    <button (click)="loadGoals()">Retry</button>
+  </div>
+  } @if (!isLoading() && !error()) {
+  <div class="goals-content">
+    @if (goals().length === 0) {
+    <div class="empty-state">
+      <p>No goals yet. Add your first goal to get started!</p>
+      <button class="btn-primary" (click)="onAddGoal()">Add Goal</button>
+    </div>
+    } @if (goals().length > 0) {
+    <!-- High Priority -->
+    @if (goalsByPriority().high.length > 0) {
+    <div class="priority-section">
+      <h2>⚠️ High Priority</h2>
+      <div class="goals-grid">
+        @for (goal of goalsByPriority().high; track goal.goalId) {
+        <fp-goal-card
+          [goal]="goal"
+          [memberName]="getMemberName(goal.familyMemberId)"
+          (edit)="onEditGoal($event)"
+          (delete)="onDeleteGoal($event)"
+        />
+        }
+      </div>
+    </div>
+    }
+
+    <!-- Medium Priority -->
+    @if (goalsByPriority().medium.length > 0) {
+    <div class="priority-section">
+      <h2>⚡ Medium Priority</h2>
+      <div class="goals-grid">
+        @for (goal of goalsByPriority().medium; track goal.goalId) {
+        <fp-goal-card
+          [goal]="goal"
+          [memberName]="getMemberName(goal.familyMemberId)"
+          (edit)="onEditGoal($event)"
+          (delete)="onDeleteGoal($event)"
+        />
+        }
+      </div>
+    </div>
+    }
+
+    <!-- Low Priority -->
+    @if (goalsByPriority().low.length > 0) {
+    <div class="priority-section">
+      <h2>💡 Low Priority</h2>
+      <div class="goals-grid">
+        @for (goal of goalsByPriority().low; track goal.goalId) {
+        <fp-goal-card
+          [goal]="goal"
+          [memberName]="getMemberName(goal.familyMemberId)"
+          (edit)="onEditGoal($event)"
+          (delete)="onDeleteGoal($event)"
+        />
+        }
+      </div>
+    </div>
+    } }
+  </div>
+  }
+</div>

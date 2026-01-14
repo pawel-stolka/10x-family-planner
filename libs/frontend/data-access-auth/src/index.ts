@@ -15,3 +15,4 @@ export * from './lib/guards/public-only.guard';
 
 // Interceptors
 export * from './lib/interceptors/auth.interceptor';
+export * from './lib/interceptors/error.interceptor';

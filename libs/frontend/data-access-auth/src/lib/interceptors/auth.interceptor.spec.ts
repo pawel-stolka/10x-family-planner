@@ -1,4 +1,4 @@
-import { HttpRequest, HttpHandlerFn } from '@angular/common/http';
+import { HttpRequest, HttpHandlerFn, HttpResponse } from '@angular/common/http';
 import { signal, runInInjectionContext, Injector } from '@angular/core';
 import { of } from 'rxjs';
 import { authInterceptor } from './auth.interceptor';
@@ -17,7 +17,7 @@ describe('authInterceptor', () => {
       token: tokenSignal.asReadonly(),
     };
 
-    mockNext = jest.fn(() => of(null));
+    mockNext = jest.fn(() => of(new HttpResponse({ status: 200 })));
 
     // Create a simple mock injector
     mockInjector = {
@@ -64,7 +64,7 @@ describe('authInterceptor', () => {
   it('should not add Authorization header for login endpoint', () => {
     // Arrange
     tokenSignal.set('test-token-123');
-    const request = new HttpRequest('POST', '/api/v1/auth/login');
+    const request = new HttpRequest('POST', '/api/v1/auth/login', null);
 
     // Act
     runInInjectionContext(mockInjector, () => {
@@ -78,7 +78,7 @@ describe('authInterceptor', () => {
   it('should not add Authorization header for register endpoint', () => {
     // Arrange
     tokenSignal.set('test-token-123');
-    const request = new HttpRequest('POST', '/api/v1/auth/register');
+    const request = new HttpRequest('POST', '/api/v1/auth/register', null);
 
     // Act
     runInInjectionContext(mockInjector, () => {

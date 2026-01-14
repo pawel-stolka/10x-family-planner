@@ -1,0 +1,141 @@
+<div class="goal-form-container">
+  <h1>{{ isEditMode ? 'Edit' : 'Add' }} Recurring Goal</h1>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label for="familyMemberId">Family Member *</label>
+      <select id="familyMemberId" formControlName="familyMemberId">
+        <option value="">Select a member</option>
+        @for (member of members(); track member.familyMemberId) {
+        <option [value]="member.familyMemberId">{{ member.name }}</option>
+        }
+      </select>
+      @if (form.get('familyMemberId')?.invalid &&
+      form.get('familyMemberId')?.touched) {
+      <div class="error">Please select a family member</div>
+      } @if (isEditMode) {
+      <small class="hint">⚠️ Owner cannot be changed after creation</small>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="name">Goal Name *</label>
+      <input
+        id="name"
+        type="text"
+        formControlName="name"
+        placeholder="e.g., Morning Workout, Piano Practice"
+      />
+      @if (form.get('name')?.invalid && form.get('name')?.touched) {
+      <div class="error">Name is required (max 200 characters)</div>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea
+        id="description"
+        formControlName="description"
+        rows="3"
+        placeholder="Optional details about this goal..."
+      ></textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="frequencyPerWeek">Times per Week *</label>
+        <input
+          id="frequencyPerWeek"
+          type="number"
+          formControlName="frequencyPerWeek"
+          min="1"
+          max="14"
+        />
+        @if (form.get('frequencyPerWeek')?.invalid &&
+        form.get('frequencyPerWeek')?.touched) {
+        <div class="error">Must be between 1 and 14</div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="preferredDurationMinutes">Duration (minutes) *</label>
+        <input
+          id="preferredDurationMinutes"
+          type="number"
+          formControlName="preferredDurationMinutes"
+          min="15"
+          max="480"
+        />
+        @if (form.get('preferredDurationMinutes')?.invalid &&
+        form.get('preferredDurationMinutes')?.touched) {
+        <div class="error">Must be between 15 and 480 minutes</div>
+        }
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Preferred Days (optional)</label>
+      <small class="hint">Leave empty to allow scheduling on any day</small>
+      <div class="checkbox-group">
+        @for (day of daysOfWeekOptions; track day.value) {
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            [checked]="isDaySelected(day.value)"
+            (change)="onDayChange(day.value, $any($event.target).checked)"
+          />
+          {{ day.label }}
+        </label>
+        }
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Preferred Time of Day</label>
+      <div class="checkbox-group">
+        @for (option of timeOfDayOptions; track option.value) {
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            [checked]="isTimeOfDaySelected(option.value)"
+            (change)="
+              onTimeOfDayChange(option.value, $any($event.target).checked)
+            "
+          />
+          {{ option.label }}
+        </label>
+        }
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Priority *</label>
+      <div class="radio-group">
+        @for (option of priorityOptions; track option.value) {
+        <label class="radio-label">
+          <input
+            type="radio"
+            name="priority"
+            [value]="option.value"
+            formControlName="priority"
+          />
+          <span [style.color]="option.color">{{ option.label }}</span>
+        </label>
+        }
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" (click)="onCancel()">
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="btn-primary"
+        [disabled]="form.invalid || isLoading()"
+      >
+        {{ isEditMode ? 'Update' : 'Create' }} Goal
+      </button>
+    </div>
+  </form>
+</div>

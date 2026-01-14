@@ -4,7 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { FamilyMemberEntity } from './family-member.entity';
 
 /**
  * Recurring Goal Entity
@@ -42,6 +45,10 @@ export class RecurringGoalEntity {
 
   @Column('uuid', { name: 'family_member_id' })
   familyMemberId!: string;
+
+  @ManyToOne(() => FamilyMemberEntity)
+  @JoinColumn({ name: 'family_member_id' })
+  familyMember?: FamilyMemberEntity;
 
   @Column('jsonb', { default: {} })
   rules!: Record<string, any>;

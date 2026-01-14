@@ -5,6 +5,7 @@
 export interface TimeBlock {
   blockId: string;
   scheduleId: string;
+  recurringGoalId?: string | null;
   title: string;
   blockType: 'WORK' | 'ACTIVITY' | 'MEAL' | 'OTHER';
   familyMemberId: string | null;

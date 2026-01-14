@@ -1,0 +1,34 @@
+<nav class="navigation">
+  <div class="nav-container">
+    <div class="nav-brand">
+      <a routerLink="/">
+        <h1>👨‍👩‍👧‍👦 Family Life Planner</h1>
+      </a>
+    </div>
+
+    @if (isAuthenticated()) {
+    <div class="nav-links">
+      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/family" routerLinkActive="active">Family</a>
+      <a routerLink="/goals" routerLinkActive="active">Goals</a>
+      <a routerLink="/commitments" routerLinkActive="active">Commitments</a>
+    </div>
+
+    <div class="nav-user">
+      @if (user()) {
+      <span class="user-name">{{ user()?.email }}</span>
+      }
+      <button class="btn-logout" (click)="logout()">Logout</button>
+    </div>
+    } @else {
+    <div class="nav-actions">
+      <a routerLink="/login" routerLinkActive="active" class="btn-login"
+        >Login</a
+      >
+      <a routerLink="/register" routerLinkActive="active" class="btn-register"
+        >Register</a
+      >
+    </div>
+    }
+  </div>
+</nav>

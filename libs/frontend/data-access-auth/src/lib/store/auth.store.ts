@@ -170,8 +170,9 @@ export class AuthStore {
 
   /**
    * Clear all authentication data
+   * Public for use by error interceptor
    */
-  private clearAuthData(): void {
+  clearAuthData(): void {
     this.userSignal.set(null);
     this.tokenSignal.set(null);
     this.errorSignal.set(null);
