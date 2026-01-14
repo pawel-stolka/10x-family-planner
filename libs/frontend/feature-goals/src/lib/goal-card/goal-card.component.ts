@@ -42,4 +42,42 @@ export class GoalCardComponent {
     const colors = { 0: '#4caf50', 1: '#ff9800', 2: '#f44336' };
     return colors[this.goal.priority as keyof typeof colors] || '#999';
   }
+
+  /**
+   * Format duration to simplified format: "2h" or "1h 30m"
+   */
+  formatDuration(minutes: number): string {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (hours === 0) {
+      return `${mins}m`;
+    }
+    if (mins === 0) {
+      return `${hours}h`;
+    }
+    return `${hours}h ${mins}m`;
+  }
+
+  /**
+   * Get preferred days from rules as readable day names
+   */
+  getPreferredDays(): string[] {
+    if (!this.goal.rules || !this.goal.rules['daysOfWeek']) {
+      return [];
+    }
+    
+    const dayMap: Record<string, string> = {
+      'monday': 'Mon',
+      'tuesday': 'Tue',
+      'wednesday': 'Wed',
+      'thursday': 'Thu',
+      'friday': 'Fri',
+      'saturday': 'Sat',
+      'sunday': 'Sun'
+    };
+    
+    const days = this.goal.rules['daysOfWeek'] as string[];
+    return days.map(day => dayMap[day.toLowerCase()] || day);
+  }
 }

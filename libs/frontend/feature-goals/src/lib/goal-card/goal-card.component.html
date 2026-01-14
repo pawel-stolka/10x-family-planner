@@ -18,9 +18,14 @@
         <strong>Frequency:</strong> {{ goal.frequencyPerWeek }}x per week
       </div>
       <div class="detail-item">
-        <strong>Duration:</strong> {{ goal.preferredDurationMinutes }} minutes
+        <strong>Duration:</strong>
+        {{ formatDuration(goal.preferredDurationMinutes) }}
       </div>
-      @if (goal.preferredTimeOfDay && goal.preferredTimeOfDay.length > 0) {
+      @if (getPreferredDays().length > 0) {
+      <div class="detail-item">
+        <strong>Days:</strong> {{ getPreferredDays().join(', ') }}
+      </div>
+      } @if (goal.preferredTimeOfDay && goal.preferredTimeOfDay.length > 0) {
       <div class="detail-item">
         <strong>Time:</strong> {{ goal.preferredTimeOfDay.join(', ') }}
       </div>

@@ -52,6 +52,18 @@ export class GoalFormComponent implements OnInit {
     priority: [1, [Validators.required, Validators.min(0), Validators.max(2)]],
   });
 
+  daysOfWeekOptions = [
+    { value: 'monday', label: 'Mon' },
+    { value: 'tuesday', label: 'Tue' },
+    { value: 'wednesday', label: 'Wed' },
+    { value: 'thursday', label: 'Thu' },
+    { value: 'friday', label: 'Fri' },
+    { value: 'saturday', label: 'Sat' },
+    { value: 'sunday', label: 'Sun' },
+  ];
+
+  selectedDays: string[] = [];
+
   timeOfDayOptions = [
     { value: 'morning', label: 'Morning' },
     { value: 'afternoon', label: 'Afternoon' },
@@ -88,6 +100,11 @@ export class GoalFormComponent implements OnInit {
         priority: goal.priority,
       });
 
+      // Load preferred days from rules
+      if (goal.rules && goal.rules['daysOfWeek']) {
+        this.selectedDays = goal.rules['daysOfWeek'] as string[];
+      }
+
       // Disable owner field in edit mode (cannot be changed)
       this.form.get('familyMemberId')?.disable();
     }
@@ -110,6 +127,18 @@ export class GoalFormComponent implements OnInit {
     return (this.form.value.preferredTimeOfDay || []).includes(value);
   }
 
+  onDayChange(value: string, checked: boolean): void {
+    if (checked) {
+      this.selectedDays = [...this.selectedDays, value];
+    } else {
+      this.selectedDays = this.selectedDays.filter((d) => d !== value);
+    }
+  }
+
+  isDaySelected(value: string): boolean {
+    return this.selectedDays.includes(value);
+  }
+
   async onSubmit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -117,6 +146,12 @@ export class GoalFormComponent implements OnInit {
     }
 
     const formValue = this.form.value;
+
+    // Build rules object with preferred days
+    const rules =
+      this.selectedDays.length > 0
+        ? { daysOfWeek: this.selectedDays }
+        : undefined;
 
     let result;
     if (this.isEditMode && this.goalId) {
@@ -130,6 +165,7 @@ export class GoalFormComponent implements OnInit {
           ? formValue.preferredTimeOfDay
           : undefined,
         priority: formValue.priority!,
+        rules,
       };
       result = await this.goalsStore.updateGoal(this.goalId, updateRequest);
     } else {
@@ -144,6 +180,7 @@ export class GoalFormComponent implements OnInit {
           ? formValue.preferredTimeOfDay
           : undefined,
         priority: formValue.priority!,
+        rules,
       };
       result = await this.goalsStore.createGoal(createRequest);
     }

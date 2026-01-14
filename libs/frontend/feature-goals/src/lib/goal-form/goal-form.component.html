@@ -74,6 +74,23 @@
     </div>
 
     <div class="form-group">
+      <label>Preferred Days (optional)</label>
+      <small class="hint">Leave empty to allow scheduling on any day</small>
+      <div class="checkbox-group">
+        @for (day of daysOfWeekOptions; track day.value) {
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            [checked]="isDaySelected(day.value)"
+            (change)="onDayChange(day.value, $any($event.target).checked)"
+          />
+          {{ day.label }}
+        </label>
+        }
+      </div>
+    </div>
+
+    <div class="form-group">
       <label>Preferred Time of Day</label>
       <div class="checkbox-group">
         @for (option of timeOfDayOptions; track option.value) {

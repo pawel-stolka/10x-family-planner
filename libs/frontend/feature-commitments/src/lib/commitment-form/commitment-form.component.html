@@ -19,7 +19,8 @@
       </select>
       @if (members().length === 0) {
       <small class="hint warning">
-        ⚠️ No family members found. <a routerLink="/family">Add family members first</a>.
+        ⚠️ No family members found.
+        <a routerLink="/family">Add family members first</a>.
       </small>
       }
     </div>
@@ -39,37 +40,84 @@
       </select>
     </div>
 
-    <div class="grid">
-      <div class="form-row">
-        <label for="dayOfWeek">Day *</label>
-        <select id="dayOfWeek" formControlName="dayOfWeek">
-          <option [value]="1">Monday</option>
-          <option [value]="2">Tuesday</option>
-          <option [value]="3">Wednesday</option>
-          <option [value]="4">Thursday</option>
-          <option [value]="5">Friday</option>
-          <option [value]="6">Saturday</option>
-          <option [value]="7">Sunday</option>
-        </select>
+    <div class="schedule-section">
+      <div class="section-header">
+        <label>Schedule *</label>
       </div>
 
-      <div class="form-row">
-        <label for="startTime">Start *</label>
-        <input id="startTime" type="time" step="60" formControlName="startTime" />
-      </div>
+      @for (slot of daySlots; track slot.id; let i = $index) {
+      <div class="day-slot">
+        <div class="day-slot-controls">
+          <div class="form-field">
+            <label [for]="'day-' + i">Day</label>
+            <select
+              [id]="'day-' + i"
+              [(ngModel)]="slot.dayOfWeek"
+              [ngModelOptions]="{ standalone: true }"
+            >
+              <option [value]="1">Monday</option>
+              <option [value]="2">Tuesday</option>
+              <option [value]="3">Wednesday</option>
+              <option [value]="4">Thursday</option>
+              <option [value]="5">Friday</option>
+              <option [value]="6">Saturday</option>
+              <option [value]="7">Sunday</option>
+            </select>
+          </div>
 
-      <div class="form-row">
-        <label for="endTime">End *</label>
-        <input id="endTime" type="time" step="60" formControlName="endTime" />
+          <div class="form-field">
+            <label [for]="'start-' + i">Start</label>
+            <input
+              [id]="'start-' + i"
+              type="time"
+              step="60"
+              [(ngModel)]="slot.startTime"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </div>
+
+          <div class="form-field">
+            <label [for]="'end-' + i">End</label>
+            <input
+              [id]="'end-' + i"
+              type="time"
+              step="60"
+              [(ngModel)]="slot.endTime"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </div>
+
+          @if (daySlots.length > 1) {
+          <button
+            type="button"
+            class="btn-remove"
+            (click)="removeDaySlot(i)"
+            title="Remove this day"
+          >
+            ✕
+          </button>
+          }
+        </div>
       </div>
+      }
+
+      <button
+        type="button"
+        class="btn-add-day"
+        (click)="addDaySlot()"
+        title="Add another day"
+      >
+        +
+      </button>
     </div>
 
     <div class="actions">
-      <button type="button" class="btn-secondary" (click)="onCancel()">Cancel</button>
+      <button type="button" class="btn-secondary" (click)="onCancel()">
+        Cancel
+      </button>
       <button type="submit" class="btn-primary" [disabled]="form.invalid">
         {{ isEditMode ? 'Update' : 'Create' }}
       </button>
     </div>
   </form>
 </div>
-

@@ -3,7 +3,8 @@
     <div>
       <h1>Recurring Commitments</h1>
       <p class="sub">
-        Fixed weekly blocks like work, school, sleep — used as hard constraints for AI schedule generation.
+        Fixed weekly blocks like work, school, sleep — used as hard constraints
+        for AI schedule generation.
       </p>
     </div>
     <button class="btn-primary" (click)="onAdd()">Add</button>
@@ -14,7 +15,7 @@
       Filter:
       <select
         [value]="filterMemberId()"
-        (change)="filterMemberId.set(($any($event.target).value))"
+        (change)="filterMemberId.set($any($event.target).value)"
       >
         <option value="all">All</option>
         <option value="shared">Shared</option>
@@ -33,23 +34,26 @@
   <div class="state">No recurring commitments yet.</div>
   } @else {
   <div class="list">
-    @for (c of filtered(); track c.commitmentId) {
+    @for (group of filtered(); track group.ids[0]) {
     <div class="card">
       <div class="card-main">
-        <div class="title">{{ c.title }}</div>
+        <div class="title">{{ group.title }}</div>
         <div class="meta">
-          <span class="pill">{{ getMemberLabel(c) }}</span>
-          <span class="pill">{{ c.blockType }}</span>
-          <span class="pill">D{{ c.dayOfWeek }} {{ c.startTime }}–{{ c.endTime }}</span>
+          <span class="pill">{{ getMemberLabel(group) }}</span>
+          <span class="pill">{{ group.blockType }}</span>
+          <span class="pill"
+            >{{ formatDays(group.days) }} {{ formatTime(group.startTime) }}–{{
+              formatTime(group.endTime)
+            }}</span
+          >
         </div>
       </div>
       <div class="card-actions">
-        <button class="btn-secondary" (click)="onEdit(c.commitmentId)">Edit</button>
-        <button class="btn-danger" (click)="onDelete(c.commitmentId)">Delete</button>
+        <button class="btn-secondary" (click)="onEdit(group)">Edit</button>
+        <button class="btn-danger" (click)="onDelete(group)">Delete</button>
       </div>
     </div>
     }
   </div>
   }
 </div>
-
