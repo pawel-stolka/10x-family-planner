@@ -58,11 +58,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       const message =
         info?.message || err?.message || 'Invalid or expired token';
 
-      // In development mode, allow requests without valid JWT for testing
-      if (isDevelopment) {
+      // In development mode, only bypass if NO auth header is present
+      // If token is present but expired, throw error to trigger refresh flow
+      if (isDevelopment && !hasAuthHeader) {
         this.logger.warn(
-          `⚠️  Authentication bypassed in development mode for ${request.ip}: ${message} ` +
-            `(Authorization header ${hasAuthHeader ? 'present' : 'missing'})`
+          `⚠️  Authentication bypassed in development mode for ${request.ip}: No auth header`
         );
 
         // Return mock user for development mode
@@ -77,8 +77,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         return mockUser;
       }
 
-      // In production, enforce strict authentication
-      this.logger.warn(`Authentication failed for ${request.ip}: ${message}`);
+      // For expired tokens (even in dev), throw error to trigger refresh
+      this.logger.warn(
+        `Authentication failed for ${request.ip}: ${message} ` +
+          `(Authorization header ${hasAuthHeader ? 'present' : 'missing'})`
+      );
 
       throw new UnauthorizedException('Invalid or expired token');
     }
