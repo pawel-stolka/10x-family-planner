@@ -17,6 +17,7 @@ Family Life Planner helps busy parents automatically generate and fine-tune a ba
 Key features (MVP):
 * AI-generated weekly schedule with regenerate & feedback (thumbs up/down)
 * Day-by-day editing of time blocks
+* Week view layout toggle (days vs hours orientation)
 * Basic authentication (sign-up / log-in / account deletion)
 * Local storage persistence with a future path to Postgres
 * Usage analytics & plan acceptance statistics

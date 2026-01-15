@@ -15,6 +15,7 @@ import {
   FamilyMemberViewModel,
   FilterValue,
   WeekScheduleResponse,
+  WeekGridLayout,
 } from '../../models/week-grid.models';
 import { ScheduleGenerationResponse } from '../../models/schedule-generator.models';
 import { GridTransformService } from '../../services/grid-transform.service';
@@ -23,6 +24,7 @@ import { WeekScheduleService } from '../../services/week-schedule.service';
 import { MemberFilterComponent } from '../member-filter/member-filter.component';
 import { MemberLegendComponent } from '../member-legend/member-legend.component';
 import { WeekGridComponent } from '../week-grid/week-grid.component';
+import { WeekGridTransposedComponent } from '../week-grid-transposed/week-grid-transposed.component';
 import { ActivityDetailModalComponent } from '../activity-detail-modal/activity-detail-modal.component';
 import { ScheduleGeneratorPanelComponent } from '../schedule-generator-panel/schedule-generator-panel.component';
 import {
@@ -54,6 +56,7 @@ import { ActivatedRoute, Router } from '@angular/router';
     MemberFilterComponent,
     MemberLegendComponent,
     WeekGridComponent,
+    WeekGridTransposedComponent,
     ActivityDetailModalComponent,
     ScheduleGeneratorPanelComponent,
   ],
@@ -72,22 +75,40 @@ import { ActivatedRoute, Router } from '@angular/router';
           </h1>
         </div>
         <div class="header-actions">
-          <button 
-            class="nav-btn" 
+          <div class="layout-toggle">
+            <button
+              class="layout-btn"
+              [class.active]="layout() === 'days-columns'"
+              (click)="setLayout('days-columns')"
+              [disabled]="isLoading()"
+            >
+              Dni → kolumny
+            </button>
+            <button
+              class="layout-btn"
+              [class.active]="layout() === 'hours-columns'"
+              (click)="setLayout('hours-columns')"
+              [disabled]="isLoading()"
+            >
+              Godziny → kolumny
+            </button>
+          </div>
+          <button
+            class="nav-btn"
             (click)="loadPreviousWeek()"
             [disabled]="isLoading()"
           >
             ‹ Poprzedni
           </button>
-          <button 
-            class="nav-btn today" 
+          <button
+            class="nav-btn today"
             (click)="loadCurrentWeek()"
             [disabled]="isLoading()"
           >
             Dzisiaj
           </button>
-          <button 
-            class="nav-btn" 
+          <button
+            class="nav-btn"
             (click)="loadNextWeek()"
             [disabled]="isLoading()"
           >
@@ -134,12 +155,21 @@ import { ActivatedRoute, Router } from '@angular/router';
             </button>
           </div>
         } @else {
-          <app-week-grid
-            [gridCells]="visibleCells()"
-            [members]="familyMembers()"
-            (activityClick)="onActivityClick($event)"
-            (activityHover)="onActivityHover($event)"
-          />
+          @if (layout() === 'days-columns') {
+            <app-week-grid
+              [gridCells]="visibleCells()"
+              [members]="familyMembers()"
+              (activityClick)="onActivityClick($event)"
+              (activityHover)="onActivityHover($event)"
+            />
+          } @else {
+            <app-week-grid-transposed
+              [gridCells]="visibleCells()"
+              [members]="familyMembers()"
+              (activityClick)="onActivityClick($event)"
+              (activityHover)="onActivityHover($event)"
+            />
+          }
         }
       </div>
 
@@ -189,6 +219,43 @@ import { ActivatedRoute, Router } from '@angular/router';
     .header-actions {
       display: flex;
       gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .layout-toggle {
+      display: inline-flex;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .layout-btn {
+      padding: 8px 12px;
+      border: none;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-right: 1px solid #e5e7eb;
+    }
+
+    .layout-btn:last-child {
+      border-right: none;
+    }
+
+    .layout-btn.active {
+      background: #111827;
+      color: #fff;
+    }
+
+    .layout-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .nav-btn {
@@ -414,6 +481,7 @@ export class WeekViewContainerComponent implements OnInit {
   readonly hasError = signal<boolean>(false);
   readonly errorMessage = signal<string>('');
   readonly isScheduleGeneratorOpen = signal<boolean>(false);
+  readonly layout = signal<WeekGridLayout>('days-columns');
   private readonly useMockData = false;
 
   // Computed signals (automatically recalculated)
@@ -590,6 +658,10 @@ export class WeekViewContainerComponent implements OnInit {
     this.weekStartDate.set(nextWeek);
     this.updateUrl(nextWeek);
     this.loadWeekData();
+  }
+
+  setLayout(layout: WeekGridLayout): void {
+    this.layout.set(layout);
   }
 
   /**

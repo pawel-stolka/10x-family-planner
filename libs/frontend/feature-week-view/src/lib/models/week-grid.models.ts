@@ -116,3 +116,8 @@ export interface WeekScheduleResponse {
  * Filter Value - wartości filtra
  */
 export type FilterValue = 'all' | 'shared' | string; // string = familyMemberId
+
+/**
+ * Week Grid Layout - orientation for the calendar grid
+ */
+export type WeekGridLayout = 'days-columns' | 'hours-columns';
