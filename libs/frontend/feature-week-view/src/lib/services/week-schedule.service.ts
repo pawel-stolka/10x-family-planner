@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { WeekScheduleResponse } from '../models/week-grid.models';
-import { FamilyMember } from '@family-planner/shared/models-schedule';
+import { FamilyMember, TimeBlock } from '@family-planner/shared/models-schedule';
 
 /**
  * Service for fetching week schedule data
@@ -36,7 +36,7 @@ export class WeekScheduleService {
             return {
               weekStart: weekStartDate,
               weekEnd,
-              timeBlocks: schedule.timeBlocks || [],
+              timeBlocks: this.normalizeTimeBlocks(schedule.timeBlocks || []),
               familyMembers: schedule.familyMembers || [],
             };
           }
@@ -58,6 +58,31 @@ export class WeekScheduleService {
     const date = new Date(weekStart);
     date.setDate(date.getDate() + 6);
     return date.toISOString().split('T')[0];
+  }
+
+  /**
+   * Normalize time blocks from API (string dates -> Date objects)
+   */
+  private normalizeTimeBlocks(blocks: any[]): TimeBlock[] {
+    return blocks.map((block) => ({
+      ...block,
+      timeRange: {
+        start: this.toDate(block?.timeRange?.start),
+        end: this.toDate(block?.timeRange?.end),
+      },
+      createdAt: this.toDate(block?.createdAt),
+      updatedAt: this.toDate(block?.updatedAt),
+    }));
+  }
+
+  private toDate(value: unknown): Date {
+    if (value instanceof Date) {
+      return value;
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+      return new Date(value);
+    }
+    return new Date('');
   }
 
   /**
