@@ -36,6 +36,7 @@ export class ScheduleMapper {
         : [],
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
+      familyMembers: this.extractFamilyMembers(entity.timeBlocks),
     };
   }
 
@@ -97,7 +98,30 @@ export class ScheduleMapper {
    * Format Date to YYYY-MM-DD string
    * Used for weekStartDate field
    */
-  private formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+  private formatDate(date: Date | string): string {
+    if (!date) {
+      return '';
+    }
+    const parsed = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(parsed.getTime())) {
+      return '';
+    }
+    return parsed.toISOString().split('T')[0];
+  }
+
+  private extractFamilyMembers(
+    timeBlocks?: TimeBlockEntity[]
+  ): FamilyMemberDto[] {
+    if (!timeBlocks || !timeBlocks.length) return [];
+
+    const map = new Map<string, FamilyMemberDto>();
+    timeBlocks.forEach((block) => {
+      const member = block.familyMember;
+      if (member && !map.has(member.familyMemberId)) {
+        map.set(member.familyMemberId, this.familyMemberToDto(member));
+      }
+    });
+
+    return Array.from(map.values());
   }
 }

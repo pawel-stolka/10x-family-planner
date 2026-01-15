@@ -32,9 +32,12 @@ Jesteśmy rodzicami trójki dzieci; jedno z nas pracuje w ciągu dnia, ma pobocz
    - zgodność z RODO (prawo dostępu/usunięcia danych).
 
 ## 4. Wymagania niefunkcjonalne
-- Deklarowana dostępność na desktopie (web-first, responsywność w przyszłości).
-- Obsługa AI z czasem odpowiedzi ≤15 sekund (GPT-4o Turbo).
-- Brak powiadomień, udostępniania i Google Calendar w MVP.
+- **Desktop-first:** Deklarowana dostępność na desktopie (web-first, responsywność mobilna/tabletowa w przyszłości).
+- **Wydajność renderowania:** Pierwszy render grid view <100ms, filtrowanie <50ms, płynne animacje 60fps.
+- **Obsługa AI:** Czas odpowiedzi ≤15 sekund (GPT-4o Turbo).
+- **Dostępność (Accessibility):** WCAG 2.1 Level AA, obsługa klawiatury, screen reader-friendly, kontrast kolorów >4.5:1.
+- **Optymalizacja:** Angular signals z memoizacją, OnPush change detection, lazy rendering dla viewport.
+- **MVP exclusions:** Brak powiadomień, udostępniania i Google Calendar w MVP.
 
 ## 5. Historyjki użytkowników
 - Wprowadzenie fixed blocks (praca, wyjazdy) → system zna ograniczenia.
@@ -94,6 +97,28 @@ Kryteria akceptacji:
 - Tylko zalogowany użytkownik może wyświetlać, edytować i usuwać swoje harmonogramy.
 - Harmonogramy współmałżonka będą wprowadzone w następnej fazie developmentu do współdzielenia.
 
+ID: US-007
+Tytuł: Przeglądanie tygodnia w formacie grid calendar
+Opis: Jako zalogowany użytkownik chcę widzieć cały tydzień w formie siatki (dni × godziny), aby szybko porównywać te same przedziały czasowe w różnych dniach i łatwo znajdować wolne sloty.
+Kryteria akceptacji:
+- Widok przedstawia 7 kolumn (poniedziałek-niedziela) i wiersze dla slotów godzinowych.
+- Każdy członek rodziny ma przypisany unikalny kolor i inicjał.
+- Wspólne aktywności rodzinne mają specjalny wzór (ukośne pasy).
+- Kliknięcie aktywności otwiera modal z pełnymi szczegółami.
+- Filtrowanie pozwala na przyciemnienie (dim) niewybranych członków rodziny.
+- Konflikty czasowe są wizualnie zaznaczone (czerwona ramka + ikona ostrzeżenia).
+- Widok działa płynnie na desktopie z wydajnością <100ms pierwszego renderu.
+
+ID: US-008
+Tytuł: Filtrowanie aktywności członków rodziny
+Opis: Jako zalogowany użytkownik chcę filtrować widok tygodnia według członków rodziny, aby skupić się na harmonogramie konkretnej osoby zachowując kontekst pozostałych.
+Kryteria akceptacji:
+- Dostępne przyciski filtrowania: "Wszyscy", każdy członek rodziny osobno, "Wspólne".
+- Wybór filtra przyciemnia (opacity 30% + grayscale) aktywności innych osób.
+- Animacja przejścia filtra trwa 200ms z płynnym fade.
+- Filtr jest debounced (150ms) przy szybkich przełączeniach.
+- Legenda na górze widoku pokazuje kolory wszystkich członków rodziny.
+
 
 
 ## 6. Moduły MVP (Phase 1)
@@ -101,8 +126,16 @@ Kryteria akceptacji:
 ### Module 1 – Weekly Schedule Generator
 **Cel:** Generować realistyczny plan tygodniowy obejmujący wszystkie priorytety.
 - **Wejścia:** fixed blocks (praca, wyjazdy), recurring goals (fitness, relacje), side projects, preferencje energii.
-- **Wyjścia:** kalendarz (Mon–Sun), trade-offy, konflikty, przycisk „Regenerate”.
-- **Kryteria sukcesu:** realistyczny plan ≥80% przypadków, cotygodniowe użycie.
+- **Wyjścia:** kalendarz (Mon–Sun), trade-offy, konflikty, przycisk „Regenerate".
+- **Widok:** Grid layout (7 dni × dynamiczne sloty godzinowe) z:
+  - Kolumnami dla dni tygodnia (poniedziałek-niedziela)
+  - Wierszami dla slotów czasowych (1-godzinne sloty, dynamiczny zakres)
+  - Kolorowym rozróżnieniem członków rodziny (kolor + inicjały)
+  - Specjalnymi markerami dla wspólnych aktywności rodzinnych (ukośne pasy)
+  - Tooltipami z pełnymi szczegółami przy hover
+  - Filtrowaniem z opcją przyciemnienia niewybranych członków
+  - Detekcją konfliktów z wizualnymi wskaźnikami
+- **Kryteria sukcesu:** realistyczny plan ≥80% przypadków, cotygodniowe użycie, widok całego tygodnia bez scrollowania.
 
 
 
@@ -127,6 +160,11 @@ Kryteria akceptacji:
 
 ## 8. Stos technologiczny
 - **Frontend:** Angular 20+, standalone components, reactive forms, HttpClient, RxJS/Signals, SCSS.
+  - **Layout:** CSS Grid dla week view, sticky positioning dla headers
+  - **State Management:** Angular signals z computed i memoizacją
+  - **Optymalizacja:** OnPush change detection, track functions, lazy rendering
+  - **Animacje:** CSS transitions (200ms fade, 100ms hover)
+  - **Icons:** Emoji (💼 💪 🍽️ 📌 👨‍👩‍👧‍👦) - zero dependencies
 - **Backend:** NestJS, REST, OpenAI SDK, (Zod validation).
 - **AI:** GPT-4o Turbo (max 15 s, fallback plan).
 - **Deployment:** AWS (Lambda/API Gateway).
@@ -138,6 +176,16 @@ Kryteria akceptacji:
 - ≥80% AI-generated planów akceptowanych bez dużych poprawek.
 - Wskaźnik feedbacku (thumbs up/down) rosnący.
 - Zmniejszenie czasu planowania o ≥30 min tygodniowo.
+- **Grid View - Wydajność:**
+  - Pierwszy render <100ms (target)
+  - Filtrowanie <50ms (target)
+  - Animacje 60fps (smooth transitions)
+  - Memory usage <50MB
+- **Grid View - UX:**
+  - Użytkownicy mogą zobaczyć cały tydzień bez scrollowania
+  - Łatwa identyfikacja wolnych slotów czasowych
+  - Porównywanie tego samego czasu w różnych dniach
+  - Natychmiastowe wykrywanie konfliktów
 (- Wykorzystanie modułów aktywności i posiłków 2–3 razy w tygodniu. - w następnej fazie projektu)
 
 
@@ -161,10 +209,17 @@ Kryteria akceptacji:
 - Określić strategię przechowywania feedbacku i historii planów.
 
 ## 12. Roadmap
-- **Phase 1 (2–4 tygodnie):** Weekly Schedule Generator + Activity Finder + Meal Planner.
-- **Phase 2 (4–6 tygodni):** Ujednolicona tablica, kontekst między modułami, Google Calendar export, „What if?” mode.
-- **Phase 3 (2–4 tygodni):** Responsive UI, ulubione, historia, shopping list, habit tracking.
-- **Phase 4 (2–4 tygodni):** Produkcyjny deploy (AWS), Cognito, baza danych, CI/CD.
+- **Phase 1A (2–3 tygodnie):** Weekly Schedule Generator - podstawowa funkcjonalność + AI generowanie.
+- **Phase 1B (4–6 tygodni):** Grid View Calendar Layout - implementacja widoku siatki tygodnia:
+  - Week 1: Core structure (CSS Grid, time column, day headers, sticky positioning)
+  - Week 2: Activity display (member colors, icons, stacking, multi-hour activities)
+  - Week 3: Interactions (tooltips, modal details, filtering with animations)
+  - Week 4: Advanced features (conflict detection, legend, performance optimization)
+  - Week 5: Accessibility (ARIA labels, keyboard navigation, screen reader)
+  - Week 6: Testing & refinement (unit/E2E tests, family feedback)
+- **Phase 2 (4–6 tygodni):** Activity Finder + Meal Planner, kontekst między modułami, Google Calendar export.
+- **Phase 3 (2–4 tygodni):** Responsive UI (mobile/tablet grid adaptations), ulubione, historia, shopping list.
+- **Phase 4 (2–4 tygodni):** Produkcyjny deploy (AWS), Cognito, baza danych, CI/CD, habit tracking.
 
 ## 13. Ryzyka i mitigacje
 | Ryzyko | Mitigacja |

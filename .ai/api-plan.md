@@ -52,7 +52,7 @@
 | Method | Path                         | Description                                                       |
 | ------ | ---------------------------- | ----------------------------------------------------------------- |
 | GET    | `/family-members`            | List all active members (pagination: `page`, `limit`, default 20) |
-| POST   | `/family-members`            | Add member `{name, role, age?, preferences?}`                     |
+| POST   | `/family-members`            | Add member `{name, role, age?, preferences?, color?, initial?}`                     |
 | GET    | `/family-members/{memberId}` | Get member                                                        |
 | PATCH  | `/family-members/{memberId}` | Update member (partial)                                           |
 | DELETE | `/family-members/{memberId}` | Soft-delete member                                                |
@@ -61,6 +61,24 @@ Validation highlights:
 
 - `role` ∈ `USER | SPOUSE | CHILD`
 - `age` required when `role = CHILD`
+- `color` optional hex color (e.g., `#3B82F6`), auto-assigned if not provided
+- `initial` optional 1-2 letter initial (e.g., `T`, `M`), auto-generated from name if not provided
+
+`FamilyMemberDto` example:
+
+```json
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "name": "Tata",
+  "role": "USER",
+  "age": null,
+  "color": "#3B82F6",
+  "initial": "T",
+  "preferences": {},
+  "createdAt": "2026-01-09T12:00:00Z"
+}
+```
 
 ### 2.4 Recurring Goals
 
@@ -78,19 +96,70 @@ Validation highlights:
 | ------ | -------------------------------- | --------------------------------------------------------------- |
 | GET    | `/weekly-schedules`              | List schedules (`weekStartDate?`, `isAiGenerated?`, pagination) |
 | POST   | `/weekly-schedules`              | Create manual schedule `{weekStartDate}`                        |
-| GET    | `/weekly-schedules/{scheduleId}` | Get schedule inc. blocks                                        |
+| GET    | `/weekly-schedules/{scheduleId}` | Get schedule inc. blocks, family members, and conflict data     |
 | PATCH  | `/weekly-schedules/{scheduleId}` | Update metadata                                                 |
 | DELETE | `/weekly-schedules/{scheduleId}` | Soft-delete                                                     |
 
 Constraint: unique `(userId, weekStartDate)`.
 
+**Query Parameters for Grid View:**
+- `view=grid` - Returns optimized payload for grid rendering with pre-calculated conflicts and time ranges
+- `includeMemberData=true` - Eagerly loads family member colors/initials (default: true for grid view)
+
+**Grid View Optimized Response:**
+```json
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "weekStartDate": "2026-01-13",
+  "isAiGenerated": true,
+  "timeRange": {
+    "earliestTime": "06:00",
+    "latestTime": "22:00"
+  },
+  "familyMembers": [
+    {
+      "id": "uuid",
+      "name": "Tata",
+      "color": "#3B82F6",
+      "initial": "T",
+      "role": "USER"
+    }
+  ],
+  "timeBlocks": [
+    {
+      "id": "uuid",
+      "title": "Work",
+      "startTime": "09:00",
+      "endTime": "17:00",
+      "dayOfWeek": 1,
+      "blockType": "WORK",
+      "familyMemberId": "uuid",
+      "isShared": false,
+      "isGoal": false,
+      "hasConflict": false,
+      "conflictingBlockIds": []
+    }
+  ],
+  "metadata": {
+    "totalBlocks": 45,
+    "conflictCount": 2,
+    "memberActivityCount": {
+      "tata": 15,
+      "mama": 18,
+      "hania": 12
+    }
+  }
+}
+```
+
 ### 2.6 Time Blocks
 
 | Method | Path                                         | Description                                                                         |
 | ------ | -------------------------------------------- | ----------------------------------------------------------------------------------- |
-| GET    | `/weekly-schedules/{scheduleId}/time-blocks` | List blocks (filter by `familyMemberId?`, `blockType?`)                             |
-| POST   | `/weekly-schedules/{scheduleId}/time-blocks` | Create block `{title, blockType, familyMemberId?, timeRange, isShared?, metadata?}` |
-| GET    | `/time-blocks/{blockId}`                     | Get block                                                                           |
+| GET    | `/weekly-schedules/{scheduleId}/time-blocks` | List blocks (filter by `familyMemberId?`, `blockType?`, `day?`)                             |
+| POST   | `/weekly-schedules/{scheduleId}/time-blocks` | Create block `{title, blockType, familyMemberId?, timeRange, isShared?, isGoal?, description?, metadata?}` |
+| GET    | `/time-blocks/{blockId}`                     | Get block with conflict detection                                                                           |
 | PATCH  | `/time-blocks/{blockId}`                     | Update block                                                                        |
 | DELETE | `/time-blocks/{blockId}`                     | Soft-delete                                                                         |
 
@@ -98,6 +167,31 @@ Validation & business rules:
 
 - `timeRange` must not overlap another non-shared block for same `familyMemberId` (conflict detector service + DB EXCLUDE constraint).
 - `blockType` ∈ `WORK | ACTIVITY | MEAL | OTHER`.
+- `isShared` boolean flag for family-wide activities (displayed with special pattern in grid view).
+- `isGoal` boolean flag distinguishing recurring goals from fixed commitments.
+- Response includes `hasConflict` boolean and `conflictingBlockIds` array for grid view conflict visualization.
+
+`TimeBlockDto` example:
+
+```json
+{
+  "id": "uuid",
+  "scheduleId": "uuid",
+  "familyMemberId": "uuid",
+  "title": "Morning Workout",
+  "description": "Gym session",
+  "blockType": "ACTIVITY",
+  "startTime": "07:00",
+  "endTime": "08:00",
+  "dayOfWeek": 1,
+  "isShared": false,
+  "isGoal": true,
+  "hasConflict": false,
+  "conflictingBlockIds": [],
+  "metadata": {},
+  "createdAt": "2026-01-09T12:00:00Z"
+}
+```
 
 ### 2.7 Schedule Generation (AI)
 
@@ -163,10 +257,10 @@ Validation: `rating` ∈ `-1 | 1`.
 
 | Resource        | Key Validation Rules                                                                                       | Business Logic                                                 |
 | --------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| FamilyMember    | `role` enum; `age` >0 when `role=CHILD`; `preferences` JSON schema                                         | Auto-create owner record (`role=USER`) after registration      |
+| FamilyMember    | `role` enum; `age` >0 when `role=CHILD`; `preferences` JSON schema; `color` valid hex; `initial` 1-2 chars | Auto-create owner record (`role=USER`) after registration; auto-assign color/initial if not provided |
 | RecurringGoal   | `frequencyPerWeek > 0`; `preferredDurationMinutes >0`; `priority` smallint; `rules` JSON validated (RRULE) | Used by AI generator to distribute goals across week           |
-| WeeklySchedule  | Unique per `(userId, weekStartDate)`; `weekStartDate` must be Monday; soft-delete                          | AI flag `isAiGenerated` set when produced by generator         |
-| TimeBlock       | `blockType` enum; `timeRange` valid & non-overlapping (EXCLUDE constraint); optional `familyMemberId`      | ConflictDetectorService prevents overlaps before insert/update |
+| WeeklySchedule  | Unique per `(userId, weekStartDate)`; `weekStartDate` must be Monday; soft-delete                          | AI flag `isAiGenerated` set when produced by generator; pre-calculate time range and conflicts for grid view |
+| TimeBlock       | `blockType` enum; `timeRange` valid & non-overlapping (EXCLUDE constraint); optional `familyMemberId`; `isShared` boolean; `isGoal` boolean | ConflictDetectorService prevents overlaps before insert/update; detects conflicts for grid visualization |
 | Feedback        | `rating` in {-1,1}                                                                                         | Updates `usage_stats.acceptedCount` when `rating = 1`          |
 | SuggestionCache | `expiresAt` future date                                                                                    | Hit returns cached payload; cold miss triggers OpenAI call     |
 
@@ -197,6 +291,20 @@ Standard JSON:
 - AI endpoints guarded by cache & rate-limit to control OpenAI cost.
 - Use pagination & `range` requests for large lists.
 - Future: partition `weekly_schedules` & `time_blocks` by `weekStartDate` to aid archival.
+
+### Grid View Specific Optimizations
+
+- **Single endpoint fetch:** `GET /weekly-schedules/{scheduleId}` returns all data needed for grid rendering in one call (blocks, members, conflicts, time range).
+- **Conflict pre-calculation:** Backend calculates overlaps during fetch, avoiding N² comparisons on frontend.
+- **Eager loading:** Time blocks include denormalized family member data (name, color, initial) to avoid frontend joins.
+- **Time range metadata:** Response includes `earliestActivityTime` and `latestActivityTime` for dynamic hour range calculation.
+- **Caching headers:** Set appropriate `Cache-Control` headers for frequently accessed weeks.
+- **Compression:** Enable gzip/brotli compression for schedule responses (typical 70-80% reduction).
+
+**Performance targets:**
+- Schedule fetch: <200ms (including all blocks, members, conflicts)
+- Response payload: <50KB compressed per week
+- Support for 50+ time blocks per week without degradation
 
 ---
 

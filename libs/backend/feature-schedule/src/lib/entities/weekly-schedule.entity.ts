@@ -52,7 +52,7 @@ export class WeeklyScheduleEntity {
    * One-to-Many relation with TimeBlocks
    * Lazy loaded by default - use relations: ['timeBlocks'] in find options for eager loading
    */
-  @OneToMany(() => TimeBlockEntity, (block) => block.scheduleId)
+  @OneToMany(() => TimeBlockEntity, (block) => block.schedule)
   timeBlocks!: TimeBlockEntity[];
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
