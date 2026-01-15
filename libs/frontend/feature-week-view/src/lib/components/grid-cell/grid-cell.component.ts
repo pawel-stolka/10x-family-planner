@@ -43,10 +43,10 @@ import { CELL_HEIGHT } from '../../constants/week-grid.constants';
   styles: [`
     .grid-cell {
       position: relative;
-      min-height: 80px;
+      min-height: 36px;
       background: #fff;
       border: 1px solid #e5e7eb;
-      padding: 4px;
+      padding: 2px;
       overflow: visible;
       transition: background-color 0.2s ease;
     }
@@ -70,13 +70,13 @@ import { CELL_HEIGHT } from '../../constants/week-grid.constants';
     .empty-state {
       width: 100%;
       height: 100%;
-      min-height: 60px;
+      min-height: 24px;
     }
 
     /* Handle overflow when too many activities */
-    .grid-cell:has(.activities-stack > :nth-child(5)) .activities-stack {
+    .grid-cell:has(.activities-stack > :nth-child(4)) .activities-stack {
       overflow-y: auto;
-      max-height: 200px;
+      max-height: 120px;
     }
 
     /* Custom scrollbar */

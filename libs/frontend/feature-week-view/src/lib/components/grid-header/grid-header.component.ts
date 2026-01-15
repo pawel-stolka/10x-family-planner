@@ -21,7 +21,7 @@ import { DayInfo } from '../../models/week-grid.models';
       position: sticky;
       top: 0;
       z-index: 20;
-      padding: 12px 8px;
+      padding: 6px 4px;
       background: #fff;
       border-bottom: 2px solid #e5e7eb;
       text-align: center;
@@ -30,16 +30,16 @@ import { DayInfo } from '../../models/week-grid.models';
     }
 
     .day-name {
-      font-size: 14px;
+      font-size: 11px;
       color: #6b7280;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
     }
 
     .day-date {
-      font-size: 20px;
+      font-size: 14px;
       color: #111827;
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .day-header.today {

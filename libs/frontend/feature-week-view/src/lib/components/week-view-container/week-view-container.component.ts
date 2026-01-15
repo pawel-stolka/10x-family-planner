@@ -244,7 +244,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 
     .skeleton-header,
     .skeleton-row {
-      height: 60px;
+      height: 32px;
       background: linear-gradient(
         90deg,
         #e5e7eb 25%,
@@ -257,7 +257,7 @@ import { ActivatedRoute, Router } from '@angular/router';
     }
 
     .skeleton-header {
-      height: 80px;
+      height: 44px;
     }
 
     @keyframes shimmer {
@@ -414,7 +414,7 @@ export class WeekViewContainerComponent implements OnInit {
   readonly hasError = signal<boolean>(false);
   readonly errorMessage = signal<string>('');
   readonly isScheduleGeneratorOpen = signal<boolean>(false);
-  private readonly useMockData = true;
+  private readonly useMockData = false;
 
   // Computed signals (automatically recalculated)
   readonly weekEndDate = computed(() => addDays(this.weekStartDate(), 6));

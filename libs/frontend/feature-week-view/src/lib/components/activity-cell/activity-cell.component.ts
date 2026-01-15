@@ -52,16 +52,16 @@ import { MIN_ACTIVITY_HEIGHT, TOOLTIP_DELAY } from '../../constants/week-grid.co
   styles: [`
     .activity-cell {
       position: relative;
-      margin: 2px;
-      padding: 6px 8px;
-      border-radius: 6px;
+      margin: 1px;
+      padding: 2px 4px;
+      border-radius: 4px;
       cursor: pointer;
       overflow: hidden;
       transition: all 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
     }
 
     .activity-cell:hover {
@@ -78,12 +78,12 @@ import { MIN_ACTIVITY_HEIGHT, TOOLTIP_DELAY } from '../../constants/week-grid.co
     }
 
     .activity-emoji {
-      font-size: 16px;
+      font-size: 13px;
       flex-shrink: 0;
     }
 
     .activity-title {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
       color: #fff;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -94,25 +94,25 @@ import { MIN_ACTIVITY_HEIGHT, TOOLTIP_DELAY } from '../../constants/week-grid.co
     }
 
     .member-initial {
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
       color: rgba(255, 255, 255, 0.9);
       background: rgba(0, 0, 0, 0.15);
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 1px 4px;
+      border-radius: 3px;
       flex-shrink: 0;
     }
 
     .conflict-indicator {
       position: absolute;
-      top: 2px;
-      right: 2px;
-      font-size: 14px;
+      top: 1px;
+      right: 1px;
+      font-size: 11px;
       filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
     }
 
     .activity-cell.has-conflict {
-      border: 3px solid #ef4444;
+      border: 2px solid #ef4444;
       box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
     }
 

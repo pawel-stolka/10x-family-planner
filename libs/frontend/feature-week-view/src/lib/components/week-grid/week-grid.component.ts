@@ -80,7 +80,7 @@ import { DAY_NAMES, SHORT_DAY_NAMES } from '../../constants/week-grid.constants'
 
     .grid-header-row {
       display: grid;
-      grid-template-columns: 80px repeat(7, 1fr);
+      grid-template-columns: 64px repeat(7, 1fr);
       position: sticky;
       top: 0;
       z-index: 30;
@@ -92,10 +92,10 @@ import { DAY_NAMES, SHORT_DAY_NAMES } from '../../constants/week-grid.constants'
       position: sticky;
       left: 0;
       z-index: 31;
-      padding: 12px;
+      padding: 6px 8px;
       background: #f3f4f6;
       border-right: 2px solid #d1d5db;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       color: #6b7280;
       text-transform: uppercase;
@@ -112,12 +112,12 @@ import { DAY_NAMES, SHORT_DAY_NAMES } from '../../constants/week-grid.constants'
 
     .grid-row {
       display: grid;
-      grid-template-columns: 80px repeat(7, 1fr);
-      min-height: 80px;
+      grid-template-columns: 64px repeat(7, 1fr);
+      min-height: 36px;
     }
 
     .grid-cell-placeholder {
-      min-height: 80px;
+      min-height: 36px;
       background: #fafafa;
       border: 1px solid #e5e7eb;
       animation: pulse 1.5s ease-in-out infinite;
@@ -136,7 +136,7 @@ import { DAY_NAMES, SHORT_DAY_NAMES } from '../../constants/week-grid.constants'
     @media (max-width: 1200px) {
       .grid-header-row,
       .grid-row {
-        grid-template-columns: 60px repeat(7, minmax(100px, 1fr));
+        grid-template-columns: 56px repeat(7, minmax(100px, 1fr));
       }
     }
   `],
