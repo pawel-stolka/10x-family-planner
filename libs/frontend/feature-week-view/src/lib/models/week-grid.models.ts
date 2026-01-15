@@ -28,6 +28,8 @@ export interface GridCell {
 export interface ActivityInCell {
   /** ID aktywności */
   id: string;
+  /** Data aktywności w formacie ISO */
+  day: string;
   /** Członek rodziny przypisany do aktywności */
   member: FamilyMemberViewModel;
   /** Oryginalne dane bloku czasowego */

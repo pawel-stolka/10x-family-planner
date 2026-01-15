@@ -245,6 +245,7 @@ export class GridTransformService {
     // Create activity
     const activity: ActivityInCell = {
       id: block.blockId,
+      day: blockDay,
       member,
       block: blockViewModel,
       isShared: block.isShared,
@@ -269,35 +270,34 @@ export class GridTransformService {
   ): void {
     activities.forEach((activity) => {
       const { startTime, endTime } = activity.block;
+      const dayIndex = days.findIndex(
+        (day) => formatISODate(day) === activity.day
+      );
 
-      // Find which day this activity belongs to
-      const blockDate = formatISODate(new Date()); // This should come from activity date
-      // For now, assume it's in the grid somewhere
+      if (dayIndex === -1) {
+        return;
+      }
 
       timeSlots.forEach((timeSlot, rowIndex) => {
-        if (overlapsWithSlot(startTime, endTime, timeSlot)) {
-          days.forEach((day, colIndex) => {
-            // Check if this day matches the activity date
-            // For now, place in all matching time slots
-            const cell = grid[rowIndex][colIndex];
+        if (!overlapsWithSlot(startTime, endTime, timeSlot)) {
+          return;
+        }
 
-            // Calculate proportional height for this specific cell
-            const proportionalHeight = calculateProportionalHeight(
-              startTime,
-              endTime,
-              timeSlot
-            );
+        const cell = grid[rowIndex][dayIndex];
+        const proportionalHeight = calculateProportionalHeight(
+          startTime,
+          endTime,
+          timeSlot
+        );
 
-            if (proportionalHeight > 0) {
-              const activityCopy = {
-                ...activity,
-                proportionalHeight,
-              };
+        if (proportionalHeight > 0) {
+          const activityCopy = {
+            ...activity,
+            proportionalHeight,
+          };
 
-              cell.activities.push(activityCopy);
-              cell.isEmpty = false;
-            }
-          });
+          cell.activities.push(activityCopy);
+          cell.isEmpty = false;
         }
       });
     });
