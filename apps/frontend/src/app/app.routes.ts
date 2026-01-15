@@ -56,11 +56,29 @@ export const appRoutes: Route[] = [
       ),
     canActivate: [authGuard],
   },
+  {
+    path: 'schedule',
+    children: [
+      {
+        path: 'week',
+        loadChildren: () =>
+          import('@family-planner/frontend/feature-week-view').then(
+            (m) => m.weekViewRoutes
+          ),
+      },
+      {
+        path: '',
+        redirectTo: 'week',
+        pathMatch: 'full',
+      },
+    ],
+    canActivate: [authGuard],
+  },
 
   // Default redirect
   {
     path: '',
-    redirectTo: '/dashboard',
+    redirectTo: '/schedule/week',
     pathMatch: 'full',
   },
 ];

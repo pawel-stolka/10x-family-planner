@@ -1,7 +1,22 @@
 // Public API for feature-week-view library
 
-// Main component
+// Routes
+export * from './lib/week-view.routes';
+
+// Main components
 export * from './lib/feature-week-view/feature-week-view';
+export * from './lib/components/week-view-container/week-view-container.component';
+
+// Child components
+export * from './lib/components/week-grid/week-grid.component';
+export * from './lib/components/grid-cell/grid-cell.component';
+export * from './lib/components/activity-cell/activity-cell.component';
+export * from './lib/components/grid-header/grid-header.component';
+export * from './lib/components/time-column/time-column.component';
+export * from './lib/components/member-filter/member-filter.component';
+export * from './lib/components/member-legend/member-legend.component';
+export * from './lib/components/activity-tooltip/activity-tooltip.component';
+export * from './lib/components/activity-detail-modal/activity-detail-modal.component';
 
 // Models
 export * from './lib/models/week-grid.models';

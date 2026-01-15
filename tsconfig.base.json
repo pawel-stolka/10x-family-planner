@@ -15,6 +15,9 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@family-planner/shared/models-schedule": [
+        "libs/shared/models-schedule/src/index.ts"
+      ],
       "@family-planner/shared-models-schedule": [
         "libs/shared/models-schedule/src/index.ts"
       ],
@@ -51,7 +54,7 @@
       "@family-planner/frontend/feature-commitments": [
         "libs/frontend/feature-commitments/src/index.ts"
       ],
-      "@family-planner/feature-week-view": [
+      "@family-planner/frontend/feature-week-view": [
         "libs/frontend/feature-week-view/src/index.ts"
       ]
     }

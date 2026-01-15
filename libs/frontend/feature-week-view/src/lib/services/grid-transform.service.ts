@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
-import { TimeBlock, FamilyMember, BlockType } from '@family-planner/shared/models-schedule';
+import {
+  TimeBlock,
+  FamilyMember,
+  BlockType,
+} from '@family-planner/shared/models-schedule';
 import {
   GridCell,
   ActivityInCell,
@@ -55,9 +59,7 @@ export class GridTransformService {
 
     // 4. Transform members to view models
     const memberViewModels = this.transformMembersToViewModels(members);
-    const memberMap = new Map(
-      memberViewModels.map((m) => [m.id, m])
-    );
+    const memberMap = new Map(memberViewModels.map((m) => [m.id, m]));
 
     // 5. Fill grid with activities
     blocks.forEach((block) => {
@@ -66,11 +68,7 @@ export class GridTransformService {
         return;
       }
 
-      const activities = this.mapBlockToActivities(
-        block,
-        memberMap,
-        days
-      );
+      const activities = this.mapBlockToActivities(block, memberMap, days);
       this.placeActivitiesInGrid(grid, activities, timeSlots, days);
     });
 
@@ -83,7 +81,10 @@ export class GridTransformService {
   /**
    * Calculate dynamic time range from blocks (earliest to latest)
    */
-  private calculateTimeRange(blocks: TimeBlock[]): { start: number; end: number } {
+  private calculateTimeRange(blocks: TimeBlock[]): {
+    start: number;
+    end: number;
+  } {
     if (blocks.length === 0) {
       return { start: DEFAULT_START_HOUR, end: DEFAULT_END_HOUR };
     }
@@ -185,8 +186,17 @@ export class GridTransformService {
    * Generate color from member ID (fallback)
    */
   private generateColor(memberId: string): string {
-    const colors = ['#3b82f6', '#ec4899', '#f59e0b', '#10b981', '#a855f7', '#ef4444'];
-    const hash = memberId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const colors = [
+      '#3b82f6',
+      '#ec4899',
+      '#f59e0b',
+      '#10b981',
+      '#a855f7',
+      '#ef4444',
+    ];
+    const hash = memberId
+      .split('')
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[hash % colors.length];
   }
 
@@ -227,8 +237,8 @@ export class GridTransformService {
       startTime: this.dateToTimeString(block.timeRange.start),
       endTime: this.dateToTimeString(block.timeRange.end),
       type: block.blockType,
-      description: block.metadata?.description,
-      emoji: block.metadata?.emoji || ACTIVITY_ICONS[block.blockType],
+      description: block.metadata?.['description'],
+      emoji: block.metadata?.['emoji'] || ACTIVITY_ICONS[block.blockType],
       isGoal: !!block.recurringGoalId,
     };
 
