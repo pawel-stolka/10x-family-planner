@@ -46,7 +46,10 @@ export class ScheduleService {
     try {
       // Set RLS context for Row-Level Security
       // This ensures PostgreSQL policies filter data by user_id
-      await this.dataSource.query(`SET LOCAL app.user_id = $1`, [userId]);
+      const sanitizedUserId = userId.replace(/'/g, "''");
+      await this.dataSource.query(
+        `SET LOCAL app.user_id = '${sanitizedUserId}'`
+      );
 
       // Query with eager loading to avoid N+1 problem
       // Single query with LEFT JOINs for optimal performance
@@ -135,7 +138,10 @@ export class ScheduleService {
   ): Promise<WeeklyScheduleEntity | null> {
     try {
       // Set RLS context for Row-Level Security
-      await this.dataSource.query(`SET LOCAL app.user_id = $1`, [userId]);
+      const sanitizedUserId = userId.replace(/'/g, "''");
+      await this.dataSource.query(
+        `SET LOCAL app.user_id = '${sanitizedUserId}'`
+      );
 
       // Query with eager loading
       const schedule = await this.scheduleRepository.findOne({
@@ -206,7 +212,10 @@ export class ScheduleService {
   ): Promise<WeeklyScheduleEntity[]> {
     try {
       // Set RLS context
-      await this.dataSource.query(`SET LOCAL app.user_id = $1`, [userId]);
+      const sanitizedUserId = userId.replace(/'/g, "''");
+      await this.dataSource.query(
+        `SET LOCAL app.user_id = '${sanitizedUserId}'`
+      );
 
       const whereConditions: any = {
         userId,

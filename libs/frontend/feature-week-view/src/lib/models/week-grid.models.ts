@@ -107,7 +107,7 @@ export interface WeekScheduleResponse {
   weekStart: string;
   weekEnd: string;
   timeBlocks: TimeBlock[];
-  members: FamilyMember[];
+  familyMembers?: FamilyMember[];
 }
 
 /**

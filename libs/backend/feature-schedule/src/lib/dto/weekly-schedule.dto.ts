@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { TimeBlockDto } from './time-block.dto';
+import { FamilyMemberDto } from './family-member.dto';
 
 /**
  * Weekly Schedule DTO
@@ -47,6 +48,13 @@ export class WeeklyScheduleDto {
     isArray: true,
   })
   timeBlocks!: TimeBlockDto[];
+
+  @ApiProperty({
+    description: 'Family members participating in the schedule',
+    type: [FamilyMemberDto],
+    isArray: true,
+  })
+  familyMembers!: FamilyMemberDto[];
 
   @ApiProperty({
     description: 'Timestamp when the schedule was created',

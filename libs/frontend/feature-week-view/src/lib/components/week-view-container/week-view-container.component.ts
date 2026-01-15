@@ -14,6 +14,7 @@ import {
   ActivityInCell,
   FamilyMemberViewModel,
   FilterValue,
+  WeekScheduleResponse,
 } from '../../models/week-grid.models';
 import { GridTransformService } from '../../services/grid-transform.service';
 import { ConflictDetectionService } from '../../services/conflict-detection.service';
@@ -482,11 +483,11 @@ export class WeekViewContainerComponent implements OnInit {
         .pipe(
           catchError((error: HttpErrorResponse) => {
             if (error.status === 404) {
-              return of({
+              return of<WeekScheduleResponse>({
                 weekStart: weekStartISO,
                 weekEnd: formatISODate(addDays(this.weekStartDate(), 6)),
                 timeBlocks: [],
-                members: [],
+                familyMembers: [],
               });
             }
             this.handleError(error);
@@ -498,6 +499,11 @@ export class WeekViewContainerComponent implements OnInit {
       if (response) {
         this.rawScheduleData.set(response.timeBlocks);
         this.scheduleExists.set(response.timeBlocks.length > 0);
+        if (response.familyMembers?.length) {
+          this.familyMembers.set(
+            this.transformToViewModels(response.familyMembers)
+          );
+        }
         this.updateUrl(this.weekStartDate(), true);
       } else {
         this.rawScheduleData.set([]);
