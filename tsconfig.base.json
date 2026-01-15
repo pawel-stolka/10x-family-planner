@@ -50,6 +50,9 @@
       ],
       "@family-planner/frontend/feature-commitments": [
         "libs/frontend/feature-commitments/src/index.ts"
+      ],
+      "@family-planner/feature-week-view": [
+        "libs/frontend/feature-week-view/src/index.ts"
       ]
     }
   },
