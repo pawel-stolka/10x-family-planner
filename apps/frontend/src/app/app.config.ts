@@ -5,6 +5,7 @@ import {
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { appRoutes } from './app.routes';
 import {
   authInterceptor,
@@ -17,6 +18,6 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(appRoutes),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
-    // provideAnimations(), // Uncomment after installing Angular Material
+    provideAnimations(), // Required for modal and tooltip animations
   ],
 };

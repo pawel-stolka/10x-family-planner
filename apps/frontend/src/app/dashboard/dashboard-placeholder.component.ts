@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthStore } from '@family-planner/frontend/data-access-auth';
 import { ScheduleStore } from '@family-planner/frontend/data-access-schedule';
-import { WeeklyCalendarComponent } from './weekly-calendar/weekly-calendar.component';
+import { WeekViewContainerComponent } from '@family-planner/frontend/feature-week-view';
 
 /**
  * DashboardPlaceholderComponent - Temporary dashboard for testing navigation
@@ -16,7 +16,7 @@ import { WeeklyCalendarComponent } from './weekly-calendar/weekly-calendar.compo
  */
 @Component({
   selector: 'fp-dashboard-placeholder',
-  imports: [CommonModule, RouterModule, WeeklyCalendarComponent],
+  imports: [CommonModule, RouterModule, WeekViewContainerComponent],
   template: `
     <div class="dashboard-placeholder">
       <div class="dashboard-header">
@@ -27,85 +27,8 @@ import { WeeklyCalendarComponent } from './weekly-calendar/weekly-calendar.compo
       </div>
 
       <div class="dashboard-container">
-        <div class="welcome-card">
-          <h2 class="welcome-title">
-            Welcome back,
-            {{ authStore.user()?.displayName || authStore.user()?.email }}! 🎉
-          </h2>
-          <p class="welcome-text">
-            You've successfully logged in to your Family Life Planner account.
-          </p>
-        </div>
-
-        <div class="info-card">
-          <h3 class="info-title">Generate Your Weekly Schedule 🪄</h3>
-          <p class="info-text">
-            Create an AI-powered weekly schedule tailored to your family's
-            needs.
-          </p>
-          <button
-            class="generate-button"
-            (click)="onGenerateSchedule()"
-            [disabled]="scheduleStore.generating()"
-          >
-            @if (scheduleStore.generating()) {
-            <span class="spinner"></span>
-            Generating... } @else { Generate Week Schedule }
-          </button>
-
-          @if (scheduleStore.error()) {
-          <div class="error-message">❌ {{ scheduleStore.error() }}</div>
-          } @if (scheduleStore.lastGenerated(); as generated) {
-          <div class="success-message">
-            ✅ Schedule generated successfully!
-            <strong>{{ generated.summary.totalBlocks }}</strong> blocks created.
-          </div>
-          }
-        </div>
-
-        @if (scheduleStore.lastGenerated(); as generated) {
-        <fp-weekly-calendar [timeBlocks]="generated.timeBlocks" />
-        }
-
-        <div class="user-info-card">
-          <h3 class="section-title">Your Account Information</h3>
-          <div class="user-details">
-            <div class="detail-row">
-              <span class="detail-label">Email:</span>
-              <span class="detail-value">{{ authStore.user()?.email }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Display Name:</span>
-              <span class="detail-value">
-                {{ authStore.user()?.displayName || '(Not set)' }}
-              </span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Member Since:</span>
-              <span class="detail-value">
-                {{ authStore.user()?.createdAt | date : 'medium' }}
-              </span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Authentication Status:</span>
-              <span class="detail-value status-badge"> ✅ Authenticated </span>
-            </div>
-          </div>
-        </div>
-
-        <div class="next-steps-card">
-          <h3 class="section-title">What's Next?</h3>
-          <ul class="steps-list">
-            <li>📝 Complete your onboarding (family members & goals setup)</li>
-            <li>🪄 Generate your first weekly schedule with AI</li>
-            <li>📅 View and edit your calendar</li>
-            <li>👥 Manage family members and recurring goals</li>
-            <li>📊 Track your planning statistics</li>
-          </ul>
-          <p class="info-note">
-            <strong>Note:</strong> These features will be implemented in
-            upcoming phases.
-          </p>
+        <div class="week-view-shell">
+          <app-week-view-container />
         </div>
       </div>
     </div>

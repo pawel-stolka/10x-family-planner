@@ -11,6 +11,7 @@ import { BlockType, TimeRange } from '@family-planner/shared-models-schedule';
 import { TimeRangeTransformer } from '../transformers/time-range.transformer';
 import { FamilyMemberEntity } from './family-member.entity';
 import { RecurringGoalEntity } from './recurring-goal.entity';
+import { WeeklyScheduleEntity } from './weekly-schedule.entity';
 
 /**
  * Time Block Entity
@@ -80,6 +81,17 @@ export class TimeBlockEntity {
   @ManyToOne(() => RecurringGoalEntity, { nullable: true, eager: false })
   @JoinColumn({ name: 'recurring_goal_id' })
   recurringGoal?: RecurringGoalEntity;
+
+  /**
+   * Relation to parent WeeklySchedule (needed for joins)
+   */
+  @ManyToOne(
+    () => WeeklyScheduleEntity,
+    (schedule) => schedule.timeBlocks,
+    { onDelete: 'CASCADE' }
+  )
+  @JoinColumn({ name: 'schedule_id' })
+  schedule?: WeeklyScheduleEntity;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt!: Date;

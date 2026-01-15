@@ -25,11 +25,24 @@ export class OpenAIService {
   constructor() {
     const apiKey = process.env['OPENAI_API_KEY'];
 
+    // Detailed logging for debugging
+    this.logger.log('🔍 OpenAI Service Configuration:');
+    this.logger.log(`   - API Key present: ${!!apiKey}`);
+    if (apiKey) {
+      this.logger.log(`   - API Key length: ${apiKey.length}`);
+      this.logger.log(`   - API Key prefix: ${apiKey.substring(0, 7)}...`);
+      this.logger.log(`   - API Key format valid: ${apiKey.startsWith('sk-')}`);
+    }
+
     if (!apiKey) {
       this.logger.warn('⚠️  OPENAI_API_KEY not found in environment variables');
       this.logger.warn(
         '⚠️  AI schedule generation will not work without API key'
       );
+      this.logger.warn('⚠️  Please set OPENAI_API_KEY in your .env file');
+    } else if (!apiKey.startsWith('sk-')) {
+      this.logger.warn('⚠️  OPENAI_API_KEY appears to be in wrong format');
+      this.logger.warn('⚠️  OpenAI API keys should start with "sk-"');
     }
 
     this.openai = new OpenAI({
@@ -40,7 +53,10 @@ export class OpenAIService {
     this.maxTokens = parseInt(process.env['OPENAI_MAX_TOKENS'] || '2000', 10);
     this.temperature = parseFloat(process.env['OPENAI_TEMPERATURE'] || '0.7');
 
-    this.logger.log(`✅ OpenAI Service initialized with model: ${this.model}`);
+    this.logger.log(`✅ OpenAI Service initialized`);
+    this.logger.log(`   - Model: ${this.model}`);
+    this.logger.log(`   - Max Tokens: ${this.maxTokens}`);
+    this.logger.log(`   - Temperature: ${this.temperature}`);
   }
 
   /**
@@ -141,22 +157,49 @@ export class OpenAIService {
       );
 
       return parsedResponse;
-    } catch (error) {
-      this.logger.error('❌ Error generating schedule with OpenAI:', error);
+    } catch (error: any) {
+      this.logger.error('❌ Error generating schedule with OpenAI');
+      this.logger.error(
+        `   - Error type: ${error?.constructor?.name || 'Unknown'}`
+      );
+      this.logger.error(`   - Error code: ${error?.code || 'N/A'}`);
+      this.logger.error(
+        `   - Error message: ${error?.message || 'No message'}`
+      );
+      this.logger.error(`   - Error status: ${error?.status || 'N/A'}`);
 
-      if (error.code === 'insufficient_quota') {
-        throw new Error(
-          'OpenAI API quota exceeded. Please check your billing settings.'
+      // Check if API key is present
+      const apiKey = process.env['OPENAI_API_KEY'];
+      if (!apiKey || apiKey === 'dummy-key') {
+        this.logger.error(
+          '   ⚠️  OPENAI_API_KEY is not set or is using dummy key!'
         );
-      }
-
-      if (error.code === 'invalid_api_key') {
         throw new Error(
           'Invalid OpenAI API key. Please check your configuration.'
         );
       }
 
-      throw new Error(`Failed to generate schedule: ${error.message}`);
+      if (error?.code === 'insufficient_quota') {
+        throw new Error(
+          'OpenAI API quota exceeded. Please check your billing settings.'
+        );
+      }
+
+      if (error?.code === 'invalid_api_key' || error?.status === 401) {
+        throw new Error(
+          'Invalid OpenAI API key. Please check your configuration.'
+        );
+      }
+
+      if (error?.status === 429) {
+        throw new Error(
+          'OpenAI API rate limit exceeded. Please try again later.'
+        );
+      }
+
+      throw new Error(
+        `Failed to generate schedule: ${error?.message || 'Unknown error'}`
+      );
     }
   }
 
