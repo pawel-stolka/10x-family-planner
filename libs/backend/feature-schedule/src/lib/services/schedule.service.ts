@@ -120,4 +120,144 @@ export class ScheduleService {
       throw new InternalServerErrorException('An unexpected error occurred');
     }
   }
+
+  /**
+   * Find weekly schedule by week start date
+   *
+   * @param weekStartDate - Date of Monday for the week
+   * @param userId - UUID of the authenticated user (from JWT)
+   * @returns WeeklyScheduleEntity with eager-loaded time blocks or null if not found
+   * @throws InternalServerErrorException on database errors
+   */
+  async findScheduleByWeek(
+    weekStartDate: Date,
+    userId: string
+  ): Promise<WeeklyScheduleEntity | null> {
+    try {
+      // Set RLS context for Row-Level Security
+      await this.dataSource.query(`SET LOCAL app.user_id = $1`, [userId]);
+
+      // Query with eager loading
+      const schedule = await this.scheduleRepository.findOne({
+        where: {
+          userId,
+          weekStartDate,
+          deletedAt: IsNull(),
+        },
+        relations: [
+          'timeBlocks',
+          'timeBlocks.familyMember',
+          'timeBlocks.recurringGoal',
+        ],
+        order: {
+          timeBlocks: {
+            createdAt: 'ASC',
+          },
+        },
+      });
+
+      if (schedule) {
+        // Filter out soft-deleted time blocks
+        if (schedule.timeBlocks) {
+          schedule.timeBlocks = schedule.timeBlocks.filter(
+            (block) => !block.deletedAt
+          );
+        }
+
+        this.logger.log(
+          `Found existing schedule for week ${weekStartDate.toISOString()} with ${
+            schedule.timeBlocks?.length || 0
+          } blocks`
+        );
+      } else {
+        this.logger.log(
+          `No schedule found for week ${weekStartDate.toISOString()}`
+        );
+      }
+
+      return schedule;
+    } catch (error) {
+      // Log and wrap database errors
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(
+        `Database error fetching schedule for week ${weekStartDate.toISOString()}: ${errorMessage}`,
+        errorStack
+      );
+      throw new InternalServerErrorException('An unexpected error occurred');
+    }
+  }
+
+  /**
+   * List all schedules for a user (optionally filtered)
+   *
+   * @param userId - UUID of the authenticated user
+   * @param filters - Optional filters (weekStartDate, isAiGenerated)
+   * @returns Array of WeeklyScheduleEntity
+   */
+  async listSchedules(
+    userId: string,
+    filters?: {
+      weekStartDate?: Date;
+      isAiGenerated?: boolean;
+    }
+  ): Promise<WeeklyScheduleEntity[]> {
+    try {
+      // Set RLS context
+      await this.dataSource.query(`SET LOCAL app.user_id = $1`, [userId]);
+
+      const whereConditions: any = {
+        userId,
+        deletedAt: IsNull(),
+      };
+
+      if (filters?.weekStartDate) {
+        whereConditions.weekStartDate = filters.weekStartDate;
+      }
+
+      if (filters?.isAiGenerated !== undefined) {
+        whereConditions.isAiGenerated = filters.isAiGenerated;
+      }
+
+      const schedules = await this.scheduleRepository.find({
+        where: whereConditions,
+        relations: [
+          'timeBlocks',
+          'timeBlocks.familyMember',
+          'timeBlocks.recurringGoal',
+        ],
+        order: {
+          weekStartDate: 'DESC',
+          timeBlocks: {
+            createdAt: 'ASC',
+          },
+        },
+      });
+
+      // Filter out soft-deleted time blocks
+      schedules.forEach((schedule) => {
+        if (schedule.timeBlocks) {
+          schedule.timeBlocks = schedule.timeBlocks.filter(
+            (block) => !block.deletedAt
+          );
+        }
+      });
+
+      this.logger.log(`Found ${schedules.length} schedules for user ${userId}`);
+
+      return schedules;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(
+        `Database error listing schedules for user ${userId}: ${errorMessage}`,
+        errorStack
+      );
+      throw new InternalServerErrorException('An unexpected error occurred');
+    }
+  }
 }

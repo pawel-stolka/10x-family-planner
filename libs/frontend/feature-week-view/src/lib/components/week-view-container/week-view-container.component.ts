@@ -5,7 +5,6 @@ import {
   signal,
   computed,
   inject,
-  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -29,8 +28,10 @@ import {
   formatISODate,
   formatDisplayDate,
   formatDisplayDateWithYear,
+  parseISODate,
 } from '../../utils/date.utils';
 import { TimeBlock, FamilyMember } from '@family-planner/shared/models-schedule';
+import { ActivatedRoute, Router } from '@angular/router';
 
 /**
  * Week View Container Component
@@ -117,9 +118,9 @@ import { TimeBlock, FamilyMember } from '@family-planner/shared/models-schedule'
         } @else if (isEmpty()) {
           <div class="empty-state">
             <div class="empty-icon">📅</div>
-            <h3>Brak aktywności w tym tygodniu</h3>
-            <p>Wygeneruj harmonogram za pomocą AI lub dodaj aktywności ręcznie.</p>
-            <button class="cta-btn">
+            <h3>Brak harmonogramu dla tego tygodnia</h3>
+            <p>Wygeneruj nowy harmonogram za pomocą AI lub dodaj aktywności ręcznie.</p>
+            <button class="cta-btn" (click)="generateSchedule()">
               ✨ Generuj harmonogram
             </button>
           </div>
@@ -384,6 +385,8 @@ export class WeekViewContainerComponent implements OnInit {
   private readonly scheduleService = inject(WeekScheduleService);
   private readonly gridTransformService = inject(GridTransformService);
   private readonly conflictDetectionService = inject(ConflictDetectionService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   // Input signals (sources of truth)
   readonly rawScheduleData = signal<TimeBlock[]>([]);
@@ -449,6 +452,9 @@ export class WeekViewContainerComponent implements OnInit {
     return !this.isLoading() && !this.hasError() && this.gridCells().length === 0;
   });
 
+  readonly scheduleExists = signal<boolean>(false);
+  private readonly initialQueryHandled = signal<boolean>(false);
+
   // Skeleton rows for loading state
   readonly skeletonRows = Array.from({ length: 12 }, (_, i) => i);
 
@@ -456,6 +462,8 @@ export class WeekViewContainerComponent implements OnInit {
   private filterTimeout?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
+    this.subscribeToUrlChanges();
+    this.initializeWeekFromUrl();
     this.loadWeekData();
     this.loadFamilyMembers();
   }
@@ -473,6 +481,14 @@ export class WeekViewContainerComponent implements OnInit {
         .getWeekSchedule(weekStartISO)
         .pipe(
           catchError((error: HttpErrorResponse) => {
+            if (error.status === 404) {
+              return of({
+                weekStart: weekStartISO,
+                weekEnd: formatISODate(addDays(this.weekStartDate(), 6)),
+                timeBlocks: [],
+                members: [],
+              });
+            }
             this.handleError(error);
             return of(null);
           })
@@ -481,6 +497,11 @@ export class WeekViewContainerComponent implements OnInit {
 
       if (response) {
         this.rawScheduleData.set(response.timeBlocks);
+        this.scheduleExists.set(response.timeBlocks.length > 0);
+        this.updateUrl(this.weekStartDate(), true);
+      } else {
+        this.rawScheduleData.set([]);
+        this.scheduleExists.set(false);
       }
     } catch (error) {
       this.handleError(error as HttpErrorResponse);
@@ -514,8 +535,9 @@ export class WeekViewContainerComponent implements OnInit {
    * Navigate to previous week
    */
   loadPreviousWeek(): void {
-    const currentStart = this.weekStartDate();
-    this.weekStartDate.set(addDays(currentStart, -7));
+    const previousWeek = addDays(this.weekStartDate(), -7);
+    this.weekStartDate.set(previousWeek);
+    this.updateUrl(previousWeek);
     this.loadWeekData();
   }
 
@@ -523,7 +545,9 @@ export class WeekViewContainerComponent implements OnInit {
    * Navigate to current week
    */
   loadCurrentWeek(): void {
-    this.weekStartDate.set(getMonday(new Date()));
+    const currentWeek = getMonday(new Date());
+    this.weekStartDate.set(currentWeek);
+    this.updateUrl(currentWeek);
     this.loadWeekData();
   }
 
@@ -531,8 +555,9 @@ export class WeekViewContainerComponent implements OnInit {
    * Navigate to next week
    */
   loadNextWeek(): void {
-    const currentStart = this.weekStartDate();
-    this.weekStartDate.set(addDays(currentStart, 7));
+    const nextWeek = addDays(this.weekStartDate(), 7);
+    this.weekStartDate.set(nextWeek);
+    this.updateUrl(nextWeek);
     this.loadWeekData();
   }
 
@@ -571,6 +596,73 @@ export class WeekViewContainerComponent implements OnInit {
    */
   retryLoad(): void {
     this.loadWeekData();
+  }
+
+  /**
+   * Generate new schedule for current week
+   * Redirects to schedule generation page/feature
+   */
+  generateSchedule(): void {
+    // TODO: Implement navigation to schedule generator or open modal
+    // For now, show alert
+    alert(
+      'Schedule generation will be implemented. This will redirect to the schedule generator feature or open a modal to configure generation parameters.'
+    );
+  }
+
+  private initializeWeekFromUrl(): void {
+    const weekParam = this.route.snapshot.queryParamMap.get('week');
+    if (weekParam) {
+      const parsed = parseISODate(weekParam);
+      if (!isNaN(parsed.getTime())) {
+        this.weekStartDate.set(getMonday(parsed));
+        return;
+      }
+    }
+
+    const currentWeek = getMonday(new Date());
+    this.weekStartDate.set(currentWeek);
+    this.updateUrl(currentWeek, true);
+  }
+
+  private subscribeToUrlChanges(): void {
+    this.route.queryParams.subscribe((params) => {
+      if (!this.initialQueryHandled()) {
+        this.initialQueryHandled.set(true);
+        return;
+      }
+
+      const weekParam = params['week'];
+      if (!weekParam) {
+        return;
+      }
+
+      const parsed = parseISODate(weekParam);
+      if (isNaN(parsed.getTime())) {
+        return;
+      }
+
+      const monday = getMonday(parsed);
+      const currentWeek = formatISODate(this.weekStartDate());
+      const newWeek = formatISODate(monday);
+
+      if (currentWeek === newWeek) {
+        return;
+      }
+
+      this.weekStartDate.set(monday);
+      this.loadWeekData();
+    });
+  }
+
+  private updateUrl(targetWeek: Date, replace = false): void {
+    const isoWeek = formatISODate(targetWeek);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { week: isoWeek },
+      queryParamsHandling: 'merge',
+      replaceUrl: replace,
+    });
   }
 
   /**

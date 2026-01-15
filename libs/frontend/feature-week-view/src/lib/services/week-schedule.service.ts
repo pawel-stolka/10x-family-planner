@@ -16,26 +16,38 @@ export class WeekScheduleService {
 
   /**
    * Get schedule for specific week
+   * Checks if schedule already exists in database, returns empty if not found
    * @param weekStartDate ISO date string (Monday)
    */
   getWeekSchedule(weekStartDate: string): Observable<WeekScheduleResponse> {
-    // For now, use existing endpoint and transform
-    // TODO: Update when backend implements dedicated week endpoint
     return this.http
-      .get<{ timeBlocks: TimeBlock[]; members: FamilyMember[] }>(
+      .get<any[]>(
         `${this.apiUrl}/weekly-schedules`,
         {
           params: { weekStartDate },
         }
       )
       .pipe(
-        map((response) => {
+        map((schedules) => {
           const weekEnd = this.calculateWeekEnd(weekStartDate);
+          
+          // If schedule exists for this week, use it
+          if (schedules && schedules.length > 0) {
+            const schedule = schedules[0];
+            return {
+              weekStart: weekStartDate,
+              weekEnd,
+              timeBlocks: schedule.timeBlocks || [],
+              members: [], // Will be loaded separately
+            };
+          }
+          
+          // No schedule found, return empty
           return {
             weekStart: weekStartDate,
             weekEnd,
-            timeBlocks: response.timeBlocks || [],
-            members: response.members || [],
+            timeBlocks: [],
+            members: [],
           };
         })
       );

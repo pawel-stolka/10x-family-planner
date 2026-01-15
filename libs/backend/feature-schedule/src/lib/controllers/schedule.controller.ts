@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  Query,
   UseGuards,
   UseInterceptors,
   ClassSerializerInterceptor,
@@ -174,5 +175,60 @@ export class ScheduleController {
     );
 
     return dto;
+  }
+
+  /**
+   * GET /v1/weekly-schedules
+   *
+   * List all schedules for authenticated user with optional filters.
+   * Can filter by week start date to check if schedule already exists.
+   *
+   * Query params:
+   * - weekStartDate (optional): ISO date string (Monday of the week)
+   * - isAiGenerated (optional): boolean filter
+   */
+  @Get()
+  @ApiOperation({
+    summary: 'List weekly schedules',
+    description:
+      'Retrieves all weekly schedules for authenticated user. Can filter by week start date to check if schedule exists before generating new one.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Schedules found and returned successfully',
+    type: [WeeklyScheduleDto],
+  })
+  @ApiBearerAuth()
+  async listSchedules(
+    @Query('weekStartDate') weekStartDate?: string,
+    @Query('isAiGenerated') isAiGenerated?: boolean,
+    @CurrentUser() user?: JwtPayload
+  ): Promise<WeeklyScheduleDto[]> {
+    this.logger.log(`User ${user?.userId} listing schedules`);
+
+    const filters: any = {};
+
+    if (weekStartDate) {
+      filters.weekStartDate = new Date(weekStartDate);
+    }
+
+    if (isAiGenerated !== undefined) {
+      filters.isAiGenerated = isAiGenerated;
+    }
+
+    const schedules = await this.scheduleService.listSchedules(
+      user!.userId,
+      filters
+    );
+
+    const dtos = schedules.map((schedule) =>
+      this.scheduleMapper.toDto(schedule)
+    );
+
+    this.logger.log(
+      `Successfully returned ${dtos.length} schedules for user ${user?.userId}`
+    );
+
+    return dtos;
   }
 }
