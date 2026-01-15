@@ -16,6 +16,7 @@ import {
   FilterValue,
   WeekScheduleResponse,
 } from '../../models/week-grid.models';
+import { ScheduleGenerationResponse } from '../../models/schedule-generator.models';
 import { GridTransformService } from '../../services/grid-transform.service';
 import { ConflictDetectionService } from '../../services/conflict-detection.service';
 import { WeekScheduleService } from '../../services/week-schedule.service';
@@ -23,6 +24,7 @@ import { MemberFilterComponent } from '../member-filter/member-filter.component'
 import { MemberLegendComponent } from '../member-legend/member-legend.component';
 import { WeekGridComponent } from '../week-grid/week-grid.component';
 import { ActivityDetailModalComponent } from '../activity-detail-modal/activity-detail-modal.component';
+import { ScheduleGeneratorPanelComponent } from '../schedule-generator-panel/schedule-generator-panel.component';
 import {
   getMonday,
   addDays,
@@ -31,7 +33,12 @@ import {
   formatDisplayDateWithYear,
   parseISODate,
 } from '../../utils/date.utils';
-import { TimeBlock, FamilyMember } from '@family-planner/shared/models-schedule';
+import {
+  TimeBlock,
+  FamilyMember,
+  BlockType,
+  FamilyMemberRole,
+} from '@family-planner/shared/models-schedule';
 import { ActivatedRoute, Router } from '@angular/router';
 
 /**
@@ -48,6 +55,7 @@ import { ActivatedRoute, Router } from '@angular/router';
     MemberLegendComponent,
     WeekGridComponent,
     ActivityDetailModalComponent,
+    ScheduleGeneratorPanelComponent,
   ],
   providers: [
     GridTransformService,
@@ -140,6 +148,13 @@ import { ActivatedRoute, Router } from '@angular/router';
         <app-activity-detail-modal
           [activity]="selectedActivity()"
           (close)="closeActivityModal()"
+        />
+      }
+      @if (isScheduleGeneratorOpen()) {
+        <app-schedule-generator-panel
+          [initialWeek]="weekStartDate()"
+          (generated)="applyGeneratedSchedule($event)"
+          (close)="closeScheduleGenerator()"
         />
       }
     </div>
@@ -398,6 +413,8 @@ export class WeekViewContainerComponent implements OnInit {
   readonly isLoading = signal<boolean>(false);
   readonly hasError = signal<boolean>(false);
   readonly errorMessage = signal<string>('');
+  readonly isScheduleGeneratorOpen = signal<boolean>(false);
+  private readonly useMockData = true;
 
   // Computed signals (automatically recalculated)
   readonly weekEndDate = computed(() => addDays(this.weekStartDate(), 6));
@@ -497,12 +514,20 @@ export class WeekViewContainerComponent implements OnInit {
         .toPromise();
 
       if (response) {
+        if (!response.timeBlocks.length && this.useMockData) {
+          const mock = this.buildMockWeekData(this.weekStartDate());
+          this.rawScheduleData.set(mock.timeBlocks);
+          this.familyMembers.set(this.transformToViewModels(mock.familyMembers));
+          this.scheduleExists.set(true);
+          this.updateUrl(this.weekStartDate(), true);
+          return;
+        }
+
         this.rawScheduleData.set(response.timeBlocks);
         this.scheduleExists.set(response.timeBlocks.length > 0);
-        if (response.familyMembers?.length) {
-          this.familyMembers.set(
-            this.transformToViewModels(response.familyMembers)
-          );
+        const resolvedMembers = this.resolveMembersFromResponse(response);
+        if (resolvedMembers.length) {
+          this.familyMembers.set(this.transformToViewModels(resolvedMembers));
         }
         this.updateUrl(this.weekStartDate(), true);
       } else {
@@ -609,11 +634,32 @@ export class WeekViewContainerComponent implements OnInit {
    * Redirects to schedule generation page/feature
    */
   generateSchedule(): void {
-    // TODO: Implement navigation to schedule generator or open modal
-    // For now, show alert
-    alert(
-      'Schedule generation will be implemented. This will redirect to the schedule generator feature or open a modal to configure generation parameters.'
+    this.isScheduleGeneratorOpen.set(true);
+  }
+
+  closeScheduleGenerator(): void {
+    this.isScheduleGeneratorOpen.set(false);
+  }
+
+  applyGeneratedSchedule(response: ScheduleGenerationResponse): void {
+    this.rawScheduleData.set(response.timeBlocks);
+    this.scheduleExists.set(response.timeBlocks.length > 0);
+
+    const resolvedMembers = this.extractMembersFromTimeBlocks(
+      response.timeBlocks
     );
+    if (resolvedMembers.length) {
+      this.familyMembers.set(this.transformToViewModels(resolvedMembers));
+    }
+
+    const parsed = parseISODate(response.weekStartDate);
+    if (!isNaN(parsed.getTime())) {
+      const monday = getMonday(parsed);
+      this.weekStartDate.set(monday);
+      this.updateUrl(monday);
+    }
+
+    this.closeScheduleGenerator();
   }
 
   private initializeWeekFromUrl(): void {
@@ -686,6 +732,203 @@ export class WeekViewContainerComponent implements OnInit {
     } else {
       this.errorMessage.set('Wystąpił nieoczekiwany błąd.');
     }
+  }
+
+  private resolveMembersFromResponse(
+    response: WeekScheduleResponse
+  ): FamilyMember[] {
+    if (response.familyMembers && response.familyMembers.length) {
+      return response.familyMembers;
+    }
+
+    return this.extractMembersFromTimeBlocks(response.timeBlocks);
+  }
+
+  private extractMembersFromTimeBlocks(blocks: TimeBlock[]): FamilyMember[] {
+    const memberMap = new Map<string, FamilyMember>();
+
+    blocks.forEach((block) => {
+      const member = (block as TimeBlock & { familyMember?: FamilyMember })
+        .familyMember;
+      if (member?.familyMemberId && !memberMap.has(member.familyMemberId)) {
+        memberMap.set(member.familyMemberId, member);
+      }
+    });
+
+    return Array.from(memberMap.values());
+  }
+
+  private buildMockWeekData(weekStart: Date): {
+    familyMembers: FamilyMember[];
+    timeBlocks: TimeBlock[];
+  } {
+    const members: FamilyMember[] = [
+      this.createMockMember('tata', 'tata', FamilyMemberRole.USER),
+      this.createMockMember('mama', 'mama', FamilyMemberRole.SPOUSE),
+      this.createMockMember('hania', 'Hania', FamilyMemberRole.CHILD, 8),
+      this.createMockMember('małgosia', 'Małgosia', FamilyMemberRole.CHILD, 5),
+      this.createMockMember('monisia', 'Monisia', FamilyMemberRole.CHILD, 2),
+    ];
+
+    const scheduleId = 'mock-schedule';
+    const blocks: TimeBlock[] = [
+      this.createMockBlock({
+        blockId: 'mock-1',
+        scheduleId,
+        weekStart,
+        dayOffset: 0,
+        startHour: 7,
+        endHour: 16,
+        title: 'Praca',
+        blockType: BlockType.WORK,
+        familyMemberId: 'tata',
+      }),
+      this.createMockBlock({
+        blockId: 'mock-2',
+        scheduleId,
+        weekStart,
+        dayOffset: 0,
+        startHour: 9,
+        endHour: 14,
+        title: 'Przedszkole',
+        blockType: BlockType.WORK,
+        familyMemberId: 'małgosia',
+      }),
+      this.createMockBlock({
+        blockId: 'mock-3',
+        scheduleId,
+        weekStart,
+        dayOffset: 0,
+        startHour: 8,
+        endHour: 13,
+        title: 'Szkoła',
+        blockType: BlockType.WORK,
+        familyMemberId: 'hania',
+      }),
+      this.createMockBlock({
+        blockId: 'mock-4',
+        scheduleId,
+        weekStart,
+        dayOffset: 0,
+        startHour: 6,
+        endHour: 7,
+        title: 'Bieganie',
+        blockType: BlockType.ACTIVITY,
+        familyMemberId: 'tata',
+        metadata: { notes: 'Poranny trening' },
+      }),
+      this.createMockBlock({
+        blockId: 'mock-5',
+        scheduleId,
+        weekStart,
+        dayOffset: 1,
+        startHour: 7,
+        endHour: 16,
+        title: 'Praca',
+        blockType: BlockType.WORK,
+        familyMemberId: 'tata',
+      }),
+      this.createMockBlock({
+        blockId: 'mock-6',
+        scheduleId,
+        weekStart,
+        dayOffset: 1,
+        startHour: 16,
+        endHour: 17,
+        title: 'Basen',
+        blockType: BlockType.ACTIVITY,
+        familyMemberId: 'hania',
+      }),
+      this.createMockBlock({
+        blockId: 'mock-7',
+        scheduleId,
+        weekStart,
+        dayOffset: 2,
+        startHour: 12,
+        endHour: 13,
+        title: 'Trening',
+        blockType: BlockType.ACTIVITY,
+        familyMemberId: 'mama',
+      }),
+      this.createMockBlock({
+        blockId: 'mock-8',
+        scheduleId,
+        weekStart,
+        dayOffset: 4,
+        startHour: 18,
+        endHour: 20,
+        title: 'Rodzinny czas',
+        blockType: BlockType.OTHER,
+        isShared: true,
+      }),
+      this.createMockBlock({
+        blockId: 'mock-9',
+        scheduleId,
+        weekStart,
+        dayOffset: 5,
+        startHour: 9,
+        endHour: 11,
+        title: 'Wspólne śniadanie',
+        blockType: BlockType.MEAL,
+        isShared: true,
+      }),
+    ];
+
+    return { familyMembers: members, timeBlocks: blocks };
+  }
+
+  private createMockMember(
+    id: string,
+    name: string,
+    role: FamilyMemberRole,
+    age?: number
+  ): FamilyMember {
+    return {
+      familyMemberId: id,
+      userId: 'mock-user',
+      name,
+      role,
+      age,
+      preferences: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
+  private createMockBlock(params: {
+    blockId: string;
+    scheduleId: string;
+    weekStart: Date;
+    dayOffset: number;
+    startHour: number;
+    endHour: number;
+    title: string;
+    blockType: BlockType;
+    familyMemberId?: string;
+    isShared?: boolean;
+    metadata?: Record<string, any>;
+  }): TimeBlock {
+    const start = new Date(params.weekStart);
+    start.setDate(start.getDate() + params.dayOffset);
+    start.setHours(params.startHour, 0, 0, 0);
+
+    const end = new Date(params.weekStart);
+    end.setDate(end.getDate() + params.dayOffset);
+    end.setHours(params.endHour, 0, 0, 0);
+
+    return {
+      blockId: params.blockId,
+      scheduleId: params.scheduleId,
+      recurringGoalId: undefined,
+      familyMemberId: params.familyMemberId,
+      title: params.title,
+      blockType: params.blockType,
+      timeRange: { start, end },
+      isShared: params.isShared ?? false,
+      metadata: params.metadata ?? {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
   }
 
   /**

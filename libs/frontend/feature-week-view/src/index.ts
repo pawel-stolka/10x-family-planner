@@ -17,9 +17,11 @@ export * from './lib/components/member-filter/member-filter.component';
 export * from './lib/components/member-legend/member-legend.component';
 export * from './lib/components/activity-tooltip/activity-tooltip.component';
 export * from './lib/components/activity-detail-modal/activity-detail-modal.component';
+export * from './lib/components/schedule-generator-panel/schedule-generator-panel.component';
 
 // Models
 export * from './lib/models/week-grid.models';
+export * from './lib/models/schedule-generator.models';
 
 // Constants
 export * from './lib/constants/week-grid.constants';
@@ -28,6 +30,7 @@ export * from './lib/constants/week-grid.constants';
 export * from './lib/services/grid-transform.service';
 export * from './lib/services/conflict-detection.service';
 export * from './lib/services/week-schedule.service';
+export * from './lib/services/schedule-generator.service';
 
 // Utils
 export * from './lib/utils/date.utils';
