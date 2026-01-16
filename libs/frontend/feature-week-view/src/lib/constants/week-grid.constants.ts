@@ -8,11 +8,38 @@ import { BlockType } from '@family-planner/shared/models-schedule';
  * Member colors (default palette)
  */
 export const MEMBER_COLORS: Record<string, string> = {
-  tata: '#3b82f6', // blue-500
-  mama: '#ec4899', // pink-500
+  tata: '#1d4ed8', // blue-700
+  mama: '#e11d48', // rose-600
   hania: '#f59e0b', // amber-500
-  małgosia: '#10b981', // emerald-500
-  monika: '#a855f7', // purple-500
+  małgosia: '#16a34a', // green-600
+  monisia: '#c026d3', // fuchsia-600
+};
+
+/**
+ * Fallback palette for non-mapped member IDs
+ */
+export const MEMBER_COLOR_PALETTE: string[] = [
+  '#1d4ed8', // blue-700
+  '#e11d48', // rose-600
+  '#f59e0b', // amber-500
+  '#16a34a', // green-600
+  '#c026d3', // fuchsia-600
+  '#dc2626', // red-600
+  '#0ea5e9', // sky-500
+];
+
+/**
+ * Get deterministic color for member ID
+ */
+export const getMemberColor = (memberId: string): string => {
+  if (MEMBER_COLORS[memberId]) {
+    return MEMBER_COLORS[memberId];
+  }
+
+  const hash = memberId
+    .split('')
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return MEMBER_COLOR_PALETTE[hash % MEMBER_COLOR_PALETTE.length];
 };
 
 /**
@@ -33,12 +60,7 @@ export const ACTIVITY_ICONS: Record<BlockType, string> = {
 /**
  * Cell height in pixels
  */
-export const CELL_HEIGHT = 36;
-
-/**
- * Minimum activity height in pixels (for readability)
- */
-export const MIN_ACTIVITY_HEIGHT = 16;
+export const CELL_HEIGHT = 28;
 
 /**
  * Time column width in pixels

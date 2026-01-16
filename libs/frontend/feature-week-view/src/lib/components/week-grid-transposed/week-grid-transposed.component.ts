@@ -12,8 +12,6 @@ import {
   ActivityInCell,
   FamilyMemberViewModel,
 } from '../../models/week-grid.models';
-import { GridHeaderComponent } from '../grid-header/grid-header.component';
-import { TimeColumnComponent } from '../time-column/time-column.component';
 import { GridCellComponent } from '../grid-cell/grid-cell.component';
 import { isToday, parseISODate } from '../../utils/date.utils';
 import {
@@ -23,51 +21,44 @@ import {
 } from '../../constants/week-grid.constants';
 
 /**
- * Week Grid Component
- * Main grid component that renders the weekly calendar
+ * Week Grid Transposed Component
+ * Renders hours as columns and days as rows
  */
 @Component({
-  selector: 'app-week-grid',
+  selector: 'app-week-grid-transposed',
   standalone: true,
-  imports: [
-    CommonModule,
-    GridHeaderComponent,
-    TimeColumnComponent,
-    GridCellComponent,
-  ],
+  imports: [CommonModule, GridCellComponent],
   template: `
     <div
       class="week-grid-container"
+      [style.--time-slots]="timeSlots().length"
       [style.--member-count]="members().length"
       [style.--slot-height.px]="slotHeight"
       [style.--slot-gap.px]="slotGap"
-      #gridContainer
     >
-      <!-- Header row: time column + 7 day headers -->
+      <!-- Header row: day column + time headers -->
       <div class="grid-header-row">
-        <div class="time-header">Godzina</div>
-        @for (day of days(); track day.date) {
-          <app-grid-header 
-            [day]="day" 
-            [isToday]="checkIsToday(day.date)" 
-          />
+        <div class="day-header-spacer">Dzień</div>
+        @for (timeSlot of timeSlots(); track timeSlot) {
+          <div class="time-header">{{ timeSlot }}</div>
         }
       </div>
 
-      <!-- Grid rows: time slots with cells -->
+      <!-- Grid rows: days with time cells -->
       <div class="grid-body">
-        @for (timeSlot of timeSlots(); track timeSlot; let rowIndex = $index) {
+        @for (day of days(); track day.date; let rowIndex = $index) {
           <div class="grid-row">
-            <!-- Time column -->
-            <app-time-column [time]="timeSlot" />
-
-            <!-- Day cells -->
-            @for (day of days(); track day.date; let colIndex = $index) {
+            <div class="day-row-header" [class.today]="checkIsToday(day.date)">
+              <div class="day-name">{{ day.shortName }}</div>
+              <div class="day-date">{{ day.dayOfMonth }}</div>
+            </div>
+            @for (timeSlot of timeSlots(); track timeSlot; let colIndex = $index) {
               @defer (on viewport) {
                 <app-grid-cell
-                  [cell]="getCell(rowIndex, colIndex)"
+                  [cell]="getCell(colIndex, rowIndex)"
                   [isToday]="checkIsToday(day.date)"
                   [members]="members()"
+                  [useProportionalWidth]="true"
                   (activityClick)="onActivityClick($event)"
                   (activityHover)="onActivityHover($event)"
                 />
@@ -91,7 +82,7 @@ import {
 
     .grid-header-row {
       display: grid;
-      grid-template-columns: 64px repeat(7, 1fr);
+      grid-template-columns: 64px repeat(var(--time-slots), minmax(72px, 1fr));
       position: sticky;
       top: 0;
       z-index: 30;
@@ -99,7 +90,7 @@ import {
       border-bottom: 2px solid #d1d5db;
     }
 
-    .time-header {
+    .day-header-spacer {
       position: sticky;
       left: 0;
       z-index: 31;
@@ -116,6 +107,15 @@ import {
       justify-content: center;
     }
 
+    .time-header {
+      padding: 6px 4px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+    }
+
     .grid-body {
       display: flex;
       flex-direction: column;
@@ -123,12 +123,46 @@ import {
 
     .grid-row {
       display: grid;
-      grid-template-columns: 64px repeat(7, 1fr);
+      grid-template-columns: 64px repeat(var(--time-slots), minmax(72px, 1fr));
       min-height: calc(
         (var(--member-count, 1) * var(--slot-height, 12px)) +
         ((var(--member-count, 1) - 1) * var(--slot-gap, 2px)) +
         6px
       );
+    }
+
+    .day-row-header {
+      position: sticky;
+      left: 0;
+      z-index: 20;
+      padding: 4px 6px;
+      background: #fff;
+      border-right: 2px solid #d1d5db;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: center;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .day-row-header.today {
+      background: #eff6ff;
+      border-right-color: #3b82f6;
+    }
+
+    .day-name {
+      font-size: 11px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .day-date {
+      font-size: 13px;
+      color: #111827;
     }
 
     .grid-cell-placeholder {
@@ -151,17 +185,16 @@ import {
       }
     }
 
-    /* Responsive grid columns */
     @media (max-width: 1200px) {
       .grid-header-row,
       .grid-row {
-        grid-template-columns: 56px repeat(7, minmax(100px, 1fr));
+        grid-template-columns: 56px repeat(var(--time-slots), minmax(64px, 1fr));
       }
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class WeekGridComponent {
+export class WeekGridTransposedComponent {
   gridCells = input.required<GridCell[][]>();
   members = input<FamilyMemberViewModel[]>([]);
   readonly slotHeight = CELL_HEIGHT;
@@ -199,11 +232,11 @@ export class WeekGridComponent {
   });
 
   /**
-   * Get cell by row and column index
+   * Get cell by time column and day row index
    */
-  getCell(rowIndex: number, colIndex: number): GridCell {
+  getCell(timeIndex: number, dayIndex: number): GridCell {
     const grid = this.gridCells();
-    return grid[rowIndex]?.[colIndex] || this.getEmptyCell();
+    return grid[timeIndex]?.[dayIndex] || this.getEmptyCell();
   }
 
   /**

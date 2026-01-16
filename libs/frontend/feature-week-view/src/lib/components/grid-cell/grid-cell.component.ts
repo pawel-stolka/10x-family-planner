@@ -5,9 +5,12 @@ import {
   ChangeDetectionStrategy 
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GridCell, ActivityInCell } from '../../models/week-grid.models';
+import {
+  GridCell,
+  ActivityInCell,
+  FamilyMemberViewModel,
+} from '../../models/week-grid.models';
 import { ActivityCellComponent } from '../activity-cell/activity-cell.component';
-import { CELL_HEIGHT } from '../../constants/week-grid.constants';
 
 /**
  * Grid Cell Component
@@ -24,29 +27,32 @@ import { CELL_HEIGHT } from '../../constants/week-grid.constants';
       [class.today]="isToday()"
       [class.empty]="cell().isEmpty"
     >
-      @if (!cell().isEmpty) {
-        <div class="activities-stack">
-          @for (activity of cell().activities; track activity.id) {
-            <app-activity-cell
-              [activity]="activity"
-              [cellHeight]="cellHeight"
-              (activityClick)="onActivityClick($event)"
-              (activityHover)="onActivityHover($event)"
-            />
+      <div class="activities-stack">
+        @for (member of members(); track member.id) {
+          @if (getActivityForMember(member.id); as activity) {
+            <div class="activity-slot">
+              <app-activity-cell
+                [activity]="activity"
+                [style.width.%]="getActivityWidth(activity)"
+                (activityClick)="onActivityClick($event)"
+                (activityHover)="onActivityHover($event)"
+              />
+            </div>
+          } @else {
+            <div class="activity-slot empty"></div>
           }
-        </div>
-      } @else {
-        <div class="empty-state"></div>
-      }
+        }
+      </div>
     </div>
   `,
   styles: [`
     .grid-cell {
       position: relative;
-      min-height: 36px;
+      height: 100%;
+      min-height: 100%;
       background: #fff;
       border: 1px solid #e5e7eb;
-      padding: 2px;
+      padding: 2px 3px;
       overflow: visible;
       transition: background-color 0.2s ease;
     }
@@ -63,46 +69,30 @@ import { CELL_HEIGHT } from '../../constants/week-grid.constants';
     .activities-stack {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: var(--slot-gap, 2px);
       height: 100%;
+      align-items: stretch;
+      overflow: hidden;
     }
 
-    .empty-state {
-      width: 100%;
-      height: 100%;
-      min-height: 24px;
+    .activity-slot {
+      min-height: var(--slot-height, 12px);
+      display: flex;
+      align-items: center;
     }
 
-    /* Handle overflow when too many activities */
-    .grid-cell:has(.activities-stack > :nth-child(4)) .activities-stack {
-      overflow-y: auto;
-      max-height: 120px;
-    }
-
-    /* Custom scrollbar */
-    .activities-stack::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .activities-stack::-webkit-scrollbar-track {
+    .activity-slot.empty {
       background: transparent;
     }
 
-    .activities-stack::-webkit-scrollbar-thumb {
-      background: #d1d5db;
-      border-radius: 2px;
-    }
-
-    .activities-stack::-webkit-scrollbar-thumb:hover {
-      background: #9ca3af;
-    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GridCellComponent {
   cell = input.required<GridCell>();
   isToday = input<boolean>(false);
-  cellHeight = CELL_HEIGHT;
+  members = input<FamilyMemberViewModel[]>([]);
+  useProportionalWidth = input<boolean>(false);
 
   activityClick = output<ActivityInCell>();
   activityHover = output<{ activity: ActivityInCell; show: boolean }>();
@@ -113,5 +103,19 @@ export class GridCellComponent {
 
   onActivityHover(event: { activity: ActivityInCell; show: boolean }): void {
     this.activityHover.emit(event);
+  }
+
+  getActivityForMember(memberId: string): ActivityInCell | null {
+    return (
+      this.cell().activities.find((activity) => activity.member.id === memberId) ??
+      null
+    );
+  }
+
+  getActivityWidth(activity: ActivityInCell): number {
+    if (!this.useProportionalWidth()) {
+      return 100;
+    }
+    return Math.max(5, Math.round(activity.proportionalHeight * 100));
   }
 }

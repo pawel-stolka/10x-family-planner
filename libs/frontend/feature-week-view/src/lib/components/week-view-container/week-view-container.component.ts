@@ -15,14 +15,16 @@ import {
   FamilyMemberViewModel,
   FilterValue,
   WeekScheduleResponse,
+  WeekGridLayout,
 } from '../../models/week-grid.models';
 import { ScheduleGenerationResponse } from '../../models/schedule-generator.models';
 import { GridTransformService } from '../../services/grid-transform.service';
 import { ConflictDetectionService } from '../../services/conflict-detection.service';
 import { WeekScheduleService } from '../../services/week-schedule.service';
+import { ScheduleGeneratorService } from '../../services/schedule-generator.service';
 import { MemberFilterComponent } from '../member-filter/member-filter.component';
-import { MemberLegendComponent } from '../member-legend/member-legend.component';
 import { WeekGridComponent } from '../week-grid/week-grid.component';
+import { WeekGridTransposedComponent } from '../week-grid-transposed/week-grid-transposed.component';
 import { ActivityDetailModalComponent } from '../activity-detail-modal/activity-detail-modal.component';
 import { ScheduleGeneratorPanelComponent } from '../schedule-generator-panel/schedule-generator-panel.component';
 import {
@@ -39,7 +41,10 @@ import {
   BlockType,
   FamilyMemberRole,
 } from '@family-planner/shared/models-schedule';
+import { getMemberColor } from '../../constants/week-grid.constants';
 import { ActivatedRoute, Router } from '@angular/router';
+import { lastValueFrom } from 'rxjs';
+import { GenerateScheduleRequest } from '../../models/schedule-generator.models';
 
 /**
  * Week View Container Component
@@ -52,8 +57,8 @@ import { ActivatedRoute, Router } from '@angular/router';
   imports: [
     CommonModule,
     MemberFilterComponent,
-    MemberLegendComponent,
     WeekGridComponent,
+    WeekGridTransposedComponent,
     ActivityDetailModalComponent,
     ScheduleGeneratorPanelComponent,
   ],
@@ -61,6 +66,7 @@ import { ActivatedRoute, Router } from '@angular/router';
     GridTransformService,
     ConflictDetectionService,
     WeekScheduleService,
+    ScheduleGeneratorService,
   ],
   template: `
     <div class="week-view-container">
@@ -72,24 +78,47 @@ import { ActivatedRoute, Router } from '@angular/router';
           </h1>
         </div>
         <div class="header-actions">
-          <button 
-            class="nav-btn" 
+          <div class="layout-toggle">
+            <button
+              class="layout-btn"
+              [class.active]="layout() === 'days-columns'"
+              (click)="setLayout('days-columns')"
+              [disabled]="isLoading()"
+              type="button"
+            >
+              Dni → kolumny
+            </button>
+            <button
+              class="layout-btn"
+              [class.active]="layout() === 'hours-columns'"
+              (click)="setLayout('hours-columns')"
+              [disabled]="isLoading()"
+              type="button"
+            >
+              Godziny → kolumny
+            </button>
+          </div>
+          <button
+            class="nav-btn"
             (click)="loadPreviousWeek()"
             [disabled]="isLoading()"
+            type="button"
           >
             ‹ Poprzedni
           </button>
-          <button 
-            class="nav-btn today" 
+          <button
+            class="nav-btn today"
             (click)="loadCurrentWeek()"
             [disabled]="isLoading()"
+            type="button"
           >
             Dzisiaj
           </button>
-          <button 
-            class="nav-btn" 
+          <button
+            class="nav-btn"
             (click)="loadNextWeek()"
             [disabled]="isLoading()"
+            type="button"
           >
             Następny ›
           </button>
@@ -98,13 +127,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 
       <!-- Filters -->
       <app-member-filter
-        [members]="familyMembers()"
+        [members]="orderedMembers()"
         [selectedFilter]="selectedFilter()"
         (filterChange)="onFilterChange($event)"
       />
-
-      <!-- Legend -->
-      <app-member-legend [members]="familyMembers()" />
 
       <!-- Main content -->
       <div class="week-view-content">
@@ -134,12 +160,21 @@ import { ActivatedRoute, Router } from '@angular/router';
             </button>
           </div>
         } @else {
-          <app-week-grid
-            [gridCells]="visibleCells()"
-            [members]="familyMembers()"
-            (activityClick)="onActivityClick($event)"
-            (activityHover)="onActivityHover($event)"
-          />
+          @if (layout() === 'days-columns') {
+            <app-week-grid
+              [gridCells]="visibleCells()"
+              [members]="orderedMembers()"
+              (activityClick)="onActivityClick($event)"
+              (activityHover)="onActivityHover($event)"
+            />
+          } @else {
+            <app-week-grid-transposed
+              [gridCells]="visibleCells()"
+              [members]="orderedMembers()"
+              (activityClick)="onActivityClick($event)"
+              (activityHover)="onActivityHover($event)"
+            />
+          }
         }
       </div>
 
@@ -157,6 +192,28 @@ import { ActivatedRoute, Router } from '@angular/router';
           (close)="closeScheduleGenerator()"
         />
       }
+
+      <!-- Sticky Reschedule Button -->
+      @if (!isEmpty() && !isLoading()) {
+        <div class="reschedule-button-container">
+          <button
+            class="reschedule-button"
+            type="button"
+            [disabled]="isRescheduling() || isLoading()"
+            (click)="rescheduleWeek()"
+          >
+            @if (isRescheduling()) {
+              <span class="spinner"></span>
+              <span>Przeplanowuję tydzień...</span>
+            } @else {
+              <span>🔄 Przeplanuj tydzień (AI)</span>
+            }
+          </button>
+          @if (rescheduleError()) {
+            <div class="reschedule-error">{{ rescheduleError() }}</div>
+          }
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -164,9 +221,13 @@ import { ActivatedRoute, Router } from '@angular/router';
       display: flex;
       flex-direction: column;
       gap: 20px;
-      padding: 24px;
+      padding: 16px 20px;
       background: #fff;
       min-height: 100vh;
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      margin-right: calc(50% - 50vw);
+      box-sizing: border-box;
     }
 
     .week-view-header {
@@ -189,6 +250,43 @@ import { ActivatedRoute, Router } from '@angular/router';
     .header-actions {
       display: flex;
       gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .layout-toggle {
+      display: inline-flex;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .layout-btn {
+      padding: 8px 12px;
+      border: none;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-right: 1px solid #e5e7eb;
+    }
+
+    .layout-btn:last-child {
+      border-right: none;
+    }
+
+    .layout-btn.active {
+      background: #111827;
+      color: #fff;
+    }
+
+    .layout-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .nav-btn {
@@ -370,6 +468,75 @@ import { ActivatedRoute, Router } from '@angular/router';
       transform: translateY(0);
     }
 
+    /* Sticky Reschedule Button */
+    .reschedule-button-container {
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 16px 20px;
+        background: linear-gradient(to top, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid #e5e7eb;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .reschedule-button {
+        padding: 14px 32px;
+        border: none;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        color: #fff;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 220px;
+        justify-content: center;
+      }
+
+      .reschedule-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+      }
+
+      .reschedule-button:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+    .reschedule-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .reschedule-button .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .reschedule-error {
+      color: #dc2626;
+      font-size: 14px;
+      text-align: center;
+      padding: 8px 16px;
+      background: #fee2e2;
+      border-radius: 8px;
+      max-width: 400px;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .week-view-container {
@@ -392,6 +559,16 @@ import { ActivatedRoute, Router } from '@angular/router';
       .nav-btn {
         flex: 1;
       }
+
+      .reschedule-button-container {
+        padding: 12px 16px;
+      }
+
+      .reschedule-button {
+        min-width: 100%;
+        font-size: 14px;
+        padding: 12px 24px;
+      }
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -401,23 +578,32 @@ export class WeekViewContainerComponent implements OnInit {
   private readonly scheduleService = inject(WeekScheduleService);
   private readonly gridTransformService = inject(GridTransformService);
   private readonly conflictDetectionService = inject(ConflictDetectionService);
+  private readonly scheduleGeneratorService = inject(ScheduleGeneratorService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
   // Input signals (sources of truth)
   readonly rawScheduleData = signal<TimeBlock[]>([]);
   readonly familyMembers = signal<FamilyMemberViewModel[]>([]);
-  readonly selectedFilter = signal<FilterValue>('all');
+  readonly selectedFilter = signal<FilterValue>(new Set());
   readonly selectedActivity = signal<ActivityInCell | null>(null);
   readonly weekStartDate = signal<Date>(getMonday(new Date()));
   readonly isLoading = signal<boolean>(false);
   readonly hasError = signal<boolean>(false);
   readonly errorMessage = signal<string>('');
   readonly isScheduleGeneratorOpen = signal<boolean>(false);
+  readonly layout = signal<WeekGridLayout>('days-columns');
+  readonly isRescheduling = signal<boolean>(false);
+  readonly rescheduleError = signal<string | null>(null);
   private readonly useMockData = false;
+  private readonly layoutStorageKey = 'weekViewLayout';
 
   // Computed signals (automatically recalculated)
   readonly weekEndDate = computed(() => addDays(this.weekStartDate(), 6));
+
+  readonly orderedMembers = computed(() =>
+    this.sortMembersForDisplay(this.familyMembers())
+  );
 
   readonly weekStartDateFormatted = computed(() =>
     formatDisplayDate(this.weekStartDate())
@@ -447,21 +633,22 @@ export class WeekViewContainerComponent implements OnInit {
 
   readonly visibleCells = computed(() => {
     const cells = this.gridCells();
-    const filter = this.selectedFilter();
+    const selection = this.selectedFilter();
 
-    if (filter === 'all') return cells;
+    if (selection.size === 0) return cells;
 
-    // Filter: dim other members' activities
     return cells.map((row) =>
       row.map((cell) => ({
         ...cell,
-        activities: cell.activities.map((activity) => ({
-          ...activity,
-          isDimmed:
-            filter === 'shared'
-              ? !activity.isShared
-              : activity.member.id !== filter,
-        })),
+        activities: cell.activities.map((activity) => {
+          const isSelected = activity.isShared
+            ? selection.has('shared') || selection.has(activity.member.id)
+            : selection.has(activity.member.id);
+          return {
+            ...activity,
+            isDimmed: !isSelected,
+          };
+        }),
       }))
     );
   });
@@ -480,6 +667,7 @@ export class WeekViewContainerComponent implements OnInit {
   private filterTimeout?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
+    this.restoreLayout();
     this.subscribeToUrlChanges();
     this.initializeWeekFromUrl();
     this.loadWeekData();
@@ -517,7 +705,9 @@ export class WeekViewContainerComponent implements OnInit {
         if (!response.timeBlocks.length && this.useMockData) {
           const mock = this.buildMockWeekData(this.weekStartDate());
           this.rawScheduleData.set(mock.timeBlocks);
-          this.familyMembers.set(this.transformToViewModels(mock.familyMembers));
+          const viewModels = this.transformToViewModels(mock.familyMembers);
+          this.familyMembers.set(viewModels);
+          this.ensureDefaultSelection(viewModels);
           this.scheduleExists.set(true);
           this.updateUrl(this.weekStartDate(), true);
           return;
@@ -527,7 +717,9 @@ export class WeekViewContainerComponent implements OnInit {
         this.scheduleExists.set(response.timeBlocks.length > 0);
         const resolvedMembers = this.resolveMembersFromResponse(response);
         if (resolvedMembers.length) {
-          this.familyMembers.set(this.transformToViewModels(resolvedMembers));
+          const viewModels = this.transformToViewModels(resolvedMembers);
+          this.familyMembers.set(viewModels);
+          this.ensureDefaultSelection(viewModels);
         }
         this.updateUrl(this.weekStartDate(), true);
       } else {
@@ -556,6 +748,7 @@ export class WeekViewContainerComponent implements OnInit {
 
       if (members) {
         this.familyMembers.set(members);
+        this.ensureDefaultSelection(members);
       }
     } catch (error) {
       console.error('Failed to load family members:', error);
@@ -590,6 +783,11 @@ export class WeekViewContainerComponent implements OnInit {
     this.weekStartDate.set(nextWeek);
     this.updateUrl(nextWeek);
     this.loadWeekData();
+  }
+
+  setLayout(layout: WeekGridLayout): void {
+    this.layout.set(layout);
+    this.persistLayout(layout);
   }
 
   /**
@@ -649,7 +847,9 @@ export class WeekViewContainerComponent implements OnInit {
       response.timeBlocks
     );
     if (resolvedMembers.length) {
-      this.familyMembers.set(this.transformToViewModels(resolvedMembers));
+      const viewModels = this.transformToViewModels(resolvedMembers);
+      this.familyMembers.set(viewModels);
+      this.ensureDefaultSelection(viewModels);
     }
 
     const parsed = parseISODate(response.weekStartDate);
@@ -715,6 +915,32 @@ export class WeekViewContainerComponent implements OnInit {
       queryParamsHandling: 'merge',
       replaceUrl: replace,
     });
+  }
+
+  private restoreLayout(): void {
+    const stored = this.getStoredLayout();
+    if (stored) {
+      this.layout.set(stored);
+    }
+  }
+
+  private persistLayout(layout: WeekGridLayout): void {
+    try {
+      globalThis.localStorage?.setItem(this.layoutStorageKey, layout);
+    } catch {
+      // Ignore storage errors (private mode or disabled storage)
+    }
+  }
+
+  private getStoredLayout(): WeekGridLayout | null {
+    try {
+      const value = globalThis.localStorage?.getItem(this.layoutStorageKey);
+      return value === 'days-columns' || value === 'hours-columns'
+        ? value
+        : null;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -931,6 +1157,32 @@ export class WeekViewContainerComponent implements OnInit {
     };
   }
 
+  private ensureDefaultSelection(members: FamilyMemberViewModel[]): void {
+    const current = this.selectedFilter();
+    if (current.size > 0 || members.length === 0) {
+      return;
+    }
+
+    const selection = new Set<string>(members.map((member) => member.id));
+    selection.add('shared');
+    this.selectedFilter.set(selection);
+  }
+
+  private sortMembersForDisplay(
+    members: FamilyMemberViewModel[]
+  ): FamilyMemberViewModel[] {
+    const parents = members.filter((member) => member.role === 'parent');
+    const kids = members.filter((member) => member.role === 'child');
+
+    parents.sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+    kids.sort((a, b) => {
+      const ageDiff = (b.age ?? 0) - (a.age ?? 0);
+      return ageDiff !== 0 ? ageDiff : a.name.localeCompare(b.name, 'pl');
+    });
+
+    return [...parents, ...kids];
+  }
+
   /**
    * Transform FamilyMember[] to FamilyMemberViewModel[]
    */
@@ -976,13 +1228,50 @@ export class WeekViewContainerComponent implements OnInit {
    * Get member color (from constants or generate)
    */
   private getMemberColor(memberId: string): string {
-    const colors: Record<string, string> = {
-      tata: '#3b82f6',
-      mama: '#ec4899',
-      hania: '#f59e0b',
-      małgosia: '#10b981',
-      monika: '#a855f7',
-    };
-    return colors[memberId] || '#6b7280';
+    return getMemberColor(memberId);
+  }
+
+  /**
+   * Reschedule current week using AI
+   * Takes all current goals and commitments and regenerates the schedule
+   */
+  async rescheduleWeek(): Promise<void> {
+    if (this.isRescheduling() || this.isLoading()) {
+      return;
+    }
+
+    this.isRescheduling.set(true);
+    this.rescheduleError.set(null);
+
+    try {
+      const weekStartISO = formatISODate(this.weekStartDate());
+      
+      const request: GenerateScheduleRequest = {
+        weekStartDate: weekStartISO,
+        strategy: 'balanced',
+        preferences: {
+          respectFixedBlocks: true,
+          includeAllGoals: true,
+          preferMornings: false,
+          maximizeFamilyTime: true,
+        },
+      };
+
+      const response = await lastValueFrom(
+        this.scheduleGeneratorService.generateSchedule(request)
+      );
+
+      // Apply the generated schedule
+      this.applyGeneratedSchedule(response);
+    } catch (error) {
+      const message =
+        error instanceof HttpErrorResponse
+          ? error.error?.message || error.statusText || 'Błąd serwera'
+          : 'Nie udało się przeplanować tygodnia.';
+      this.rescheduleError.set(message);
+      console.error('Failed to reschedule week:', error);
+    } finally {
+      this.isRescheduling.set(false);
+    }
   }
 }

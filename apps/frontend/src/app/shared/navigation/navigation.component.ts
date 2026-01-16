@@ -24,7 +24,14 @@ export class NavigationComponent {
   protected readonly user = this.authStore.user;
 
   logout(): void {
-    this.authStore.logout();
-    this.router.navigate(['/login']);
+    this.authStore.logout().subscribe({
+      next: () => {
+        // Navigation is handled by authStore
+      },
+      error: (error) => {
+        console.error('Logout failed:', error);
+        // Navigation is handled by authStore even on error
+      },
+    });
   }
 }

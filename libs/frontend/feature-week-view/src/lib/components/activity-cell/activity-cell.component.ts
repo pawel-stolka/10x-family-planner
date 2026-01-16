@@ -1,13 +1,18 @@
-import { 
-  Component, 
-  input, 
+import {
+  Component,
+  input,
   output,
   signal,
-  ChangeDetectionStrategy 
+  ChangeDetectionStrategy,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  OnDestroy,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivityInCell } from '../../models/week-grid.models';
-import { MIN_ACTIVITY_HEIGHT, TOOLTIP_DELAY } from '../../constants/week-grid.constants';
+import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
 
 /**
  * Activity Cell Component
@@ -18,135 +23,125 @@ import { MIN_ACTIVITY_HEIGHT, TOOLTIP_DELAY } from '../../constants/week-grid.co
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div 
+    <div
       class="activity-cell"
       [class.dimmed]="activity().isDimmed"
       [class.has-conflict]="activity().hasConflict"
       [class.shared]="activity().isShared"
       [style.background]="getBackground()"
-      [style.height.px]="getHeight()"
-      [style.min-height.px]="minHeight"
+      [style.--member-color]="activity().member.color"
       (mouseenter)="onMouseEnter()"
       (mouseleave)="onMouseLeave()"
       (click)="onClick()"
     >
       <div class="activity-content">
-        @if (activity().block.emoji) {
-          <span class="activity-emoji">{{ activity().block.emoji }}</span>
-        }
-        <span class="activity-title">{{ activity().block.title }}</span>
-        <span class="member-initial">{{ activity().member.initial }}</span>
+        <span
+          #label
+          class="activity-label"
+          [attr.title]="isLabelTruncated() ? labelText() : null"
+        >
+          {{ labelText() }}
+        </span>
       </div>
 
-      @if (activity().hasConflict) {
-        <div class="conflict-indicator" title="Konflikt harmonogramu">⚠️</div>
-      }
-
       @if (showTooltip()) {
-        <div class="tooltip-placeholder">
-          <!-- Tooltip will be rendered here by parent -->
-        </div>
+      <div class="tooltip-placeholder">
+        <!-- Tooltip will be rendered here by parent -->
+      </div>
       }
     </div>
   `,
-  styles: [`
-    .activity-cell {
-      position: relative;
-      margin: 1px;
-      padding: 2px 4px;
-      border-radius: 4px;
-      cursor: pointer;
-      overflow: hidden;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
-    }
+  styles: [
+    `
+      :host {
+        display: block;
+      }
 
-    .activity-cell:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
+      .activity-cell {
+        position: relative;
+        margin: 1px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        cursor: pointer;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 0;
+      }
 
-    .activity-content {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex: 1;
-      min-width: 0;
-    }
+      .activity-cell:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
 
-    .activity-emoji {
-      font-size: 13px;
-      flex-shrink: 0;
-    }
+      .activity-content {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+        min-width: 0;
+      }
 
-    .activity-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: #fff;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-    }
+      .activity-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+      }
 
-    .member-initial {
-      font-size: 9px;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.9);
-      background: rgba(0, 0, 0, 0.15);
-      padding: 1px 4px;
-      border-radius: 3px;
-      flex-shrink: 0;
-    }
+      .activity-cell.has-conflict {
+        border: 2px solid #ef4444;
+        box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+      }
 
-    .conflict-indicator {
-      position: absolute;
-      top: 1px;
-      right: 1px;
-      font-size: 11px;
-      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-    }
+      .activity-cell.dimmed {
+        opacity: 0.3;
+        filter: grayscale(0.5);
+        pointer-events: none;
+      }
 
-    .activity-cell.has-conflict {
-      border: 2px solid #ef4444;
-      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
-    }
+      .activity-cell.shared {
+        background: repeating-linear-gradient(
+          45deg,
+          var(--member-color, #3b82f6),
+          var(--member-color, #3b82f6) 10px,
+          rgba(255, 255, 255, 0.2) 10px,
+          rgba(255, 255, 255, 0.2) 20px
+        ) !important;
+      }
 
-    .activity-cell.dimmed {
-      opacity: 0.3;
-      filter: grayscale(0.5);
-      pointer-events: none;
-    }
-
-    .activity-cell.shared {
-      background: repeating-linear-gradient(
-        45deg,
-        var(--member-color, #3b82f6),
-        var(--member-color, #3b82f6) 10px,
-        rgba(255, 255, 255, 0.2) 10px,
-        rgba(255, 255, 255, 0.2) 20px
-      ) !important;
-    }
-
-    .tooltip-placeholder {
-      display: none;
-    }
-  `],
+      .tooltip-placeholder {
+        display: none;
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ActivityCellComponent {
+export class ActivityCellComponent implements AfterViewInit, OnDestroy {
   activity = input.required<ActivityInCell>();
-  cellHeight = input<number>(80);
-  minHeight = MIN_ACTIVITY_HEIGHT;
 
   activityClick = output<ActivityInCell>();
   activityHover = output<{ activity: ActivityInCell; show: boolean }>();
 
   showTooltip = signal<boolean>(false);
+  readonly isLabelTruncated = signal<boolean>(false);
+  @ViewChild('label') private readonly labelRef?: ElementRef<HTMLElement>;
+  private resizeObserver?: ResizeObserver;
+  private readonly activityEffect = effect(() => {
+    this.activity();
+    queueMicrotask(() => this.updateLabelTruncation());
+  });
   private hoverTimeout?: ReturnType<typeof setTimeout>;
 
   getBackground(): string {
@@ -158,20 +153,13 @@ export class ActivityCellComponent {
     return act.member.color;
   }
 
-  getHeight(): number {
-    const act = this.activity();
-    const height = this.cellHeight();
-    const calculatedHeight = act.proportionalHeight * height;
-    return Math.max(MIN_ACTIVITY_HEIGHT, calculatedHeight);
-  }
-
   onMouseEnter(): void {
     // Delay to prevent flickering
     this.hoverTimeout = setTimeout(() => {
       this.showTooltip.set(true);
-      this.activityHover.emit({ 
-        activity: this.activity(), 
-        show: true 
+      this.activityHover.emit({
+        activity: this.activity(),
+        show: true,
       });
     }, TOOLTIP_DELAY);
   }
@@ -181,13 +169,41 @@ export class ActivityCellComponent {
       clearTimeout(this.hoverTimeout);
     }
     this.showTooltip.set(false);
-    this.activityHover.emit({ 
-      activity: this.activity(), 
-      show: false 
+    this.activityHover.emit({
+      activity: this.activity(),
+      show: false,
     });
   }
 
   onClick(): void {
     this.activityClick.emit(this.activity());
+  }
+
+  labelText(): string {
+    const member = this.activity().member;
+    return `${member.initial} ${this.activity().block.title}`;
+  }
+
+  ngAfterViewInit(): void {
+    this.updateLabelTruncation();
+    this.resizeObserver = new ResizeObserver(() =>
+      this.updateLabelTruncation()
+    );
+    if (this.labelRef?.nativeElement) {
+      this.resizeObserver.observe(this.labelRef.nativeElement);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.resizeObserver && this.labelRef?.nativeElement) {
+      this.resizeObserver.unobserve(this.labelRef.nativeElement);
+    }
+    this.activityEffect.destroy();
+  }
+
+  private updateLabelTruncation(): void {
+    const label = this.labelRef?.nativeElement;
+    if (!label) return;
+    this.isLabelTruncated.set(label.scrollWidth > label.clientWidth);
   }
 }
