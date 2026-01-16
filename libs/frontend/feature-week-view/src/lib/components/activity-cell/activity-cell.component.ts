@@ -35,7 +35,6 @@ import {
       (click)="onClick()"
     >
       <div class="activity-content">
-        <span class="member-initial">{{ activity().member.initial }}</span>
         <span class="activity-title">{{ activity().block.title }}</span>
       </div>
 
@@ -58,7 +57,7 @@ import {
         transition: all 0.2s ease;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
         box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
         flex: 1 1 0;
         min-width: 0;
@@ -75,6 +74,8 @@ import {
         gap: 4px;
         flex: 1;
         min-width: 0;
+        opacity: 0;
+        transition: opacity 0.15s ease;
       }
 
       .activity-title {
@@ -89,14 +90,9 @@ import {
         min-width: 0;
       }
 
-      .member-initial {
-        font-size: 9px;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.9);
-        background: rgba(0, 0, 0, 0.15);
-        padding: 1px 4px;
-        border-radius: 3px;
-        flex-shrink: 0;
+      .activity-cell:hover .activity-content,
+      .activity-cell:focus-visible .activity-content {
+        opacity: 1;
       }
 
       .activity-cell.has-conflict {

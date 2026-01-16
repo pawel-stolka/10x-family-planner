@@ -62,11 +62,10 @@ import { CELL_HEIGHT } from '../../constants/week-grid.constants';
 
     .activities-stack {
       display: flex;
-      flex-direction: row;
-      gap: 3px;
+      flex-direction: column;
+      gap: 2px;
       height: 100%;
-      align-items: center;
-      flex-wrap: nowrap;
+      align-items: stretch;
       overflow: hidden;
     }
 
@@ -76,28 +75,6 @@ import { CELL_HEIGHT } from '../../constants/week-grid.constants';
       min-height: 24px;
     }
 
-    /* Handle overflow when too many activities */
-    .grid-cell:has(.activities-stack > :nth-child(3)) .activities-stack {
-      overflow-x: auto;
-    }
-
-    /* Custom scrollbar */
-    .activities-stack::-webkit-scrollbar {
-      height: 4px;
-    }
-
-    .activities-stack::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .activities-stack::-webkit-scrollbar-thumb {
-      background: #d1d5db;
-      border-radius: 2px;
-    }
-
-    .activities-stack::-webkit-scrollbar-thumb:hover {
-      background: #9ca3af;
-    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

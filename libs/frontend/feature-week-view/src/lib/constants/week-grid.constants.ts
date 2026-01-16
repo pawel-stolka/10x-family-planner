@@ -8,22 +8,22 @@ import { BlockType } from '@family-planner/shared/models-schedule';
  * Member colors (default palette)
  */
 export const MEMBER_COLORS: Record<string, string> = {
-  tata: '#2563eb', // blue-600
-  mama: '#db2777', // pink-600
-  hania: '#f97316', // orange-500
+  tata: '#1d4ed8', // blue-700
+  mama: '#e11d48', // rose-600
+  hania: '#f59e0b', // amber-500
   małgosia: '#16a34a', // green-600
-  monisia: '#7c3aed', // violet-600
+  monisia: '#c026d3', // fuchsia-600
 };
 
 /**
  * Fallback palette for non-mapped member IDs
  */
 export const MEMBER_COLOR_PALETTE: string[] = [
-  '#2563eb', // blue-600
-  '#db2777', // pink-600
-  '#f97316', // orange-500
+  '#1d4ed8', // blue-700
+  '#e11d48', // rose-600
+  '#f59e0b', // amber-500
   '#16a34a', // green-600
-  '#7c3aed', // violet-600
+  '#c026d3', // fuchsia-600
   '#dc2626', // red-600
   '#0ea5e9', // sky-500
 ];
