@@ -479,7 +479,7 @@ export class WeekViewContainerComponent implements OnInit {
   // Input signals (sources of truth)
   readonly rawScheduleData = signal<TimeBlock[]>([]);
   readonly familyMembers = signal<FamilyMemberViewModel[]>([]);
-  readonly selectedFilter = signal<FilterValue>('all');
+  readonly selectedFilter = signal<FilterValue>(new Set());
   readonly selectedActivity = signal<ActivityInCell | null>(null);
   readonly weekStartDate = signal<Date>(getMonday(new Date()));
   readonly isLoading = signal<boolean>(false);
@@ -525,21 +525,22 @@ export class WeekViewContainerComponent implements OnInit {
 
   readonly visibleCells = computed(() => {
     const cells = this.gridCells();
-    const filter = this.selectedFilter();
+    const selection = this.selectedFilter();
 
-    if (filter === 'all') return cells;
+    if (selection.size === 0) return cells;
 
-    // Filter: dim other members' activities
     return cells.map((row) =>
       row.map((cell) => ({
         ...cell,
-        activities: cell.activities.map((activity) => ({
-          ...activity,
-          isDimmed:
-            filter === 'shared'
-              ? !activity.isShared
-              : activity.member.id !== filter,
-        })),
+        activities: cell.activities.map((activity) => {
+          const isSelected = activity.isShared
+            ? selection.has('shared') || selection.has(activity.member.id)
+            : selection.has(activity.member.id);
+          return {
+            ...activity,
+            isDimmed: !isSelected,
+          };
+        }),
       }))
     );
   });
@@ -596,7 +597,9 @@ export class WeekViewContainerComponent implements OnInit {
         if (!response.timeBlocks.length && this.useMockData) {
           const mock = this.buildMockWeekData(this.weekStartDate());
           this.rawScheduleData.set(mock.timeBlocks);
-          this.familyMembers.set(this.transformToViewModels(mock.familyMembers));
+          const viewModels = this.transformToViewModels(mock.familyMembers);
+          this.familyMembers.set(viewModels);
+          this.ensureDefaultSelection(viewModels);
           this.scheduleExists.set(true);
           this.updateUrl(this.weekStartDate(), true);
           return;
@@ -606,7 +609,9 @@ export class WeekViewContainerComponent implements OnInit {
         this.scheduleExists.set(response.timeBlocks.length > 0);
         const resolvedMembers = this.resolveMembersFromResponse(response);
         if (resolvedMembers.length) {
-          this.familyMembers.set(this.transformToViewModels(resolvedMembers));
+          const viewModels = this.transformToViewModels(resolvedMembers);
+          this.familyMembers.set(viewModels);
+          this.ensureDefaultSelection(viewModels);
         }
         this.updateUrl(this.weekStartDate(), true);
       } else {
@@ -635,6 +640,7 @@ export class WeekViewContainerComponent implements OnInit {
 
       if (members) {
         this.familyMembers.set(members);
+        this.ensureDefaultSelection(members);
       }
     } catch (error) {
       console.error('Failed to load family members:', error);
@@ -733,7 +739,9 @@ export class WeekViewContainerComponent implements OnInit {
       response.timeBlocks
     );
     if (resolvedMembers.length) {
-      this.familyMembers.set(this.transformToViewModels(resolvedMembers));
+      const viewModels = this.transformToViewModels(resolvedMembers);
+      this.familyMembers.set(viewModels);
+      this.ensureDefaultSelection(viewModels);
     }
 
     const parsed = parseISODate(response.weekStartDate);
@@ -1039,6 +1047,17 @@ export class WeekViewContainerComponent implements OnInit {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+  }
+
+  private ensureDefaultSelection(members: FamilyMemberViewModel[]): void {
+    const current = this.selectedFilter();
+    if (current.size > 0 || members.length === 0) {
+      return;
+    }
+
+    const selection = new Set<string>(members.map((member) => member.id));
+    selection.add('shared');
+    this.selectedFilter.set(selection);
   }
 
   private sortMembersForDisplay(

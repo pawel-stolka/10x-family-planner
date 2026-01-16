@@ -4,6 +4,11 @@ import {
   output,
   signal,
   ChangeDetectionStrategy,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  OnDestroy,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivityInCell } from '../../models/week-grid.models';
@@ -30,8 +35,13 @@ import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
       (click)="onClick()"
     >
       <div class="activity-content">
-        <span class="activity-title">{{ activity().block.title }}</span>
-        <span class="activity-member">{{ activity().member.name }}</span>
+        <span
+          #label
+          class="activity-label"
+          [attr.title]="isLabelTruncated() ? labelText() : null"
+        >
+          {{ labelText() }}
+        </span>
       </div>
 
       @if (showTooltip()) {
@@ -78,7 +88,7 @@ import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
         min-width: 0;
       }
 
-      .activity-title {
+      .activity-label {
         font-size: 11px;
         font-weight: 600;
         color: #fff;
@@ -88,31 +98,6 @@ import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
         text-overflow: ellipsis;
         flex: 1;
         min-width: 0;
-        transition: opacity 0.15s ease;
-      }
-
-      .activity-member {
-        position: absolute;
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-size: 10px;
-        font-weight: 700;
-        color: #fff;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-        opacity: 0;
-        transition: opacity 0.15s ease;
-        pointer-events: none;
-      }
-
-      .activity-cell:hover .activity-title,
-      .activity-cell:focus-visible .activity-title {
-        opacity: 0;
-      }
-
-      .activity-cell:hover .activity-member,
-      .activity-cell:focus-visible .activity-member {
-        opacity: 1;
       }
 
       .activity-cell.has-conflict {
@@ -143,13 +128,20 @@ import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ActivityCellComponent {
+export class ActivityCellComponent implements AfterViewInit, OnDestroy {
   activity = input.required<ActivityInCell>();
 
   activityClick = output<ActivityInCell>();
   activityHover = output<{ activity: ActivityInCell; show: boolean }>();
 
   showTooltip = signal<boolean>(false);
+  readonly isLabelTruncated = signal<boolean>(false);
+  @ViewChild('label') private readonly labelRef?: ElementRef<HTMLElement>;
+  private resizeObserver?: ResizeObserver;
+  private readonly activityEffect = effect(() => {
+    this.activity();
+    queueMicrotask(() => this.updateLabelTruncation());
+  });
   private hoverTimeout?: ReturnType<typeof setTimeout>;
 
   getBackground(): string {
@@ -185,5 +177,33 @@ export class ActivityCellComponent {
 
   onClick(): void {
     this.activityClick.emit(this.activity());
+  }
+
+  labelText(): string {
+    const member = this.activity().member;
+    return `${member.initial} ${this.activity().block.title}`;
+  }
+
+  ngAfterViewInit(): void {
+    this.updateLabelTruncation();
+    this.resizeObserver = new ResizeObserver(() =>
+      this.updateLabelTruncation()
+    );
+    if (this.labelRef?.nativeElement) {
+      this.resizeObserver.observe(this.labelRef.nativeElement);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.resizeObserver && this.labelRef?.nativeElement) {
+      this.resizeObserver.unobserve(this.labelRef.nativeElement);
+    }
+    this.activityEffect.destroy();
+  }
+
+  private updateLabelTruncation(): void {
+    const label = this.labelRef?.nativeElement;
+    if (!label) return;
+    this.isLabelTruncated.set(label.scrollWidth > label.clientWidth);
   }
 }

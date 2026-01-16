@@ -24,8 +24,10 @@ import { FILTER_DEBOUNCE_DELAY } from '../../constants/week-grid.constants';
 
       <button
         class="legend-btn all-btn"
-        [class.active]="selectedFilter() === 'all'"
-        (click)="onFilterClick('all')"
+        [class.active]="isAllSelected()"
+        [attr.aria-pressed]="isAllSelected()"
+        (click)="selectAll()"
+        type="button"
       >
         Wszyscy
       </button>
@@ -33,10 +35,12 @@ import { FILTER_DEBOUNCE_DELAY } from '../../constants/week-grid.constants';
       @for (member of members(); track member.id) {
         <button
           class="legend-btn"
-          [class.active]="selectedFilter() === member.id"
+          [class.active]="isSelected(member.id)"
+          [attr.aria-pressed]="isSelected(member.id)"
           [style.border-color]="member.color"
           [style.--member-color]="member.color"
-          (click)="onFilterClick(member.id)"
+          (click)="toggleSelection(member.id)"
+          type="button"
         >
           <span class="color-square" [style.background]="member.color"></span>
           <span class="label">{{ member.name }}</span>
@@ -45,8 +49,10 @@ import { FILTER_DEBOUNCE_DELAY } from '../../constants/week-grid.constants';
 
       <button
         class="legend-btn shared-btn"
-        [class.active]="selectedFilter() === 'shared'"
-        (click)="onFilterClick('shared')"
+        [class.active]="isSelected(sharedKey)"
+        [attr.aria-pressed]="isSelected(sharedKey)"
+        (click)="toggleSelection(sharedKey)"
+        type="button"
       >
         <span class="color-square shared"></span>
         <span class="label">Wspólne</span>
@@ -96,9 +102,14 @@ import { FILTER_DEBOUNCE_DELAY } from '../../constants/week-grid.constants';
 
     .legend-btn.active {
       border-color: var(--member-color, #3b82f6);
-      background: rgba(59, 130, 246, 0.05);
-      color: var(--member-color, #3b82f6);
+      background: var(--member-color, #3b82f6);
+      color: #fff;
       font-weight: 700;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .legend-btn:not(.active) {
+      opacity: 0.65;
     }
 
     .legend-btn:not(.active):active {
@@ -124,16 +135,17 @@ import { FILTER_DEBOUNCE_DELAY } from '../../constants/week-grid.constants';
 
     .shared-btn.active {
       border-color: #8b5cf6;
-      background: rgba(139, 92, 246, 0.05);
-      color: #8b5cf6;
+      background: #8b5cf6;
+      color: #fff;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MemberFilterComponent {
   members = input<FamilyMemberViewModel[]>([]);
-  selectedFilter = input<FilterValue>('all');
+  selectedFilter = input<FilterValue>(new Set());
   filterChange = output<FilterValue>();
+  readonly sharedKey = 'shared';
 
   private filterTimeout?: ReturnType<typeof setTimeout>;
   private pendingFilter = signal<FilterValue | null>(null);
@@ -149,15 +161,43 @@ export class MemberFilterComponent {
     });
   }
 
-  onFilterClick(filter: FilterValue): void {
-    // Clear existing timeout
+  isSelected(memberId: string): boolean {
+    return this.selectedFilter().has(memberId);
+  }
+
+  isAllSelected(): boolean {
+    const members = this.members();
+    if (!members.length) return false;
+    const allSelected = members.every((member) =>
+      this.selectedFilter().has(member.id)
+    );
+    return allSelected && this.selectedFilter().has(this.sharedKey);
+  }
+
+  selectAll(): void {
+    const selection = new Set<string>();
+    this.members().forEach((member) => selection.add(member.id));
+    selection.add(this.sharedKey);
+    this.emitSelection(selection);
+  }
+
+  toggleSelection(memberId: string): void {
+    const selection = new Set(this.selectedFilter());
+    if (selection.has(memberId)) {
+      selection.delete(memberId);
+    } else {
+      selection.add(memberId);
+    }
+    this.emitSelection(selection);
+  }
+
+  private emitSelection(selection: Set<string>): void {
     if (this.filterTimeout) {
       clearTimeout(this.filterTimeout);
     }
 
-    // Debounce filter change
     this.filterTimeout = setTimeout(() => {
-      this.pendingFilter.set(filter);
+      this.pendingFilter.set(selection);
     }, FILTER_DEBOUNCE_DELAY);
   }
 }
