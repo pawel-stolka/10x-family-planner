@@ -7,10 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivityInCell } from '../../models/week-grid.models';
-import {
-  MIN_ACTIVITY_HEIGHT,
-  TOOLTIP_DELAY,
-} from '../../constants/week-grid.constants';
+import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
 
 /**
  * Activity Cell Component
@@ -28,14 +25,13 @@ import {
       [class.shared]="activity().isShared"
       [style.background]="getBackground()"
       [style.--member-color]="activity().member.color"
-      [style.height.px]="getHeight()"
-      [style.min-height.px]="minHeight"
       (mouseenter)="onMouseEnter()"
       (mouseleave)="onMouseLeave()"
       (click)="onClick()"
     >
       <div class="activity-content">
         <span class="activity-title">{{ activity().block.title }}</span>
+        <span class="activity-member">{{ activity().member.name }}</span>
       </div>
 
       @if (showTooltip()) {
@@ -47,6 +43,10 @@ import {
   `,
   styles: [
     `
+      :host {
+        display: block;
+      }
+
       .activity-cell {
         position: relative;
         margin: 1px;
@@ -61,6 +61,7 @@ import {
         box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
         flex: 1 1 0;
         min-width: 0;
+        min-height: 0;
       }
 
       .activity-cell:hover {
@@ -69,13 +70,12 @@ import {
       }
 
       .activity-content {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 4px;
         flex: 1;
         min-width: 0;
-        opacity: 0;
-        transition: opacity 0.15s ease;
       }
 
       .activity-title {
@@ -88,10 +88,30 @@ import {
         text-overflow: ellipsis;
         flex: 1;
         min-width: 0;
+        transition: opacity 0.15s ease;
       }
 
-      .activity-cell:hover .activity-content,
-      .activity-cell:focus-visible .activity-content {
+      .activity-member {
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        pointer-events: none;
+      }
+
+      .activity-cell:hover .activity-title,
+      .activity-cell:focus-visible .activity-title {
+        opacity: 0;
+      }
+
+      .activity-cell:hover .activity-member,
+      .activity-cell:focus-visible .activity-member {
         opacity: 1;
       }
 
@@ -125,8 +145,6 @@ import {
 })
 export class ActivityCellComponent {
   activity = input.required<ActivityInCell>();
-  cellHeight = input<number>(80);
-  minHeight = MIN_ACTIVITY_HEIGHT;
 
   activityClick = output<ActivityInCell>();
   activityHover = output<{ activity: ActivityInCell; show: boolean }>();
@@ -141,13 +159,6 @@ export class ActivityCellComponent {
       return act.member.color;
     }
     return act.member.color;
-  }
-
-  getHeight(): number {
-    const act = this.activity();
-    const height = this.cellHeight();
-    const calculatedHeight = act.proportionalHeight * height;
-    return Math.max(MIN_ACTIVITY_HEIGHT, calculatedHeight);
   }
 
   onMouseEnter(): void {

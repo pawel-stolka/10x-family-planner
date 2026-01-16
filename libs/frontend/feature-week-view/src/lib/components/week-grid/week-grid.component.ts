@@ -16,7 +16,11 @@ import { GridHeaderComponent } from '../grid-header/grid-header.component';
 import { TimeColumnComponent } from '../time-column/time-column.component';
 import { GridCellComponent } from '../grid-cell/grid-cell.component';
 import { isToday, parseISODate } from '../../utils/date.utils';
-import { DAY_NAMES, SHORT_DAY_NAMES } from '../../constants/week-grid.constants';
+import {
+  DAY_NAMES,
+  SHORT_DAY_NAMES,
+  CELL_HEIGHT,
+} from '../../constants/week-grid.constants';
 
 /**
  * Week Grid Component
@@ -32,7 +36,13 @@ import { DAY_NAMES, SHORT_DAY_NAMES } from '../../constants/week-grid.constants'
     GridCellComponent,
   ],
   template: `
-    <div class="week-grid-container" #gridContainer>
+    <div
+      class="week-grid-container"
+      [style.--member-count]="members().length"
+      [style.--slot-height.px]="slotHeight"
+      [style.--slot-gap.px]="slotGap"
+      #gridContainer
+    >
       <!-- Header row: time column + 7 day headers -->
       <div class="grid-header-row">
         <div class="time-header">Godzina</div>
@@ -57,6 +67,7 @@ import { DAY_NAMES, SHORT_DAY_NAMES } from '../../constants/week-grid.constants'
                 <app-grid-cell
                   [cell]="getCell(rowIndex, colIndex)"
                   [isToday]="checkIsToday(day.date)"
+                  [members]="members()"
                   (activityClick)="onActivityClick($event)"
                   (activityHover)="onActivityHover($event)"
                 />
@@ -113,11 +124,19 @@ import { DAY_NAMES, SHORT_DAY_NAMES } from '../../constants/week-grid.constants'
     .grid-row {
       display: grid;
       grid-template-columns: 64px repeat(7, 1fr);
-      min-height: 36px;
+      min-height: calc(
+        (var(--member-count, 1) * var(--slot-height, 12px)) +
+        ((var(--member-count, 1) - 1) * var(--slot-gap, 2px)) +
+        6px
+      );
     }
 
     .grid-cell-placeholder {
-      min-height: 36px;
+      min-height: calc(
+        (var(--member-count, 1) * var(--slot-height, 12px)) +
+        ((var(--member-count, 1) - 1) * var(--slot-gap, 2px)) +
+        6px
+      );
       background: #fafafa;
       border: 1px solid #e5e7eb;
       animation: pulse 1.5s ease-in-out infinite;
@@ -145,6 +164,8 @@ import { DAY_NAMES, SHORT_DAY_NAMES } from '../../constants/week-grid.constants'
 export class WeekGridComponent {
   gridCells = input.required<GridCell[][]>();
   members = input<FamilyMemberViewModel[]>([]);
+  readonly slotHeight = CELL_HEIGHT;
+  readonly slotGap = 2;
 
   activityClick = output<ActivityInCell>();
   activityHover = output<{ activity: ActivityInCell; show: boolean }>();

@@ -19,7 +19,7 @@ import { CommonModule } from '@angular/common';
       position: sticky;
       left: 0;
       z-index: 10;
-      padding: 4px 6px;
+      padding: 2px 6px;
       background: #f9fafb;
       border-right: 2px solid #e5e7eb;
       font-size: 11px;
@@ -28,7 +28,7 @@ import { CommonModule } from '@angular/common';
       text-align: right;
       min-width: 64px;
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: flex-end;
     }
   `],

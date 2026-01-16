@@ -22,7 +22,6 @@ import { GridTransformService } from '../../services/grid-transform.service';
 import { ConflictDetectionService } from '../../services/conflict-detection.service';
 import { WeekScheduleService } from '../../services/week-schedule.service';
 import { MemberFilterComponent } from '../member-filter/member-filter.component';
-import { MemberLegendComponent } from '../member-legend/member-legend.component';
 import { WeekGridComponent } from '../week-grid/week-grid.component';
 import { WeekGridTransposedComponent } from '../week-grid-transposed/week-grid-transposed.component';
 import { ActivityDetailModalComponent } from '../activity-detail-modal/activity-detail-modal.component';
@@ -55,7 +54,6 @@ import { ActivatedRoute, Router } from '@angular/router';
   imports: [
     CommonModule,
     MemberFilterComponent,
-    MemberLegendComponent,
     WeekGridComponent,
     WeekGridTransposedComponent,
     ActivityDetailModalComponent,
@@ -125,13 +123,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 
       <!-- Filters -->
       <app-member-filter
-        [members]="familyMembers()"
+        [members]="orderedMembers()"
         [selectedFilter]="selectedFilter()"
         (filterChange)="onFilterChange($event)"
       />
-
-      <!-- Legend -->
-      <app-member-legend [members]="familyMembers()" />
 
       <!-- Main content -->
       <div class="week-view-content">
@@ -164,14 +159,14 @@ import { ActivatedRoute, Router } from '@angular/router';
           @if (layout() === 'days-columns') {
             <app-week-grid
               [gridCells]="visibleCells()"
-              [members]="familyMembers()"
+              [members]="orderedMembers()"
               (activityClick)="onActivityClick($event)"
               (activityHover)="onActivityHover($event)"
             />
           } @else {
             <app-week-grid-transposed
               [gridCells]="visibleCells()"
-              [members]="familyMembers()"
+              [members]="orderedMembers()"
               (activityClick)="onActivityClick($event)"
               (activityHover)="onActivityHover($event)"
             />
@@ -497,6 +492,10 @@ export class WeekViewContainerComponent implements OnInit {
 
   // Computed signals (automatically recalculated)
   readonly weekEndDate = computed(() => addDays(this.weekStartDate(), 6));
+
+  readonly orderedMembers = computed(() =>
+    this.sortMembersForDisplay(this.familyMembers())
+  );
 
   readonly weekStartDateFormatted = computed(() =>
     formatDisplayDate(this.weekStartDate())
@@ -1040,6 +1039,21 @@ export class WeekViewContainerComponent implements OnInit {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+  }
+
+  private sortMembersForDisplay(
+    members: FamilyMemberViewModel[]
+  ): FamilyMemberViewModel[] {
+    const parents = members.filter((member) => member.role === 'parent');
+    const kids = members.filter((member) => member.role === 'child');
+
+    parents.sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+    kids.sort((a, b) => {
+      const ageDiff = (b.age ?? 0) - (a.age ?? 0);
+      return ageDiff !== 0 ? ageDiff : a.name.localeCompare(b.name, 'pl');
+    });
+
+    return [...parents, ...kids];
   }
 
   /**

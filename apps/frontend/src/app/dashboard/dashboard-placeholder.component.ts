@@ -19,13 +19,6 @@ import { WeekViewContainerComponent } from '@family-planner/frontend/feature-wee
   imports: [CommonModule, RouterModule, WeekViewContainerComponent],
   template: `
     <div class="dashboard-placeholder">
-      <div class="dashboard-header">
-        <div class="header-content">
-          <h1 class="app-title">🏠 Family Life Planner</h1>
-          <button class="logout-button" (click)="onLogout()">Logout</button>
-        </div>
-      </div>
-
       <div class="dashboard-container">
         <div class="week-view-shell">
           <app-week-view-container />
@@ -38,59 +31,6 @@ import { WeekViewContainerComponent } from '@family-planner/frontend/feature-wee
       .dashboard-placeholder {
         min-height: 100vh;
         background: #f7fafc;
-      }
-
-      .dashboard-header {
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 1rem 2rem;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      }
-
-      .header-content {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .app-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #667eea;
-        margin: 0;
-      }
-
-      .logout-button {
-        padding: 0.5rem 1.25rem;
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: #e53e3e;
-        background: white;
-        border: 2px solid #e53e3e;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s;
-
-        &:hover {
-          background: #e53e3e;
-          color: white;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
-        }
-
-        &:active {
-          transform: translateY(0);
-        }
-
-        &:focus {
-          outline: 2px solid #e53e3e;
-          outline-offset: 2px;
-        }
       }
 
       .dashboard-container {

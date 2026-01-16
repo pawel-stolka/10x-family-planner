@@ -14,6 +14,7 @@ This document outlines the technical architecture decisions for the Family Plann
 - **Testing**: Jest (no TestBed)
 - **Language**: TypeScript
 - **Week View**: Toggleable layout (days-as-columns or hours-as-columns)
+- **Week View UI**: Single sticky navigation, combined legend/filter buttons, fixed-height grid rows
 
 ### Backend (Chosen Architecture)
 

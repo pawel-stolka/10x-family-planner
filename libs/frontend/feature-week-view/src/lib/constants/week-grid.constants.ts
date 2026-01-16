@@ -60,12 +60,7 @@ export const ACTIVITY_ICONS: Record<BlockType, string> = {
 /**
  * Cell height in pixels
  */
-export const CELL_HEIGHT = 36;
-
-/**
- * Minimum activity height in pixels (for readability)
- */
-export const MIN_ACTIVITY_HEIGHT = 16;
+export const CELL_HEIGHT = 28;
 
 /**
  * Time column width in pixels
