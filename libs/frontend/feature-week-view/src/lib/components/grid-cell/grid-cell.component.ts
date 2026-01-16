@@ -46,7 +46,7 @@ import { CELL_HEIGHT } from '../../constants/week-grid.constants';
       min-height: 36px;
       background: #fff;
       border: 1px solid #e5e7eb;
-      padding: 2px;
+      padding: 2px 3px;
       overflow: visible;
       transition: background-color 0.2s ease;
     }
@@ -62,9 +62,12 @@ import { CELL_HEIGHT } from '../../constants/week-grid.constants';
 
     .activities-stack {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
+      flex-direction: row;
+      gap: 3px;
       height: 100%;
+      align-items: center;
+      flex-wrap: nowrap;
+      overflow: hidden;
     }
 
     .empty-state {
@@ -74,14 +77,13 @@ import { CELL_HEIGHT } from '../../constants/week-grid.constants';
     }
 
     /* Handle overflow when too many activities */
-    .grid-cell:has(.activities-stack > :nth-child(4)) .activities-stack {
-      overflow-y: auto;
-      max-height: 120px;
+    .grid-cell:has(.activities-stack > :nth-child(3)) .activities-stack {
+      overflow-x: auto;
     }
 
     /* Custom scrollbar */
     .activities-stack::-webkit-scrollbar {
-      width: 4px;
+      height: 4px;
     }
 
     .activities-stack::-webkit-scrollbar-track {

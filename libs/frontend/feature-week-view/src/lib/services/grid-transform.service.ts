@@ -29,7 +29,7 @@ import {
   DEFAULT_START_HOUR,
   DEFAULT_END_HOUR,
   ACTIVITY_ICONS,
-  MEMBER_COLORS,
+  getMemberColor,
 } from '../constants/week-grid.constants';
 
 /**
@@ -179,25 +179,7 @@ export class GridTransformService {
    * Get member color (from constants or generate)
    */
   private getMemberColor(memberId: string): string {
-    return MEMBER_COLORS[memberId] || this.generateColor(memberId);
-  }
-
-  /**
-   * Generate color from member ID (fallback)
-   */
-  private generateColor(memberId: string): string {
-    const colors = [
-      '#3b82f6',
-      '#ec4899',
-      '#f59e0b',
-      '#10b981',
-      '#a855f7',
-      '#ef4444',
-    ];
-    const hash = memberId
-      .split('')
-      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return colors[hash % colors.length];
+    return getMemberColor(memberId);
   }
 
   /**

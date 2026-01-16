@@ -41,6 +41,7 @@ import {
   BlockType,
   FamilyMemberRole,
 } from '@family-planner/shared/models-schedule';
+import { getMemberColor } from '../../constants/week-grid.constants';
 import { ActivatedRoute, Router } from '@angular/router';
 
 /**
@@ -81,6 +82,7 @@ import { ActivatedRoute, Router } from '@angular/router';
               [class.active]="layout() === 'days-columns'"
               (click)="setLayout('days-columns')"
               [disabled]="isLoading()"
+              type="button"
             >
               Dni → kolumny
             </button>
@@ -89,6 +91,7 @@ import { ActivatedRoute, Router } from '@angular/router';
               [class.active]="layout() === 'hours-columns'"
               (click)="setLayout('hours-columns')"
               [disabled]="isLoading()"
+              type="button"
             >
               Godziny → kolumny
             </button>
@@ -97,6 +100,7 @@ import { ActivatedRoute, Router } from '@angular/router';
             class="nav-btn"
             (click)="loadPreviousWeek()"
             [disabled]="isLoading()"
+            type="button"
           >
             ‹ Poprzedni
           </button>
@@ -104,6 +108,7 @@ import { ActivatedRoute, Router } from '@angular/router';
             class="nav-btn today"
             (click)="loadCurrentWeek()"
             [disabled]="isLoading()"
+            type="button"
           >
             Dzisiaj
           </button>
@@ -111,6 +116,7 @@ import { ActivatedRoute, Router } from '@angular/router';
             class="nav-btn"
             (click)="loadNextWeek()"
             [disabled]="isLoading()"
+            type="button"
           >
             Następny ›
           </button>
@@ -194,9 +200,13 @@ import { ActivatedRoute, Router } from '@angular/router';
       display: flex;
       flex-direction: column;
       gap: 20px;
-      padding: 24px;
+      padding: 16px 20px;
       background: #fff;
       min-height: 100vh;
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      margin-right: calc(50% - 50vw);
+      box-sizing: border-box;
     }
 
     .week-view-header {
@@ -483,6 +493,7 @@ export class WeekViewContainerComponent implements OnInit {
   readonly isScheduleGeneratorOpen = signal<boolean>(false);
   readonly layout = signal<WeekGridLayout>('days-columns');
   private readonly useMockData = false;
+  private readonly layoutStorageKey = 'weekViewLayout';
 
   // Computed signals (automatically recalculated)
   readonly weekEndDate = computed(() => addDays(this.weekStartDate(), 6));
@@ -548,6 +559,7 @@ export class WeekViewContainerComponent implements OnInit {
   private filterTimeout?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
+    this.restoreLayout();
     this.subscribeToUrlChanges();
     this.initializeWeekFromUrl();
     this.loadWeekData();
@@ -662,6 +674,7 @@ export class WeekViewContainerComponent implements OnInit {
 
   setLayout(layout: WeekGridLayout): void {
     this.layout.set(layout);
+    this.persistLayout(layout);
   }
 
   /**
@@ -787,6 +800,32 @@ export class WeekViewContainerComponent implements OnInit {
       queryParamsHandling: 'merge',
       replaceUrl: replace,
     });
+  }
+
+  private restoreLayout(): void {
+    const stored = this.getStoredLayout();
+    if (stored) {
+      this.layout.set(stored);
+    }
+  }
+
+  private persistLayout(layout: WeekGridLayout): void {
+    try {
+      globalThis.localStorage?.setItem(this.layoutStorageKey, layout);
+    } catch {
+      // Ignore storage errors (private mode or disabled storage)
+    }
+  }
+
+  private getStoredLayout(): WeekGridLayout | null {
+    try {
+      const value = globalThis.localStorage?.getItem(this.layoutStorageKey);
+      return value === 'days-columns' || value === 'hours-columns'
+        ? value
+        : null;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -1048,13 +1087,6 @@ export class WeekViewContainerComponent implements OnInit {
    * Get member color (from constants or generate)
    */
   private getMemberColor(memberId: string): string {
-    const colors: Record<string, string> = {
-      tata: '#3b82f6',
-      mama: '#ec4899',
-      hania: '#f59e0b',
-      małgosia: '#10b981',
-      monika: '#a855f7',
-    };
-    return colors[memberId] || '#6b7280';
+    return getMemberColor(memberId);
   }
 }
