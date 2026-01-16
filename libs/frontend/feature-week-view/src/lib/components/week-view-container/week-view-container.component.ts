@@ -21,6 +21,7 @@ import { ScheduleGenerationResponse } from '../../models/schedule-generator.mode
 import { GridTransformService } from '../../services/grid-transform.service';
 import { ConflictDetectionService } from '../../services/conflict-detection.service';
 import { WeekScheduleService } from '../../services/week-schedule.service';
+import { ScheduleGeneratorService } from '../../services/schedule-generator.service';
 import { MemberFilterComponent } from '../member-filter/member-filter.component';
 import { WeekGridComponent } from '../week-grid/week-grid.component';
 import { WeekGridTransposedComponent } from '../week-grid-transposed/week-grid-transposed.component';
@@ -42,6 +43,8 @@ import {
 } from '@family-planner/shared/models-schedule';
 import { getMemberColor } from '../../constants/week-grid.constants';
 import { ActivatedRoute, Router } from '@angular/router';
+import { lastValueFrom } from 'rxjs';
+import { GenerateScheduleRequest } from '../../models/schedule-generator.models';
 
 /**
  * Week View Container Component
@@ -63,6 +66,7 @@ import { ActivatedRoute, Router } from '@angular/router';
     GridTransformService,
     ConflictDetectionService,
     WeekScheduleService,
+    ScheduleGeneratorService,
   ],
   template: `
     <div class="week-view-container">
@@ -187,6 +191,28 @@ import { ActivatedRoute, Router } from '@angular/router';
           (generated)="applyGeneratedSchedule($event)"
           (close)="closeScheduleGenerator()"
         />
+      }
+
+      <!-- Sticky Reschedule Button -->
+      @if (!isEmpty() && !isLoading()) {
+        <div class="reschedule-button-container">
+          <button
+            class="reschedule-button"
+            type="button"
+            [disabled]="isRescheduling() || isLoading()"
+            (click)="rescheduleWeek()"
+          >
+            @if (isRescheduling()) {
+              <span class="spinner"></span>
+              <span>Przeplanowuję tydzień...</span>
+            } @else {
+              <span>🔄 Przeplanuj tydzień (AI)</span>
+            }
+          </button>
+          @if (rescheduleError()) {
+            <div class="reschedule-error">{{ rescheduleError() }}</div>
+          }
+        </div>
       }
     </div>
   `,
@@ -442,6 +468,75 @@ import { ActivatedRoute, Router } from '@angular/router';
       transform: translateY(0);
     }
 
+    /* Sticky Reschedule Button */
+    .reschedule-button-container {
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 16px 20px;
+        background: linear-gradient(to top, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid #e5e7eb;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .reschedule-button {
+        padding: 14px 32px;
+        border: none;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        color: #fff;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 220px;
+        justify-content: center;
+      }
+
+      .reschedule-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+      }
+
+      .reschedule-button:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+    .reschedule-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .reschedule-button .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .reschedule-error {
+      color: #dc2626;
+      font-size: 14px;
+      text-align: center;
+      padding: 8px 16px;
+      background: #fee2e2;
+      border-radius: 8px;
+      max-width: 400px;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .week-view-container {
@@ -464,6 +559,16 @@ import { ActivatedRoute, Router } from '@angular/router';
       .nav-btn {
         flex: 1;
       }
+
+      .reschedule-button-container {
+        padding: 12px 16px;
+      }
+
+      .reschedule-button {
+        min-width: 100%;
+        font-size: 14px;
+        padding: 12px 24px;
+      }
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -473,6 +578,7 @@ export class WeekViewContainerComponent implements OnInit {
   private readonly scheduleService = inject(WeekScheduleService);
   private readonly gridTransformService = inject(GridTransformService);
   private readonly conflictDetectionService = inject(ConflictDetectionService);
+  private readonly scheduleGeneratorService = inject(ScheduleGeneratorService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -487,6 +593,8 @@ export class WeekViewContainerComponent implements OnInit {
   readonly errorMessage = signal<string>('');
   readonly isScheduleGeneratorOpen = signal<boolean>(false);
   readonly layout = signal<WeekGridLayout>('days-columns');
+  readonly isRescheduling = signal<boolean>(false);
+  readonly rescheduleError = signal<string | null>(null);
   private readonly useMockData = false;
   private readonly layoutStorageKey = 'weekViewLayout';
 
@@ -1121,5 +1229,49 @@ export class WeekViewContainerComponent implements OnInit {
    */
   private getMemberColor(memberId: string): string {
     return getMemberColor(memberId);
+  }
+
+  /**
+   * Reschedule current week using AI
+   * Takes all current goals and commitments and regenerates the schedule
+   */
+  async rescheduleWeek(): Promise<void> {
+    if (this.isRescheduling() || this.isLoading()) {
+      return;
+    }
+
+    this.isRescheduling.set(true);
+    this.rescheduleError.set(null);
+
+    try {
+      const weekStartISO = formatISODate(this.weekStartDate());
+      
+      const request: GenerateScheduleRequest = {
+        weekStartDate: weekStartISO,
+        strategy: 'balanced',
+        preferences: {
+          respectFixedBlocks: true,
+          includeAllGoals: true,
+          preferMornings: false,
+          maximizeFamilyTime: true,
+        },
+      };
+
+      const response = await lastValueFrom(
+        this.scheduleGeneratorService.generateSchedule(request)
+      );
+
+      // Apply the generated schedule
+      this.applyGeneratedSchedule(response);
+    } catch (error) {
+      const message =
+        error instanceof HttpErrorResponse
+          ? error.error?.message || error.statusText || 'Błąd serwera'
+          : 'Nie udało się przeplanować tygodnia.';
+      this.rescheduleError.set(message);
+      console.error('Failed to reschedule week:', error);
+    } finally {
+      this.isRescheduling.set(false);
+    }
   }
 }
