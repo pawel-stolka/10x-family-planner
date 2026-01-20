@@ -3,10 +3,13 @@ import {
   NotFoundException,
   Logger,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource, IsNull } from 'typeorm';
 import { WeeklyScheduleEntity } from '../entities/weekly-schedule.entity';
+import { TimeBlockEntity } from '../entities/time-block.entity';
+import { CreateTimeBlockDto } from '../dto/create-time-block.dto';
 
 /**
  * Schedule Service
@@ -26,6 +29,8 @@ export class ScheduleService {
   constructor(
     @InjectRepository(WeeklyScheduleEntity)
     private readonly scheduleRepository: Repository<WeeklyScheduleEntity>,
+    @InjectRepository(TimeBlockEntity)
+    private readonly timeBlockRepository: Repository<TimeBlockEntity>,
     @InjectDataSource()
     private readonly dataSource: DataSource
   ) {}
@@ -264,6 +269,108 @@ export class ScheduleService {
 
       this.logger.error(
         `Database error listing schedules for user ${userId}: ${errorMessage}`,
+        errorStack
+      );
+      throw new InternalServerErrorException('An unexpected error occurred');
+    }
+  }
+
+  /**
+   * Create a new time block in a schedule
+   *
+   * @param scheduleId - UUID of the schedule to add the block to
+   * @param userId - UUID of the authenticated user (from JWT)
+   * @param dto - Time block creation data
+   * @returns Created TimeBlockEntity
+   * @throws NotFoundException if schedule not found or user doesn't own it
+   * @throws BadRequestException if validation fails (e.g., shared block with familyMemberId)
+   * @throws InternalServerErrorException on database errors
+   */
+  async createTimeBlock(
+    scheduleId: string,
+    userId: string,
+    dto: CreateTimeBlockDto
+  ): Promise<TimeBlockEntity> {
+    try {
+      // Set RLS context
+      const sanitizedUserId = userId.replace(/'/g, "''");
+      await this.dataSource.query(
+        `SET LOCAL app.user_id = '${sanitizedUserId}'`
+      );
+
+      // Verify schedule exists and user owns it
+      const schedule = await this.findScheduleById(scheduleId, userId);
+
+      // Validate shared block rules
+      const isShared = dto.isShared || false;
+      if (isShared && dto.familyMemberId) {
+        throw new BadRequestException(
+          'Shared time blocks cannot have familyMemberId'
+        );
+      }
+      if (!isShared && !dto.familyMemberId) {
+        throw new BadRequestException(
+          'familyMemberId is required when isShared is false'
+        );
+      }
+
+      // Convert time range strings to Date objects
+      const timeRange = {
+        start: new Date(dto.timeRange.start),
+        end: new Date(dto.timeRange.end),
+      };
+
+      // Validate time range
+      if (timeRange.start >= timeRange.end) {
+        throw new BadRequestException('End time must be after start time');
+      }
+
+      // Create time block entity
+      const timeBlock = this.timeBlockRepository.create({
+        scheduleId: schedule.scheduleId,
+        title: dto.title,
+        blockType: dto.blockType,
+        familyMemberId: isShared ? undefined : dto.familyMemberId || undefined,
+        timeRange,
+        isShared,
+        metadata: dto.metadata || {},
+      });
+
+      const savedBlock = await this.timeBlockRepository.save(timeBlock);
+
+      // Reload with relations for complete response
+      const blockWithRelations = await this.timeBlockRepository.findOne({
+        where: { blockId: savedBlock.blockId },
+        relations: ['familyMember', 'recurringGoal'],
+      });
+
+      if (!blockWithRelations) {
+        throw new InternalServerErrorException(
+          'Failed to reload created time block'
+        );
+      }
+
+      this.logger.log(
+        `Successfully created time block ${savedBlock.blockId} in schedule ${scheduleId}`
+      );
+
+      return blockWithRelations;
+    } catch (error) {
+      // Re-throw known exceptions
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      // Log and wrap database errors
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(
+        `Database error creating time block in schedule ${scheduleId}: ${errorMessage}`,
         errorStack
       );
       throw new InternalServerErrorException('An unexpected error occurred');

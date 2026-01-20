@@ -1,7 +1,9 @@
 import {
   Controller,
   Get,
+  Post,
   Param,
+  Body,
   Query,
   UseGuards,
   UseInterceptors,
@@ -24,6 +26,8 @@ import {
 } from '@family-planner/backend/feature-auth';
 import { GetScheduleParamsDto } from '../dto/get-schedule-params.dto';
 import { WeeklyScheduleDto } from '../dto/weekly-schedule.dto';
+import { CreateTimeBlockDto } from '../dto/create-time-block.dto';
+import { TimeBlockDto } from '../dto/time-block.dto';
 
 /**
  * Schedule Controller
@@ -230,5 +234,69 @@ export class ScheduleController {
     );
 
     return dtos;
+  }
+
+  /**
+   * POST /v1/weekly-schedules/:scheduleId/time-blocks
+   *
+   * Create a new time block in a weekly schedule.
+   * Validates schedule ownership and time block data.
+   *
+   * Security:
+   * - Requires valid JWT token
+   * - Only allows creating blocks in schedules owned by authenticated user
+   * - RLS + application-level authorization
+   */
+  @Post(':scheduleId/time-blocks')
+  @ApiOperation({
+    summary: 'Create time block',
+    description:
+      'Creates a new time block in the specified weekly schedule. Validates schedule ownership and time block constraints.',
+  })
+  @ApiParam({
+    name: 'scheduleId',
+    type: 'string',
+    format: 'uuid',
+    description: 'UUID of the weekly schedule',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Time block created successfully',
+    type: TimeBlockDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request data or validation error',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Schedule not found or user does not have access',
+  })
+  @ApiBearerAuth()
+  async createTimeBlock(
+    @Param() params: GetScheduleParamsDto,
+    @Body() dto: CreateTimeBlockDto,
+    @CurrentUser() user: JwtPayload
+  ): Promise<TimeBlockDto> {
+    this.logger.log(
+      `User ${user.userId} creating time block in schedule ${params.scheduleId}`
+    );
+
+    // Create time block via service
+    const timeBlock = await this.scheduleService.createTimeBlock(
+      params.scheduleId,
+      user.userId,
+      dto
+    );
+
+    // Transform entity to DTO
+    const dto_result = this.scheduleMapper.timeBlockToDto(timeBlock);
+
+    this.logger.log(
+      `Successfully created time block ${timeBlock.blockId} in schedule ${params.scheduleId}`
+    );
+
+    return dto_result;
   }
 }
