@@ -27,6 +27,7 @@ import { WeekGridComponent } from '../week-grid/week-grid.component';
 import { WeekGridTransposedComponent } from '../week-grid-transposed/week-grid-transposed.component';
 import { ActivityDetailModalComponent } from '../activity-detail-modal/activity-detail-modal.component';
 import { ScheduleGeneratorPanelComponent } from '../schedule-generator-panel/schedule-generator-panel.component';
+import { WeekNavigationModalComponent } from '../week-navigation-modal/week-navigation-modal.component';
 import {
   getMonday,
   addDays,
@@ -45,6 +46,7 @@ import { getMemberColor } from '../../constants/week-grid.constants';
 import { ActivatedRoute, Router } from '@angular/router';
 import { lastValueFrom } from 'rxjs';
 import { GenerateScheduleRequest } from '../../models/schedule-generator.models';
+import { buildTimeRange } from '../../utils/time.utils';
 
 /**
  * Week View Container Component
@@ -61,6 +63,7 @@ import { GenerateScheduleRequest } from '../../models/schedule-generator.models'
     WeekGridTransposedComponent,
     ActivityDetailModalComponent,
     ScheduleGeneratorPanelComponent,
+    WeekNavigationModalComponent,
   ],
   providers: [
     GridTransformService,
@@ -74,7 +77,8 @@ import { GenerateScheduleRequest } from '../../models/schedule-generator.models'
       <div class="week-view-header">
         <div class="header-title">
           <h1>
-            Tydzień {{ weekStartDateFormatted() }} - {{ weekEndDateFormatted() }}
+            Tydzień {{ weekStartDateFormatted() }} -
+            {{ weekEndDateFormatted() }}
           </h1>
         </div>
         <div class="header-actions">
@@ -135,347 +139,364 @@ import { GenerateScheduleRequest } from '../../models/schedule-generator.models'
       <!-- Main content -->
       <div class="week-view-content">
         @if (isLoading()) {
-          <div class="skeleton-grid">
-            <div class="skeleton-header"></div>
-            @for (row of skeletonRows; track $index) {
-              <div class="skeleton-row"></div>
-            }
-          </div>
-        } @else if (hasError()) {
-          <div class="error-message">
-            <div class="error-icon">⚠️</div>
-            <h3>Wystąpił błąd</h3>
-            <p>{{ errorMessage() }}</p>
-            <button class="retry-btn" (click)="retryLoad()">
-              Spróbuj ponownie
-            </button>
-          </div>
-        } @else if (isEmpty()) {
-          <div class="empty-state">
-            <div class="empty-icon">📅</div>
-            <h3>Brak harmonogramu dla tego tygodnia</h3>
-            <p>Wygeneruj nowy harmonogram za pomocą AI lub dodaj aktywności ręcznie.</p>
-            <button class="cta-btn" (click)="generateSchedule()">
-              ✨ Generuj harmonogram
-            </button>
-          </div>
-        } @else {
-          @if (layout() === 'days-columns') {
-            <app-week-grid
-              [gridCells]="visibleCells()"
-              [members]="orderedMembers()"
-              (activityClick)="onActivityClick($event)"
-              (activityHover)="onActivityHover($event)"
-            />
-          } @else {
-            <app-week-grid-transposed
-              [gridCells]="visibleCells()"
-              [members]="orderedMembers()"
-              (activityClick)="onActivityClick($event)"
-              (activityHover)="onActivityHover($event)"
-            />
+        <div class="skeleton-grid">
+          <div class="skeleton-header"></div>
+          @for (row of skeletonRows; track $index) {
+          <div class="skeleton-row"></div>
           }
-        }
+        </div>
+        } @else if (hasError()) {
+        <div class="error-message">
+          <div class="error-icon">⚠️</div>
+          <h3>Wystąpił błąd</h3>
+          <p>{{ errorMessage() }}</p>
+          <button class="retry-btn" (click)="retryLoad()">
+            Spróbuj ponownie
+          </button>
+        </div>
+        } @else if (isEmpty()) {
+        <div class="empty-state">
+          <div class="empty-icon">📅</div>
+          <h3>Brak harmonogramu dla tego tygodnia</h3>
+          <p>
+            Wygeneruj nowy harmonogram za pomocą AI lub dodaj aktywności
+            ręcznie.
+          </p>
+          <button class="cta-btn" (click)="generateSchedule()">
+            ✨ Generuj harmonogram
+          </button>
+        </div>
+        } @else { @if (layout() === 'days-columns') {
+        <app-week-grid
+          [gridCells]="visibleCells()"
+          [members]="orderedMembers()"
+          (activityClick)="onActivityClick($event)"
+          (activityHover)="onActivityHover($event)"
+          (cellClick)="onCellClick($event)"
+        />
+        } @else {
+        <app-week-grid-transposed
+          [gridCells]="visibleCells()"
+          [members]="orderedMembers()"
+          (activityClick)="onActivityClick($event)"
+          (activityHover)="onActivityHover($event)"
+          (cellClick)="onCellClick($event)"
+        />
+        } }
       </div>
 
       <!-- Modal -->
       @if (selectedActivity()) {
-        <app-activity-detail-modal
-          [activity]="selectedActivity()"
-          (close)="closeActivityModal()"
-        />
-      }
-      @if (isScheduleGeneratorOpen()) {
-        <app-schedule-generator-panel
-          [initialWeek]="weekStartDate()"
-          (generated)="applyGeneratedSchedule($event)"
-          (close)="closeScheduleGenerator()"
-        />
-      }
+      <app-activity-detail-modal
+        [activity]="selectedActivity()"
+        (close)="closeActivityModal()"
+      />
+      } @if (isScheduleGeneratorOpen()) {
+      <app-schedule-generator-panel
+        [initialWeek]="weekStartDate()"
+        (generated)="applyGeneratedSchedule($event)"
+        (close)="closeScheduleGenerator()"
+      />
+      } @if (isWeekNavigationModalOpen() && selectedCellInfo()) { @defer {
+      <app-week-navigation-modal
+        [activities]="selectedCellActivities()"
+        [cellInfo]="selectedCellInfo()!"
+        [availableMembers]="orderedMembers()"
+        [isAddingActivity]="isAddingActivity()"
+        [errorMessage]="hasError() ? errorMessage() : null"
+        (activityAdd)="onActivityAdd($event)"
+        (close)="closeWeekNavigationModal()"
+      />
+      } }
 
       <!-- Sticky Reschedule Button -->
       @if (!isEmpty() && !isLoading()) {
-        <div class="reschedule-button-container">
-          <button
-            class="reschedule-button"
-            type="button"
-            [disabled]="isRescheduling() || isLoading()"
-            (click)="rescheduleWeek()"
-          >
-            @if (isRescheduling()) {
-              <span class="spinner"></span>
-              <span>Przeplanowuję tydzień...</span>
-            } @else {
-              <span>🔄 Przeplanuj tydzień (AI)</span>
-            }
-          </button>
-          @if (rescheduleError()) {
-            <div class="reschedule-error">{{ rescheduleError() }}</div>
+      <div class="reschedule-button-container">
+        <button
+          class="reschedule-button"
+          type="button"
+          [disabled]="isRescheduling() || isLoading()"
+          (click)="rescheduleWeek()"
+        >
+          @if (isRescheduling()) {
+          <span class="spinner"></span>
+          <span>Przeplanowuję tydzień...</span>
+          } @else {
+          <span>🔄 Przeplanuj tydzień (AI)</span>
           }
-        </div>
+        </button>
+        @if (rescheduleError()) {
+        <div class="reschedule-error">{{ rescheduleError() }}</div>
+        }
+      </div>
       }
     </div>
   `,
-  styles: [`
-    .week-view-container {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      padding: 16px 20px;
-      background: #fff;
-      min-height: 100vh;
-      width: 100vw;
-      margin-left: calc(50% - 50vw);
-      margin-right: calc(50% - 50vw);
-      box-sizing: border-box;
-    }
-
-    .week-view-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 16px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid #e5e7eb;
-    }
-
-    .header-title h1 {
-      font-size: 28px;
-      font-weight: 700;
-      color: #111827;
-      margin: 0;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .layout-toggle {
-      display: inline-flex;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #fff;
-    }
-
-    .layout-btn {
-      padding: 8px 12px;
-      border: none;
-      background: #fff;
-      font-size: 12px;
-      font-weight: 600;
-      color: #6b7280;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-right: 1px solid #e5e7eb;
-    }
-
-    .layout-btn:last-child {
-      border-right: none;
-    }
-
-    .layout-btn.active {
-      background: #111827;
-      color: #fff;
-    }
-
-    .layout-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .nav-btn {
-      padding: 10px 20px;
-      border: 2px solid #e5e7eb;
-      background: #fff;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #374151;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .nav-btn:hover:not(:disabled) {
-      background: #f9fafb;
-      border-color: #9ca3af;
-    }
-
-    .nav-btn.today {
-      background: #3b82f6;
-      border-color: #3b82f6;
-      color: #fff;
-    }
-
-    .nav-btn.today:hover:not(:disabled) {
-      background: #2563eb;
-      border-color: #2563eb;
-    }
-
-    .nav-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .nav-btn:active:not(:disabled) {
-      transform: scale(0.98);
-    }
-
-    .week-view-content {
-      flex: 1;
-    }
-
-    /* Loading skeleton */
-    .skeleton-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 20px;
-      background: #f9fafb;
-      border-radius: 8px;
-    }
-
-    .skeleton-header,
-    .skeleton-row {
-      height: 32px;
-      background: linear-gradient(
-        90deg,
-        #e5e7eb 25%,
-        #f3f4f6 50%,
-        #e5e7eb 75%
-      );
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 4px;
-    }
-
-    .skeleton-header {
-      height: 44px;
-    }
-
-    @keyframes shimmer {
-      0% {
-        background-position: -200% 0;
+  styles: [
+    `
+      .week-view-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 16px 20px;
+        background: #fff;
+        min-height: 100vh;
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+        box-sizing: border-box;
       }
-      100% {
-        background-position: 200% 0;
+
+      .week-view-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #e5e7eb;
       }
-    }
 
-    /* Error state */
-    .error-message {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 20px;
-      text-align: center;
-    }
+      .header-title h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+      }
 
-    .error-icon {
-      font-size: 64px;
-      margin-bottom: 16px;
-    }
+      .header-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
 
-    .error-message h3 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #dc2626;
-      margin: 0 0 12px 0;
-    }
+      .layout-toggle {
+        display: inline-flex;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+      }
 
-    .error-message p {
-      font-size: 16px;
-      color: #6b7280;
-      margin: 0 0 24px 0;
-      max-width: 400px;
-    }
+      .layout-btn {
+        padding: 8px 12px;
+        border: none;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-right: 1px solid #e5e7eb;
+      }
 
-    .retry-btn {
-      padding: 12px 32px;
-      border: none;
-      background: #3b82f6;
-      color: #fff;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
+      .layout-btn:last-child {
+        border-right: none;
+      }
 
-    .retry-btn:hover {
-      background: #2563eb;
-    }
+      .layout-btn.active {
+        background: #111827;
+        color: #fff;
+      }
 
-    .retry-btn:active {
-      transform: scale(0.98);
-    }
+      .layout-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
 
-    /* Empty state */
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 80px 20px;
-      text-align: center;
-    }
+      .nav-btn {
+        padding: 10px 20px;
+        border: 2px solid #e5e7eb;
+        background: #fff;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
 
-    .empty-icon {
-      font-size: 72px;
-      margin-bottom: 20px;
-      opacity: 0.5;
-    }
+      .nav-btn:hover:not(:disabled) {
+        background: #f9fafb;
+        border-color: #9ca3af;
+      }
 
-    .empty-state h3 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #111827;
-      margin: 0 0 12px 0;
-    }
+      .nav-btn.today {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: #fff;
+      }
 
-    .empty-state p {
-      font-size: 16px;
-      color: #6b7280;
-      margin: 0 0 32px 0;
-      max-width: 500px;
-    }
+      .nav-btn.today:hover:not(:disabled) {
+        background: #2563eb;
+        border-color: #2563eb;
+      }
 
-    .cta-btn {
-      padding: 14px 36px;
-      border: none;
-      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-      color: #fff;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    }
+      .nav-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
 
-    .cta-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-    }
+      .nav-btn:active:not(:disabled) {
+        transform: scale(0.98);
+      }
 
-    .cta-btn:active {
-      transform: translateY(0);
-    }
+      .week-view-content {
+        flex: 1;
+      }
 
-    /* Sticky Reschedule Button */
-    .reschedule-button-container {
+      /* Loading skeleton */
+      .skeleton-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 20px;
+        background: #f9fafb;
+        border-radius: 8px;
+      }
+
+      .skeleton-header,
+      .skeleton-row {
+        height: 32px;
+        background: linear-gradient(
+          90deg,
+          #e5e7eb 25%,
+          #f3f4f6 50%,
+          #e5e7eb 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 4px;
+      }
+
+      .skeleton-header {
+        height: 44px;
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
+      }
+
+      /* Error state */
+      .error-message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        text-align: center;
+      }
+
+      .error-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+      }
+
+      .error-message h3 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #dc2626;
+        margin: 0 0 12px 0;
+      }
+
+      .error-message p {
+        font-size: 16px;
+        color: #6b7280;
+        margin: 0 0 24px 0;
+        max-width: 400px;
+      }
+
+      .retry-btn {
+        padding: 12px 32px;
+        border: none;
+        background: #3b82f6;
+        color: #fff;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .retry-btn:hover {
+        background: #2563eb;
+      }
+
+      .retry-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* Empty state */
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 80px 20px;
+        text-align: center;
+      }
+
+      .empty-icon {
+        font-size: 72px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+      }
+
+      .empty-state h3 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 12px 0;
+      }
+
+      .empty-state p {
+        font-size: 16px;
+        color: #6b7280;
+        margin: 0 0 32px 0;
+        max-width: 500px;
+      }
+
+      .cta-btn {
+        padding: 14px 36px;
+        border: none;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        color: #fff;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      }
+
+      .cta-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+      }
+
+      .cta-btn:active {
+        transform: translateY(0);
+      }
+
+      /* Sticky Reschedule Button */
+      .reschedule-button-container {
         position: sticky;
         bottom: 0;
         left: 0;
         right: 0;
         padding: 16px 20px;
-        background: linear-gradient(to top, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
+        background: linear-gradient(
+          to top,
+          rgba(255, 255, 255, 0.98) 0%,
+          rgba(255, 255, 255, 0.95) 100%
+        );
         backdrop-filter: blur(8px);
         border-top: 1px solid #e5e7eb;
         box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
@@ -513,64 +534,65 @@ import { GenerateScheduleRequest } from '../../models/schedule-generator.models'
         transform: translateY(0);
       }
 
-    .reschedule-button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .reschedule-button .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-    }
-
-    .reschedule-error {
-      color: #dc2626;
-      font-size: 14px;
-      text-align: center;
-      padding: 8px 16px;
-      background: #fee2e2;
-      border-radius: 8px;
-      max-width: 400px;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .week-view-container {
-        padding: 16px;
+      .reschedule-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
-      .week-view-header {
-        flex-direction: column;
-        align-items: flex-start;
+      .reschedule-button .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
       }
 
-      .header-title h1 {
-        font-size: 22px;
-      }
-
-      .header-actions {
-        width: 100%;
-      }
-
-      .nav-btn {
-        flex: 1;
-      }
-
-      .reschedule-button-container {
-        padding: 12px 16px;
-      }
-
-      .reschedule-button {
-        min-width: 100%;
+      .reschedule-error {
+        color: #dc2626;
         font-size: 14px;
-        padding: 12px 24px;
+        text-align: center;
+        padding: 8px 16px;
+        background: #fee2e2;
+        border-radius: 8px;
+        max-width: 400px;
       }
-    }
-  `],
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .week-view-container {
+          padding: 16px;
+        }
+
+        .week-view-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .header-title h1 {
+          font-size: 22px;
+        }
+
+        .header-actions {
+          width: 100%;
+        }
+
+        .nav-btn {
+          flex: 1;
+        }
+
+        .reschedule-button-container {
+          padding: 12px 16px;
+        }
+
+        .reschedule-button {
+          min-width: 100%;
+          font-size: 14px;
+          padding: 12px 24px;
+        }
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WeekViewContainerComponent implements OnInit {
@@ -595,6 +617,12 @@ export class WeekViewContainerComponent implements OnInit {
   readonly layout = signal<WeekGridLayout>('days-columns');
   readonly isRescheduling = signal<boolean>(false);
   readonly rescheduleError = signal<string | null>(null);
+  readonly isWeekNavigationModalOpen = signal<boolean>(false);
+  readonly selectedCellInfo = signal<{ day: string; timeSlot: string } | null>(
+    null
+  );
+  readonly currentScheduleId = signal<string | null>(null);
+  readonly isAddingActivity = signal<boolean>(false);
   private readonly useMockData = false;
   private readonly layoutStorageKey = 'weekViewLayout';
 
@@ -654,7 +682,24 @@ export class WeekViewContainerComponent implements OnInit {
   });
 
   readonly isEmpty = computed(() => {
-    return !this.isLoading() && !this.hasError() && this.gridCells().length === 0;
+    return (
+      !this.isLoading() && !this.hasError() && this.gridCells().length === 0
+    );
+  });
+
+  readonly selectedCellActivities = computed(() => {
+    const cellInfo = this.selectedCellInfo();
+    if (!cellInfo) return [];
+
+    const cells = this.gridCells();
+    for (const row of cells) {
+      for (const cell of row) {
+        if (cell.day === cellInfo.day && cell.timeSlot === cellInfo.timeSlot) {
+          return cell.activities;
+        }
+      }
+    }
+    return [];
   });
 
   readonly scheduleExists = signal<boolean>(false);
@@ -715,6 +760,17 @@ export class WeekViewContainerComponent implements OnInit {
 
         this.rawScheduleData.set(response.timeBlocks);
         this.scheduleExists.set(response.timeBlocks.length > 0);
+
+        // Extract scheduleId from first time block if available
+        if (
+          response.timeBlocks.length > 0 &&
+          response.timeBlocks[0].scheduleId
+        ) {
+          this.currentScheduleId.set(response.timeBlocks[0].scheduleId);
+        } else {
+          this.currentScheduleId.set(null);
+        }
+
         const resolvedMembers = this.resolveMembersFromResponse(response);
         if (resolvedMembers.length) {
           const viewModels = this.transformToViewModels(resolvedMembers);
@@ -725,6 +781,7 @@ export class WeekViewContainerComponent implements OnInit {
       } else {
         this.rawScheduleData.set([]);
         this.scheduleExists.set(false);
+        this.currentScheduleId.set(null);
       }
     } catch (error) {
       this.handleError(error as HttpErrorResponse);
@@ -811,6 +868,124 @@ export class WeekViewContainerComponent implements OnInit {
   onActivityHover(event: { activity: ActivityInCell; show: boolean }): void {
     // Future: Show floating tooltip
     // For now, tooltip is handled in ActivityCellComponent
+  }
+
+  /**
+   * Handle cell click (empty space)
+   */
+  onCellClick(event: { cell: GridCell; day: string; timeSlot: string }): void {
+    // Don't open modal if activity modal is already open
+    if (this.selectedActivity()) {
+      return;
+    }
+
+    // Clear any previous errors
+    this.hasError.set(false);
+    this.errorMessage.set('');
+    this.isAddingActivity.set(false);
+
+    this.selectedCellInfo.set({
+      day: event.day,
+      timeSlot: event.timeSlot,
+    });
+    this.isWeekNavigationModalOpen.set(true);
+  }
+
+  /**
+   * Close week navigation modal
+   */
+  closeWeekNavigationModal(): void {
+    this.isWeekNavigationModalOpen.set(false);
+    this.selectedCellInfo.set(null);
+    // Reset error state when closing modal
+    this.hasError.set(false);
+    this.errorMessage.set('');
+    this.isAddingActivity.set(false);
+  }
+
+  /**
+   * Handle week selection from modal
+   */
+  onWeekSelect(weekStart: Date): void {
+    this.weekStartDate.set(weekStart);
+    this.updateUrl(weekStart);
+    this.loadWeekData();
+  }
+
+  /**
+   * Handle activity add from modal
+   */
+  async onActivityAdd(event: {
+    title: string;
+    blockType: BlockType;
+    familyMemberId?: string;
+    startTime: string;
+    endTime: string;
+    isShared: boolean;
+    day: string;
+  }): Promise<void> {
+    const scheduleId = this.currentScheduleId();
+
+    // Check if schedule exists
+    if (!scheduleId) {
+      this.errorMessage.set(
+        'Brak harmonogramu dla tego tygodnia. Najpierw wygeneruj harmonogram.'
+      );
+      this.hasError.set(true);
+      // Keep modal open so user can see the error
+      return;
+    }
+
+    // Build time range from day and times
+    const timeRange = buildTimeRange(event.day, event.startTime, event.endTime);
+
+    // Prepare request data
+    const requestData = {
+      title: event.title,
+      blockType: event.blockType,
+      familyMemberId: event.isShared ? null : event.familyMemberId || null,
+      timeRange,
+      isShared: event.isShared,
+      metadata: {},
+    };
+
+    this.isAddingActivity.set(true);
+    this.hasError.set(false);
+    this.errorMessage.set('');
+
+    try {
+      // Call API to create time block
+      await lastValueFrom(
+        this.scheduleService.createTimeBlock(scheduleId, requestData)
+      );
+
+      // Success: close modal and reload week data
+      this.closeWeekNavigationModal();
+      await this.loadWeekData();
+    } catch (error) {
+      // Error: show message and keep modal open
+      const httpError = error as HttpErrorResponse;
+      let errorMsg = 'Nie udało się dodać aktywności.';
+
+      if (httpError.status === 400) {
+        errorMsg =
+          httpError.error?.message ||
+          'Nieprawidłowe dane. Sprawdź czy czas nie koliduje z innymi aktywnościami.';
+      } else if (httpError.status === 404) {
+        errorMsg =
+          'Harmonogram nie został znaleziony. Odśwież stronę i spróbuj ponownie.';
+      } else if (httpError.status === 409) {
+        errorMsg =
+          'Ta aktywność koliduje z inną aktywnością. Wybierz inny czas.';
+      } else if (httpError.status >= 500) {
+        errorMsg = 'Błąd serwera. Spróbuj ponownie za chwilę.';
+      }
+
+      this.errorMessage.set(errorMsg);
+      this.hasError.set(true);
+    } finally {
+      this.isAddingActivity.set(false);
+    }
   }
 
   /**
@@ -1245,7 +1420,7 @@ export class WeekViewContainerComponent implements OnInit {
 
     try {
       const weekStartISO = formatISODate(this.weekStartDate());
-      
+
       const request: GenerateScheduleRequest = {
         weekStartDate: weekStartISO,
         strategy: 'balanced',
