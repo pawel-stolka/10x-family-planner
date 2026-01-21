@@ -315,7 +315,8 @@ Example:
    * System prompt defining GPT-4's role
    */
   private getSystemPrompt(): string {
-    return `You are an expert family schedule optimizer AI assistant. Your job is to create realistic, balanced weekly schedules for families.
+    return `You are an expert family schedule optimizer AI assistant. 
+    Your job is to create realistic, balanced weekly schedules for families.
 
 Key principles:
 - Be practical: Real families have limited time and energy

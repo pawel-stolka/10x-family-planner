@@ -116,4 +116,42 @@ export class WeekScheduleService {
       data
     );
   }
+
+  /**
+   * Update an existing time block in a schedule
+   * @param scheduleId UUID of the weekly schedule
+   * @param blockId UUID of the time block to update
+   * @param data Time block update data (all fields optional)
+   */
+  updateTimeBlock(
+    scheduleId: string,
+    blockId: string,
+    data: {
+      title?: string;
+      blockType?: string;
+      familyMemberId?: string | null;
+      timeRange?: {
+        start: string; // ISO datetime
+        end: string; // ISO datetime
+      };
+      isShared?: boolean;
+      metadata?: Record<string, any>;
+    }
+  ): Observable<TimeBlock> {
+    return this.http.patch<TimeBlock>(
+      `${this.apiUrl}/weekly-schedules/${scheduleId}/time-blocks/${blockId}`,
+      data
+    );
+  }
+
+  /**
+   * Delete (soft delete) a time block from a schedule
+   * @param scheduleId UUID of the weekly schedule
+   * @param blockId UUID of the time block to delete
+   */
+  deleteTimeBlock(scheduleId: string, blockId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/weekly-schedules/${scheduleId}/time-blocks/${blockId}`
+    );
+  }
 }

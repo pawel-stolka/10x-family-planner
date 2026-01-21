@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -9,6 +11,8 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
   Logger,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,8 +29,10 @@ import {
   JwtPayload,
 } from '@family-planner/backend/feature-auth';
 import { GetScheduleParamsDto } from '../dto/get-schedule-params.dto';
+import { GetTimeBlockParamsDto } from '../dto/get-time-block-params.dto';
 import { WeeklyScheduleDto } from '../dto/weekly-schedule.dto';
 import { CreateTimeBlockDto } from '../dto/create-time-block.dto';
+import { UpdateTimeBlockDto } from '../dto/update-time-block.dto';
 import { TimeBlockDto } from '../dto/time-block.dto';
 
 /**
@@ -298,5 +304,143 @@ export class ScheduleController {
     );
 
     return dto_result;
+  }
+
+  /**
+   * PATCH /v1/weekly-schedules/:scheduleId/time-blocks/:blockId
+   *
+   * Update an existing time block in a weekly schedule.
+   * Validates schedule ownership and time block data.
+   * All fields in the request body are optional - only provided fields will be updated.
+   *
+   * Security:
+   * - Requires valid JWT token
+   * - Only allows updating blocks in schedules owned by authenticated user
+   * - RLS + application-level authorization
+   */
+  @Patch(':scheduleId/time-blocks/:blockId')
+  @ApiOperation({
+    summary: 'Update time block',
+    description:
+      'Updates an existing time block in the specified weekly schedule. All fields are optional - only provided fields will be updated. Validates schedule ownership and time block constraints.',
+  })
+  @ApiParam({
+    name: 'scheduleId',
+    type: 'string',
+    format: 'uuid',
+    description: 'UUID of the weekly schedule',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiParam({
+    name: 'blockId',
+    type: 'string',
+    format: 'uuid',
+    description: 'UUID of the time block to update',
+    example: '660e8400-e29b-41d4-a716-446655440001',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Time block updated successfully',
+    type: TimeBlockDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request data or validation error',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Schedule or time block not found or user does not have access',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Updated time range conflicts with another activity',
+  })
+  @ApiBearerAuth()
+  async updateTimeBlock(
+    @Param() params: GetTimeBlockParamsDto,
+    @Body() dto: UpdateTimeBlockDto,
+    @CurrentUser() user: JwtPayload
+  ): Promise<TimeBlockDto> {
+    this.logger.log(
+      `User ${user.userId} updating time block ${params.blockId} in schedule ${params.scheduleId}`
+    );
+
+    // Update time block via service
+    const timeBlock = await this.scheduleService.updateTimeBlock(
+      params.scheduleId,
+      params.blockId,
+      user.userId,
+      dto
+    );
+
+    // Transform entity to DTO
+    const dto_result = this.scheduleMapper.timeBlockToDto(timeBlock);
+
+    this.logger.log(
+      `Successfully updated time block ${params.blockId} in schedule ${params.scheduleId}`
+    );
+
+    return dto_result;
+  }
+
+  /**
+   * DELETE /v1/weekly-schedules/:scheduleId/time-blocks/:blockId
+   *
+   * Delete (soft delete) a time block from a weekly schedule.
+   * Validates schedule ownership.
+   *
+   * Security:
+   * - Requires valid JWT token
+   * - Only allows deleting blocks in schedules owned by authenticated user
+   * - RLS + application-level authorization
+   */
+  @Delete(':scheduleId/time-blocks/:blockId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete time block',
+    description:
+      'Soft deletes a time block from the specified weekly schedule. Validates schedule ownership.',
+  })
+  @ApiParam({
+    name: 'scheduleId',
+    type: 'string',
+    format: 'uuid',
+    description: 'UUID of the weekly schedule',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiParam({
+    name: 'blockId',
+    type: 'string',
+    format: 'uuid',
+    description: 'UUID of the time block to delete',
+    example: '660e8400-e29b-41d4-a716-446655440001',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Time block deleted successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Schedule or time block not found or user does not have access',
+  })
+  @ApiBearerAuth()
+  async deleteTimeBlock(
+    @Param() params: GetTimeBlockParamsDto,
+    @CurrentUser() user: JwtPayload
+  ): Promise<void> {
+    this.logger.log(
+      `User ${user.userId} deleting time block ${params.blockId} from schedule ${params.scheduleId}`
+    );
+
+    // Delete time block via service
+    await this.scheduleService.deleteTimeBlock(
+      params.scheduleId,
+      params.blockId,
+      user.userId
+    );
+
+    this.logger.log(
+      `Successfully deleted time block ${params.blockId} from schedule ${params.scheduleId}`
+    );
   }
 }
