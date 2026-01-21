@@ -75,6 +75,9 @@ export class GridTransformService {
     // 6. Sort activities in cells by member order
     this.sortActivitiesInCells(grid, memberViewModels);
 
+    // 7. Merge consecutive activities for the same member
+    this.mergeConsecutiveActivities(grid, timeSlots, days);
+
     return grid;
   }
 
@@ -276,6 +279,7 @@ export class GridTransformService {
           const activityCopy = {
             ...activity,
             proportionalHeight,
+            showLabel: true, // Default to true, will be overridden by mergeConsecutiveActivities for non-first segments
           };
 
           cell.activities.push(activityCopy);
@@ -300,6 +304,181 @@ export class GridTransformService {
           const orderA = memberOrder.get(a.member.id) ?? 999;
           const orderB = memberOrder.get(b.member.id) ?? 999;
           return orderA - orderB;
+        });
+      });
+    });
+  }
+
+  /**
+   * Merge consecutive activities for the same member into segments
+   * Works for both consecutive separate blocks AND single activities that span multiple hours
+   */
+  private mergeConsecutiveActivities(
+    grid: GridCell[][],
+    timeSlots: string[],
+    days: Date[]
+  ): void {
+    days.forEach((day, dayIndex) => {
+      const dayISO = formatISODate(day);
+
+      // Group unique activities by member (using block ID and times as key)
+      const uniqueActivitiesByMember = new Map<
+        string,
+        Map<string, ActivityInCell>
+      >();
+
+      // Collect unique activities for this day (one per block)
+      timeSlots.forEach((timeSlot, rowIndex) => {
+        const cell = grid[rowIndex][dayIndex];
+        cell.activities.forEach((activity) => {
+          if (activity.day !== dayISO) return;
+
+          const memberId = activity.member.id;
+          const activityKey = `${activity.block.id}-${activity.block.startTime}-${activity.block.endTime}`;
+
+          if (!uniqueActivitiesByMember.has(memberId)) {
+            uniqueActivitiesByMember.set(memberId, new Map());
+          }
+
+          const memberMap = uniqueActivitiesByMember.get(memberId)!;
+          if (!memberMap.has(activityKey)) {
+            memberMap.set(activityKey, activity);
+          }
+        });
+      });
+
+      // For each member, find consecutive activities and mark them as segments
+      uniqueActivitiesByMember.forEach((memberActivities, memberId) => {
+        // Convert to array and sort by start time
+        const sorted = Array.from(memberActivities.values()).sort((a, b) => {
+          const startA = parseTime(a.block.startTime);
+          const startB = parseTime(b.block.startTime);
+          return startA - startB;
+        });
+
+        // Process each activity - mark multi-hour activities and consecutive groups
+        sorted.forEach((activity) => {
+          const activityStart = parseTime(activity.block.startTime);
+          const activityEnd = parseTime(activity.block.endTime);
+          const activityDuration = activityEnd - activityStart;
+          const activityKey = `${activity.block.id}-${activity.block.startTime}-${activity.block.endTime}`;
+
+          // Check if this activity spans multiple hours
+          const totalHours = Math.ceil(activityDuration / 60);
+
+          if (totalHours > 1) {
+            // Mark all cells that contain this multi-hour activity
+            timeSlots.forEach((timeSlot, rowIndex) => {
+              const cell = grid[rowIndex][dayIndex];
+              const slotStart = parseTime(timeSlot);
+              const slotEnd = slotStart + 60;
+
+              // Check if this time slot overlaps with the activity
+              if (activityStart < slotEnd && activityEnd > slotStart) {
+                cell.activities.forEach((cellActivity) => {
+                  const cellKey = `${cellActivity.block.id}-${cellActivity.block.startTime}-${cellActivity.block.endTime}`;
+                  if (
+                    cellKey === activityKey &&
+                    cellActivity.member.id === memberId
+                  ) {
+                    const hoursFromStart = Math.floor(
+                      (slotStart - activityStart) / 60
+                    );
+
+                    cellActivity.segmentIndex = hoursFromStart;
+                    cellActivity.segmentCount = totalHours;
+                    cellActivity.isFirstSegment = hoursFromStart === 0;
+                    cellActivity.isLastSegment =
+                      hoursFromStart === totalHours - 1;
+                    cellActivity.showLabel = hoursFromStart === 0;
+                  }
+                });
+              }
+            });
+          }
+        });
+
+        // Now find consecutive separate blocks
+        const groups: ActivityInCell[][] = [];
+        let currentGroup: ActivityInCell[] = [];
+
+        sorted.forEach((activity) => {
+          const activityDuration =
+            parseTime(activity.block.endTime) -
+            parseTime(activity.block.startTime);
+
+          // Skip if already processed as multi-hour (duration >= 60)
+          if (activityDuration >= 60) {
+            if (currentGroup.length > 1) {
+              groups.push([...currentGroup]);
+            }
+            currentGroup = [];
+            return;
+          }
+
+          if (currentGroup.length === 0) {
+            currentGroup.push(activity);
+          } else {
+            const lastActivity = currentGroup[currentGroup.length - 1];
+            const lastEnd = parseTime(lastActivity.block.endTime);
+            const currStart = parseTime(activity.block.startTime);
+
+            // Check if consecutive (end time of previous = start time of current)
+            if (lastEnd === currStart) {
+              currentGroup.push(activity);
+            } else {
+              if (currentGroup.length > 1) {
+                groups.push([...currentGroup]);
+              }
+              currentGroup = [activity];
+            }
+          }
+        });
+
+        if (currentGroup.length > 1) {
+          groups.push(currentGroup);
+        }
+
+        // Mark segments for consecutive separate blocks
+        groups.forEach((group) => {
+          const firstActivity = group[0];
+          const lastActivity = group[group.length - 1];
+          const groupStart = parseTime(firstActivity.block.startTime);
+          const groupEnd = parseTime(lastActivity.block.endTime);
+          const totalHours = Math.ceil((groupEnd - groupStart) / 60);
+
+          group.forEach((activity) => {
+            const activityKey = `${activity.block.id}-${activity.block.startTime}-${activity.block.endTime}`;
+            const activityStart = parseTime(activity.block.startTime);
+            const activityEnd = parseTime(activity.block.endTime);
+
+            timeSlots.forEach((timeSlot, rowIndex) => {
+              const cell = grid[rowIndex][dayIndex];
+              const slotStart = parseTime(timeSlot);
+              const slotEnd = slotStart + 60;
+
+              if (activityStart < slotEnd && activityEnd > slotStart) {
+                cell.activities.forEach((cellActivity) => {
+                  const cellKey = `${cellActivity.block.id}-${cellActivity.block.startTime}-${cellActivity.block.endTime}`;
+                  if (
+                    cellKey === activityKey &&
+                    cellActivity.member.id === memberId
+                  ) {
+                    const hoursFromGroupStart = Math.floor(
+                      (slotStart - groupStart) / 60
+                    );
+
+                    cellActivity.segmentIndex = hoursFromGroupStart;
+                    cellActivity.segmentCount = totalHours;
+                    cellActivity.isFirstSegment = hoursFromGroupStart === 0;
+                    cellActivity.isLastSegment =
+                      hoursFromGroupStart === totalHours - 1;
+                    cellActivity.showLabel = hoursFromGroupStart === 0;
+                  }
+                });
+              }
+            });
+          });
         });
       });
     });

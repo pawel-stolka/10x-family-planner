@@ -59,7 +59,7 @@ import { ActivityCellComponent } from '../activity-cell/activity-cell.component'
         min-height: 100%;
         background: #fff;
         border: 1px solid #e5e7eb;
-        padding: 2px 3px;
+        padding: 2px 2px;
         overflow: visible;
         transition: background-color 0.2s ease;
       }
@@ -98,7 +98,7 @@ import { ActivityCellComponent } from '../activity-cell/activity-cell.component'
       .activity-slot {
         min-height: var(--slot-height, 12px);
         display: flex;
-        align-items: center;
+        align-items: stretch;
       }
 
       .activity-slot.empty {
@@ -195,9 +195,13 @@ export class GridCellComponent {
   }
 
   getActivityWidth(activity: ActivityInCell): number {
-    if (!this.useProportionalWidth()) {
+    // In transposed layout (Godziny → kolumny), always use 100% width
+    // so activities are full height regardless of proportional height
+    if (this.useProportionalWidth()) {
+      // For transposed layout, use 100% width for all activities
+      // This makes consecutive activities appear as full-height rectangles
       return 100;
     }
-    return Math.max(5, Math.round(activity.proportionalHeight * 100));
+    return 100;
   }
 }

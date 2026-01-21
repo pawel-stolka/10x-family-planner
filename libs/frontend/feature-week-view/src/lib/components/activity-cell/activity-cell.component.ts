@@ -35,6 +35,7 @@ import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
       (click)="onClick()"
     >
       <div class="activity-content">
+        @if (shouldShowLabel()) {
         <span
           #label
           class="activity-label"
@@ -42,6 +43,7 @@ import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
         >
           {{ labelText() }}
         </span>
+        }
       </div>
 
       @if (showTooltip()) {
@@ -71,7 +73,8 @@ import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
         box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
         flex: 1 1 0;
         min-width: 0;
-        min-height: 0;
+        min-height: var(--slot-height, 12px);
+        height: 100%;
       }
 
       .activity-cell:hover {
@@ -86,6 +89,8 @@ import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
         gap: 4px;
         flex: 1;
         min-width: 0;
+        min-height: 100%;
+        width: 100%;
       }
 
       .activity-label {
@@ -181,7 +186,16 @@ export class ActivityCellComponent implements AfterViewInit, OnDestroy {
 
   labelText(): string {
     const member = this.activity().member;
-    return `${member.initial} ${this.activity().block.title}`;
+    // return `${member.initial} ${this.activity().block.title}`;
+    return `${this.activity().block.title}`;
+  }
+
+  shouldShowLabel(): boolean {
+    const activity = this.activity();
+    // Show label if showLabel is not explicitly false
+    // mergeConsecutiveActivities sets showLabel=false for non-first segments
+    // Single-hour activities have showLabel=true from placeActivitiesInGrid
+    return activity.showLabel !== false;
   }
 
   ngAfterViewInit(): void {
