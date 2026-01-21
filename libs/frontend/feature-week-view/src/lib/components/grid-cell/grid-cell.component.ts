@@ -11,6 +11,7 @@ import {
   FamilyMemberViewModel,
 } from '../../models/week-grid.models';
 import { ActivityCellComponent } from '../activity-cell/activity-cell.component';
+import { calculateProportionalHeight, parseTime } from '../../utils/time.utils';
 
 /**
  * Grid Cell Component
@@ -41,6 +42,7 @@ import { ActivityCellComponent } from '../activity-cell/activity-cell.component'
           <app-activity-cell
             [activity]="activity"
             [style.width.%]="getActivityWidth(activity)"
+            [style.margin-left.%]="getActivityLeftOffset(activity)"
             (activityClick)="onActivityClick($event)"
             (activityHover)="onActivityHover($event)"
           />
@@ -99,6 +101,7 @@ import { ActivityCellComponent } from '../activity-cell/activity-cell.component'
         min-height: var(--slot-height, 12px);
         display: flex;
         align-items: stretch;
+        justify-content: flex-start;
       }
 
       .activity-slot.empty {
@@ -195,13 +198,45 @@ export class GridCellComponent {
   }
 
   getActivityWidth(activity: ActivityInCell): number {
-    // In transposed layout (Godziny → kolumny), always use 100% width
-    // so activities are full height regardless of proportional height
-    if (this.useProportionalWidth()) {
-      // For transposed layout, use 100% width for all activities
-      // This makes consecutive activities appear as full-height rectangles
-      return 100;
+    // Calculate width based on activity duration within the time slot
+    // Each time slot represents 1 hour (60 minutes)
+    // Width should be proportional to the overlap duration
+    const cell = this.cell();
+    const timeSlot = cell.timeSlot;
+
+    // Use proportionalHeight if available, otherwise calculate it
+    const proportion =
+      activity.proportionalHeight > 0
+        ? activity.proportionalHeight
+        : calculateProportionalHeight(
+            activity.block.startTime,
+            activity.block.endTime,
+            timeSlot
+          );
+
+    // Convert proportion (0.0-1.0) to percentage (0-100)
+    return Math.max(10, Math.min(100, proportion * 100)); // Clamp between 10% and 100%
+  }
+
+  getActivityLeftOffset(activity: ActivityInCell): number {
+    // Calculate left offset for activities that don't start at the beginning of the time slot
+    // If activity starts at 19:30 in 19:00-20:00 slot, it should be offset by 50% from left
+    const cell = this.cell();
+    const timeSlot = cell.timeSlot;
+
+    const activityStart = parseTime(activity.block.startTime);
+    const slotStart = parseTime(timeSlot);
+
+    // If activity starts before or at the slot start, no offset needed
+    if (activityStart <= slotStart) {
+      return 0;
     }
-    return 100;
+
+    // Calculate offset as percentage: (minutes into slot / 60) * 100
+    const minutesIntoSlot = activityStart - slotStart;
+    const offsetPercent = (minutesIntoSlot / 60) * 100;
+
+    // Clamp between 0% and 100%
+    return Math.max(0, Math.min(100, offsetPercent));
   }
 }
