@@ -70,6 +70,7 @@ import {
                   [members]="members()"
                   (activityClick)="onActivityClick($event)"
                   (activityHover)="onActivityHover($event)"
+                  (cellClick)="onCellClick($event)"
                 />
               } @placeholder {
                 <div class="grid-cell-placeholder"></div>
@@ -169,6 +170,7 @@ export class WeekGridComponent {
 
   activityClick = output<ActivityInCell>();
   activityHover = output<{ activity: ActivityInCell; show: boolean }>();
+  cellClick = output<{ cell: GridCell; day: string; timeSlot: string }>();
 
   /**
    * Computed: Extract time slots from grid
@@ -225,6 +227,13 @@ export class WeekGridComponent {
    */
   onActivityHover(event: { activity: ActivityInCell; show: boolean }): void {
     this.activityHover.emit(event);
+  }
+
+  /**
+   * Handle cell click
+   */
+  onCellClick(event: { cell: GridCell; day: string; timeSlot: string }): void {
+    this.cellClick.emit(event);
   }
 
   /**

@@ -145,3 +145,24 @@ export function formatDurationMinutes(minutes: number): string {
     return `${hours}h ${mins}min`;
   }
 }
+
+/**
+ * Build time range from day and time strings
+ * @param day ISO date string (e.g., "2026-01-20")
+ * @param startTime Time string in HH:mm format (e.g., "17:00")
+ * @param endTime Time string in HH:mm format (e.g., "18:00")
+ * @returns Time range with ISO datetime strings
+ * @example buildTimeRange("2026-01-20", "17:00", "18:00") => { start: "2026-01-20T17:00:00Z", end: "2026-01-20T18:00:00Z" }
+ */
+export function buildTimeRange(
+  day: string,
+  startTime: string,
+  endTime: string
+): { start: string; end: string } {
+  // Combine day with time to create ISO datetime strings
+  // Format: YYYY-MM-DDTHH:mm:ssZ
+  const start = `${day}T${startTime}:00Z`;
+  const end = `${day}T${endTime}:00Z`;
+
+  return { start, end };
+}

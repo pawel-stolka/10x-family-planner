@@ -91,4 +91,29 @@ export class WeekScheduleService {
   getFamilyMembers(): Observable<FamilyMember[]> {
     return this.http.get<FamilyMember[]>(`${this.apiUrl}/family-members`);
   }
+
+  /**
+   * Create a new time block in a schedule
+   * @param scheduleId UUID of the weekly schedule
+   * @param data Time block creation data
+   */
+  createTimeBlock(
+    scheduleId: string,
+    data: {
+      title: string;
+      blockType: string;
+      familyMemberId?: string | null;
+      timeRange: {
+        start: string; // ISO datetime
+        end: string; // ISO datetime
+      };
+      isShared: boolean;
+      metadata?: Record<string, any>;
+    }
+  ): Observable<TimeBlock> {
+    return this.http.post<TimeBlock>(
+      `${this.apiUrl}/weekly-schedules/${scheduleId}/time-blocks`,
+      data
+    );
+  }
 }

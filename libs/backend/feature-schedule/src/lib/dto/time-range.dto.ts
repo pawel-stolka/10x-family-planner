@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsISO8601 } from 'class-validator';
 
 /**
  * Time Range DTO
@@ -11,11 +12,13 @@ export class TimeRangeDto {
     description: 'Start time of the range (ISO 8601 timestamp with timezone)',
     example: '2026-01-13T06:00:00Z',
   })
+  @IsISO8601()
   start!: string;
 
   @ApiProperty({
     description: 'End time of the range (ISO 8601 timestamp with timezone)',
     example: '2026-01-13T07:00:00Z',
   })
+  @IsISO8601()
   end!: string;
 }

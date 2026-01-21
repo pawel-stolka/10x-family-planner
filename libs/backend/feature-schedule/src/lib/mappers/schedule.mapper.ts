@@ -44,7 +44,7 @@ export class ScheduleMapper {
    * Map TimeBlockEntity to TimeBlockDto
    * Handles nested family member and recurring goal mapping
    */
-  private timeBlockToDto(entity: TimeBlockEntity): TimeBlockDto {
+  timeBlockToDto(entity: TimeBlockEntity): TimeBlockDto {
     return {
       blockId: entity.blockId,
       scheduleId: entity.scheduleId,

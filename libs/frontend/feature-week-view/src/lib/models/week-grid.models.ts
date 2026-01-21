@@ -42,6 +42,20 @@ export interface ActivityInCell {
   proportionalHeight: number;
   /** Czy aktywność jest wyszarzona (filtrowanie) */
   isDimmed: boolean;
+  /**
+   * Informacje o segmentach dla aktywności zajmującej wiele slotów czasowych.
+   * Używane do wizualnego łączenia kilku komórek w jeden ciągły blok.
+   */
+  /** Indeks segmentu (0 = pierwszy) w obrębie tej aktywności */
+  segmentIndex?: number;
+  /** Łączna liczba segmentów dla tej aktywności w danym dniu */
+  segmentCount?: number;
+  /** Czy ten segment jest pierwszym w bloku */
+  isFirstSegment?: boolean;
+  /** Czy ten segment jest ostatnim w bloku */
+  isLastSegment?: boolean;
+  /** Czy ten segment powinien wyświetlać etykietę tekstową */
+  showLabel?: boolean;
 }
 
 /**
