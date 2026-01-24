@@ -12,9 +12,28 @@ describe('AppService', () => {
     service = app.get<AppService>(AppService);
   });
 
-  describe('getData', () => {
-    it('should return "Hello API"', () => {
-      expect(service.getData()).toEqual({ message: 'Hello API' });
+  describe('getInfo', () => {
+    it('should return API information', () => {
+      const result = service.getInfo();
+      expect(result).toHaveProperty('name', 'Family Planner API');
+      expect(result).toHaveProperty('version', '1.0.0');
+      expect(result).toHaveProperty('status', 'running');
+      expect(result).toHaveProperty('timestamp');
+      expect(result).toHaveProperty('documentation', '/api/docs');
+    });
+  });
+
+  describe('getHealth', () => {
+    it('should return health check information', () => {
+      const result = service.getHealth();
+      expect(result).toHaveProperty('status', 'ok');
+      expect(result).toHaveProperty('uptime');
+      expect(result).toHaveProperty('timestamp');
+      expect(result).toHaveProperty('database', 'connected');
+      expect(result).toHaveProperty('memory');
+      expect(result.memory).toHaveProperty('used');
+      expect(result.memory).toHaveProperty('total');
+      expect(result.memory).toHaveProperty('unit', 'MB');
     });
   });
 });
