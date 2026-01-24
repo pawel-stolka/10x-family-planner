@@ -3,7 +3,7 @@ import { IsUUID } from 'class-validator';
 
 /**
  * Get Time Block Params DTO
- * 
+ *
  * Validates path parameters for time block operations:
  * - PATCH /v1/weekly-schedules/:scheduleId/time-blocks/:blockId
  * - DELETE /v1/weekly-schedules/:scheduleId/time-blocks/:blockId

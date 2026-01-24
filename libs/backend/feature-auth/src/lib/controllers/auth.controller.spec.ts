@@ -4,7 +4,7 @@ import { AuthService } from '../services/auth.service';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { AuthResponseDto } from '../dto/auth-response.dto';
-import { JwtPayload } from '@family-planner/backend/feature-schedule';
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 describe('AuthController', () => {
   let controller: AuthController;

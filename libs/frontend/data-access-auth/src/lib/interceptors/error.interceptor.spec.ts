@@ -6,7 +6,7 @@ import {
 } from '@angular/common/http';
 import { signal, runInInjectionContext, Injector } from '@angular/core';
 import { Router } from '@angular/router';
-import { of, throwError, Observable } from 'rxjs';
+import { of, throwError, firstValueFrom } from 'rxjs';
 import { errorInterceptor } from './error.interceptor';
 import { AuthStore } from '../store/auth.store';
 
@@ -51,7 +51,7 @@ describe('errorInterceptor', () => {
     } as unknown as Injector;
   });
 
-  it('should pass through successful responses without modification', (done) => {
+  it('should pass through successful responses without modification', async () => {
     // Arrange
     const request = new HttpRequest('GET', '/api/v1/schedule-generator');
     mockNext = jest.fn(() =>
@@ -59,26 +59,21 @@ describe('errorInterceptor', () => {
     );
 
     // Act
-    runInInjectionContext(mockInjector, () => {
+    const response = await runInInjectionContext(mockInjector, async () => {
       const result$ = errorInterceptor(request, mockNext);
-
-      // Assert
-      result$.subscribe({
-        next: (response) => {
-          expect(response).toBeInstanceOf(HttpResponse);
-          expect((response as HttpResponse<any>).body).toEqual({
-            data: 'test',
-          });
-          expect(refreshTokenSpy).not.toHaveBeenCalled();
-          expect(mockRouter.navigate).not.toHaveBeenCalled();
-          done();
-        },
-        error: () => done.fail('should not error'),
-      });
+      return firstValueFrom(result$);
     });
+
+    // Assert
+    expect(response).toBeInstanceOf(HttpResponse);
+    expect((response as HttpResponse<any>).body).toEqual({
+      data: 'test',
+    });
+    expect(refreshTokenSpy).not.toHaveBeenCalled();
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
-  it('should pass through non-401 errors without modification', (done) => {
+  it('should pass through non-401 errors without modification', async () => {
     // Arrange
     const request = new HttpRequest('GET', '/api/v1/schedule-generator');
     const error404 = new HttpErrorResponse({
@@ -88,24 +83,18 @@ describe('errorInterceptor', () => {
     });
     mockNext = jest.fn(() => throwError(() => error404));
 
-    // Act
-    runInInjectionContext(mockInjector, () => {
-      const result$ = errorInterceptor(request, mockNext);
+    // Act & Assert
+    await expect(
+      runInInjectionContext(mockInjector, async () => {
+        const result$ = errorInterceptor(request, mockNext);
+        return firstValueFrom(result$);
+      })
+    ).rejects.toBe(error404);
 
-      // Assert
-      result$.subscribe({
-        next: () => done.fail('should error'),
-        error: (error) => {
-          expect(error).toBe(error404);
-          expect(error.status).toBe(404);
-          expect(refreshTokenSpy).not.toHaveBeenCalled();
-          done();
-        },
-      });
-    });
+    expect(refreshTokenSpy).not.toHaveBeenCalled();
   });
 
-  it('should attempt token refresh on 401 error for regular endpoints', (done) => {
+  it('should attempt token refresh on 401 error for regular endpoints', async () => {
     // Arrange
     const request = new HttpRequest('GET', '/api/v1/schedule-generator');
     const error401 = new HttpErrorResponse({
@@ -125,32 +114,25 @@ describe('errorInterceptor', () => {
     });
 
     // Act
-    runInInjectionContext(mockInjector, () => {
+    const response = await runInInjectionContext(mockInjector, async () => {
       const result$ = errorInterceptor(request, mockNext);
-
-      // Assert
-      result$.subscribe({
-        next: (response) => {
-          expect(response).toBeInstanceOf(HttpResponse);
-          expect((response as HttpResponse<any>).body).toEqual({
-            data: 'success',
-          });
-          expect(refreshTokenSpy).toHaveBeenCalledTimes(1);
-          expect(mockNext).toHaveBeenCalledTimes(2); // Original + retry
-
-          // Check that retry request has new token
-          const retryRequest = (mockNext as jest.Mock).mock.calls[1][0];
-          expect(retryRequest.headers.get('Authorization')).toBe(
-            'Bearer new-token'
-          );
-          done();
-        },
-        error: () => done.fail('should not error after refresh'),
-      });
+      return firstValueFrom(result$);
     });
+
+    // Assert
+    expect(response).toBeInstanceOf(HttpResponse);
+    expect((response as HttpResponse<any>).body).toEqual({
+      data: 'success',
+    });
+    expect(refreshTokenSpy).toHaveBeenCalledTimes(1);
+    expect(mockNext).toHaveBeenCalledTimes(2); // Original + retry
+
+    // Check that retry request has new token
+    const retryRequest = (mockNext as jest.Mock).mock.calls[1][0];
+    expect(retryRequest.headers.get('Authorization')).toBe('Bearer new-token');
   });
 
-  it('should redirect to login on 401 for auth endpoints', (done) => {
+  it('should redirect to login on 401 for auth endpoints', async () => {
     // Arrange
     const request = new HttpRequest('POST', '/api/v1/auth/login', null);
     const error401 = new HttpErrorResponse({
@@ -160,25 +142,20 @@ describe('errorInterceptor', () => {
     });
     mockNext = jest.fn(() => throwError(() => error401));
 
-    // Act
-    runInInjectionContext(mockInjector, () => {
-      const result$ = errorInterceptor(request, mockNext);
+    // Act & Assert
+    await expect(
+      runInInjectionContext(mockInjector, async () => {
+        const result$ = errorInterceptor(request, mockNext);
+        return firstValueFrom(result$);
+      })
+    ).rejects.toBe(error401);
 
-      // Assert
-      result$.subscribe({
-        next: () => done.fail('should error'),
-        error: (error) => {
-          expect(error).toBe(error401);
-          expect(refreshTokenSpy).not.toHaveBeenCalled();
-          expect(mockAuthStore.clearAuthData).toHaveBeenCalled();
-          expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-          done();
-        },
-      });
-    });
+    expect(refreshTokenSpy).not.toHaveBeenCalled();
+    expect(mockAuthStore.clearAuthData).toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('should redirect to login on 401 for refresh endpoint', (done) => {
+  it('should redirect to login on 401 for refresh endpoint', async () => {
     // Arrange
     const request = new HttpRequest('POST', '/api/v1/auth/refresh', null);
     const error401 = new HttpErrorResponse({
@@ -188,25 +165,20 @@ describe('errorInterceptor', () => {
     });
     mockNext = jest.fn(() => throwError(() => error401));
 
-    // Act
-    runInInjectionContext(mockInjector, () => {
-      const result$ = errorInterceptor(request, mockNext);
+    // Act & Assert
+    await expect(
+      runInInjectionContext(mockInjector, async () => {
+        const result$ = errorInterceptor(request, mockNext);
+        return firstValueFrom(result$);
+      })
+    ).rejects.toBe(error401);
 
-      // Assert
-      result$.subscribe({
-        next: () => done.fail('should error'),
-        error: (error) => {
-          expect(error).toBe(error401);
-          expect(refreshTokenSpy).not.toHaveBeenCalled();
-          expect(mockAuthStore.clearAuthData).toHaveBeenCalled();
-          expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-          done();
-        },
-      });
-    });
+    expect(refreshTokenSpy).not.toHaveBeenCalled();
+    expect(mockAuthStore.clearAuthData).toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('should redirect to login if token refresh fails', (done) => {
+  it('should redirect to login if token refresh fails', async () => {
     // Arrange
     const request = new HttpRequest('GET', '/api/v1/schedule-generator');
     const error401 = new HttpErrorResponse({
@@ -220,24 +192,19 @@ describe('errorInterceptor', () => {
     refreshTokenSpy = jest.fn(() => throwError(() => refreshError));
     mockAuthStore.refreshToken = refreshTokenSpy;
 
-    // Act
-    runInInjectionContext(mockInjector, () => {
-      const result$ = errorInterceptor(request, mockNext);
+    // Act & Assert
+    await expect(
+      runInInjectionContext(mockInjector, async () => {
+        const result$ = errorInterceptor(request, mockNext);
+        return firstValueFrom(result$);
+      })
+    ).rejects.toBe(refreshError);
 
-      // Assert
-      result$.subscribe({
-        next: () => done.fail('should error'),
-        error: (error) => {
-          expect(error).toBe(refreshError);
-          expect(refreshTokenSpy).toHaveBeenCalledTimes(1);
-          expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-          done();
-        },
-      });
-    });
+    expect(refreshTokenSpy).toHaveBeenCalledTimes(1);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('should not add Authorization header to register endpoint on 401', (done) => {
+  it('should not add Authorization header to register endpoint on 401', async () => {
     // Arrange
     const request = new HttpRequest('POST', '/api/v1/auth/register', null);
     const error401 = new HttpErrorResponse({
@@ -247,25 +214,20 @@ describe('errorInterceptor', () => {
     });
     mockNext = jest.fn(() => throwError(() => error401));
 
-    // Act
-    runInInjectionContext(mockInjector, () => {
-      const result$ = errorInterceptor(request, mockNext);
+    // Act & Assert
+    await expect(
+      runInInjectionContext(mockInjector, async () => {
+        const result$ = errorInterceptor(request, mockNext);
+        return firstValueFrom(result$);
+      })
+    ).rejects.toMatchObject({ status: 401 });
 
-      // Assert
-      result$.subscribe({
-        next: () => done.fail('should error'),
-        error: (error) => {
-          expect(error.status).toBe(401);
-          expect(refreshTokenSpy).not.toHaveBeenCalled();
-          expect(mockAuthStore.clearAuthData).toHaveBeenCalled();
-          expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-          done();
-        },
-      });
-    });
+    expect(refreshTokenSpy).not.toHaveBeenCalled();
+    expect(mockAuthStore.clearAuthData).toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('should handle multiple 401 errors gracefully', (done) => {
+  it('should handle multiple 401 errors gracefully', async () => {
     // Arrange
     const request1 = new HttpRequest('GET', '/api/v1/endpoint1');
     const request2 = new HttpRequest('GET', '/api/v1/endpoint2');
@@ -284,29 +246,14 @@ describe('errorInterceptor', () => {
     });
 
     // Act - simulate two concurrent requests
-    runInInjectionContext(mockInjector, () => {
+    await runInInjectionContext(mockInjector, async () => {
       const result1$ = errorInterceptor(request1, mockNext);
       const result2$ = errorInterceptor(request2, mockNext);
 
-      let completed = 0;
-      const checkDone = () => {
-        completed++;
-        if (completed === 2) {
-          // Both requests should trigger refresh
-          expect(refreshTokenSpy).toHaveBeenCalledTimes(2);
-          done();
-        }
-      };
-
-      result1$.subscribe({
-        next: () => checkDone(),
-        error: () => done.fail('first request should not error'),
-      });
-
-      result2$.subscribe({
-        next: () => checkDone(),
-        error: () => done.fail('second request should not error'),
-      });
+      await Promise.all([firstValueFrom(result1$), firstValueFrom(result2$)]);
     });
+
+    // Assert - Both requests should trigger refresh
+    expect(refreshTokenSpy).toHaveBeenCalledTimes(2);
   });
 });

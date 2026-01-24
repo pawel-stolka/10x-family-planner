@@ -34,7 +34,10 @@ import {
         <header>
           <div>
             <h2>Generator harmonogramu AI</h2>
-            <p>Wybierz tydzień i strategię, a AI przygotuje plan uwzględniający Twoje cele.</p>
+            <p>
+              Wybierz tydzień i strategię, a AI przygotuje plan uwzględniający
+              Twoje cele.
+            </p>
           </div>
           <button class="close" type="button" (click)="handleClose()">✕</button>
         </header>
@@ -56,7 +59,7 @@ import {
               (change)="onStrategyChange($any($event.target).value)"
             >
               @for (option of strategyOptions; track option.value) {
-                <option [value]="option.value">{{ option.label }}</option>
+              <option [value]="option.value">{{ option.label }}</option>
               }
             </select>
           </label>
@@ -105,41 +108,41 @@ import {
             (click)="generate()"
           >
             @if (isGenerating()) {
-              <span>Generuję...</span>
+            <span>Generuję...</span>
             } @else {
-              <span>Generuj harmonogram</span>
+            <span>Generuj harmonogram</span>
             }
           </button>
-          <button class="tertiary" type="button" (click)="handleClose()">Anuluj</button>
+          <button class="tertiary" type="button" (click)="handleClose()">
+            Anuluj
+          </button>
         </section>
 
         @if (generationError()) {
-          <section class="status error">
-            <p>{{ generationError() }}</p>
-          </section>
-        }
-
-        @if (generationResult(); as result) {
-          <section class="summary">
-            <h3>Podsumowanie wygenerowanego harmonogramu</h3>
-            <div class="summary-grid">
-              <div>Bloków: {{ result.summary.totalBlocks }}</div>
-              <div>
-                Celi zaplanowano: {{ result.summary.goalsScheduled }}/{{
-                  result.summary.totalGoals
-                }}
-              </div>
-              <div>Konfliktów: {{ result.summary.conflicts }}</div>
+        <section class="status error">
+          <p>{{ generationError() }}</p>
+        </section>
+        } @if (generationResult(); as result) {
+        <section class="summary">
+          <h3>Podsumowanie wygenerowanego harmonogramu</h3>
+          <div class="summary-grid">
+            <div>Bloków: {{ result.summary.totalBlocks }}</div>
+            <div>
+              Celi zaplanowano: {{ result.summary.goalsScheduled }}/{{
+                result.summary.totalGoals
+              }}
             </div>
-            <div class="summary-actions">
-              <button class="secondary" type="button" (click)="reset()">
-                Regeneruj
-              </button>
-              <button class="primary" type="button" (click)="handleClose()">
-                Zamknij
-              </button>
-            </div>
-          </section>
+            <div>Konfliktów: {{ result.summary.conflicts }}</div>
+          </div>
+          <div class="summary-actions">
+            <button class="secondary" type="button" (click)="reset()">
+              Regeneruj
+            </button>
+            <button class="primary" type="button" (click)="handleClose()">
+              Zamknij
+            </button>
+          </div>
+        </section>
         }
       </div>
     </div>

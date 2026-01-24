@@ -1,14 +1,14 @@
-import { TestBed } from '@angular/core/testing';
+import { runInInjectionContext, Injector } from '@angular/core';
 import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, throwError, firstValueFrom } from 'rxjs';
 import { AuthStore } from './auth.store';
 import { AuthService } from '../services/auth.service';
 import { User, LoginCredentials, RegistrationData } from '../models/user.model';
 
 describe('AuthStore', () => {
-  let authStore: AuthStore;
   let mockAuthService: jest.Mocked<Partial<AuthService>>;
   let mockRouter: jest.Mocked<Partial<Router>>;
+  let mockInjector: Injector;
 
   const mockUser: User = {
     userId: 'test-user-id',
@@ -20,6 +20,10 @@ describe('AuthStore', () => {
   };
 
   const mockToken = 'test-jwt-token';
+
+  const createAuthStore = (): AuthStore => {
+    return runInInjectionContext(mockInjector, () => new AuthStore());
+  };
 
   beforeEach(() => {
     // Clear localStorage before each test
@@ -36,15 +40,18 @@ describe('AuthStore', () => {
       navigate: jest.fn(),
     };
 
-    TestBed.configureTestingModule({
-      providers: [
-        AuthStore,
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: Router, useValue: mockRouter },
-      ],
-    });
-
-    authStore = TestBed.inject(AuthStore);
+    // Create a mock injector
+    mockInjector = {
+      get: jest.fn((token) => {
+        if (token === AuthService) {
+          return mockAuthService;
+        }
+        if (token === Router) {
+          return mockRouter;
+        }
+        return null;
+      }),
+    } as unknown as Injector;
   });
 
   afterEach(() => {
@@ -53,6 +60,7 @@ describe('AuthStore', () => {
 
   describe('initialization', () => {
     it('should initialize with no user and token', () => {
+      const authStore = createAuthStore();
       expect(authStore.user()).toBeNull();
       expect(authStore.token()).toBeNull();
       expect(authStore.isAuthenticated()).toBe(false);
@@ -60,12 +68,15 @@ describe('AuthStore', () => {
 
     it('should restore auth state from localStorage on initialization', () => {
       // Arrange
-      const storedUser = { ...mockUser, createdAt: mockUser.createdAt.toISOString() };
+      const storedUser = {
+        ...mockUser,
+        createdAt: mockUser.createdAt.toISOString(),
+      };
       localStorage.setItem('fp_user', JSON.stringify(storedUser));
       localStorage.setItem('fp_token', mockToken);
 
       // Act - create new instance
-      const newStore = TestBed.inject(AuthStore);
+      const newStore = createAuthStore();
 
       // Assert
       expect(newStore.user()).toEqual(mockUser);
@@ -79,7 +90,7 @@ describe('AuthStore', () => {
       localStorage.setItem('fp_token', mockToken);
 
       // Act - create new instance
-      const newStore = TestBed.inject(AuthStore);
+      const newStore = createAuthStore();
 
       // Assert
       expect(newStore.user()).toBeNull();
@@ -89,8 +100,9 @@ describe('AuthStore', () => {
   });
 
   describe('register', () => {
-    it('should successfully register a new user', (done) => {
+    it('should successfully register a new user', async () => {
       // Arrange
+      const authStore = createAuthStore();
       const registrationData: RegistrationData = {
         email: mockUser.email,
         password: 'password123',
@@ -101,24 +113,21 @@ describe('AuthStore', () => {
       mockAuthService.register?.mockReturnValue(of(response));
 
       // Act
-      authStore.register(registrationData).subscribe({
-        next: () => {
-          // Assert
-          expect(authStore.user()).toEqual(mockUser);
-          expect(authStore.token()).toBe(mockToken);
-          expect(authStore.isAuthenticated()).toBe(true);
-          expect(authStore.loading()).toBe(false);
-          expect(authStore.error()).toBeNull();
-          expect(mockRouter.navigate).toHaveBeenCalledWith(['/onboarding']);
-          expect(localStorage.getItem('fp_token')).toBe(mockToken);
-          done();
-        },
-        error: () => done.fail('should not error'),
-      });
+      await firstValueFrom(authStore.register(registrationData));
+
+      // Assert
+      expect(authStore.user()).toEqual(mockUser);
+      expect(authStore.token()).toBe(mockToken);
+      expect(authStore.isAuthenticated()).toBe(true);
+      expect(authStore.loading()).toBe(false);
+      expect(authStore.error()).toBeNull();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/onboarding']);
+      expect(localStorage.getItem('fp_token')).toBe(mockToken);
     });
 
-    it('should handle registration errors', (done) => {
+    it('should handle registration errors', async () => {
       // Arrange
+      const authStore = createAuthStore();
       const registrationData: RegistrationData = {
         email: mockUser.email,
         password: 'password123',
@@ -128,24 +137,22 @@ describe('AuthStore', () => {
       const error = { status: 409, error: { message: 'Email already exists' } };
       mockAuthService.register?.mockReturnValue(throwError(() => error));
 
-      // Act
-      authStore.register(registrationData).subscribe({
-        next: () => done.fail('should error'),
-        error: () => {
-          // Assert
-          expect(authStore.user()).toBeNull();
-          expect(authStore.token()).toBeNull();
-          expect(authStore.loading()).toBe(false);
-          expect(authStore.error()).toBe('Email already exists');
-          done();
-        },
-      });
+      // Act & Assert
+      await expect(
+        firstValueFrom(authStore.register(registrationData))
+      ).rejects.toBeDefined();
+
+      expect(authStore.user()).toBeNull();
+      expect(authStore.token()).toBeNull();
+      expect(authStore.loading()).toBe(false);
+      expect(authStore.error()).toBe('Email already exists');
     });
   });
 
   describe('login', () => {
-    it('should successfully login a user', (done) => {
+    it('should successfully login a user', async () => {
       // Arrange
+      const authStore = createAuthStore();
       const credentials: LoginCredentials = {
         email: mockUser.email,
         password: 'password123',
@@ -154,24 +161,21 @@ describe('AuthStore', () => {
       mockAuthService.login?.mockReturnValue(of(response));
 
       // Act
-      authStore.login(credentials).subscribe({
-        next: () => {
-          // Assert
-          expect(authStore.user()).toEqual(mockUser);
-          expect(authStore.token()).toBe(mockToken);
-          expect(authStore.isAuthenticated()).toBe(true);
-          expect(authStore.loading()).toBe(false);
-          expect(authStore.error()).toBeNull();
-          expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
-          expect(localStorage.getItem('fp_token')).toBe(mockToken);
-          done();
-        },
-        error: () => done.fail('should not error'),
-      });
+      await firstValueFrom(authStore.login(credentials));
+
+      // Assert
+      expect(authStore.user()).toEqual(mockUser);
+      expect(authStore.token()).toBe(mockToken);
+      expect(authStore.isAuthenticated()).toBe(true);
+      expect(authStore.loading()).toBe(false);
+      expect(authStore.error()).toBeNull();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
+      expect(localStorage.getItem('fp_token')).toBe(mockToken);
     });
 
-    it('should handle login errors', (done) => {
+    it('should handle login errors', async () => {
       // Arrange
+      const authStore = createAuthStore();
       const credentials: LoginCredentials = {
         email: mockUser.email,
         password: 'wrong-password',
@@ -179,108 +183,96 @@ describe('AuthStore', () => {
       const error = { status: 401 };
       mockAuthService.login?.mockReturnValue(throwError(() => error));
 
-      // Act
-      authStore.login(credentials).subscribe({
-        next: () => done.fail('should error'),
-        error: () => {
-          // Assert
-          expect(authStore.user()).toBeNull();
-          expect(authStore.token()).toBeNull();
-          expect(authStore.loading()).toBe(false);
-          expect(authStore.error()).toBe('Invalid email or password');
-          done();
-        },
-      });
+      // Act & Assert
+      await expect(
+        firstValueFrom(authStore.login(credentials))
+      ).rejects.toBeDefined();
+
+      expect(authStore.user()).toBeNull();
+      expect(authStore.token()).toBeNull();
+      expect(authStore.loading()).toBe(false);
+      expect(authStore.error()).toBe('Invalid email or password');
     });
   });
 
   describe('logout', () => {
-    it('should successfully logout a user', (done) => {
+    it('should successfully logout a user', async () => {
       // Arrange
+      const authStore = createAuthStore();
       localStorage.setItem('fp_token', mockToken);
       mockAuthService.logout?.mockReturnValue(of(void 0));
 
       // Act
-      authStore.logout().subscribe({
-        next: () => {
-          // Assert
-          expect(authStore.user()).toBeNull();
-          expect(authStore.token()).toBeNull();
-          expect(authStore.isAuthenticated()).toBe(false);
-          expect(authStore.loading()).toBe(false);
-          expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-          expect(localStorage.getItem('fp_token')).toBeNull();
-          done();
-        },
-        error: () => done.fail('should not error'),
-      });
+      await firstValueFrom(authStore.logout());
+
+      // Assert
+      expect(authStore.user()).toBeNull();
+      expect(authStore.token()).toBeNull();
+      expect(authStore.isAuthenticated()).toBe(false);
+      expect(authStore.loading()).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(localStorage.getItem('fp_token')).toBeNull();
     });
 
-    it('should clear local state even if logout API fails', (done) => {
+    it('should clear local state even if logout API fails', async () => {
       // Arrange
+      const authStore = createAuthStore();
       localStorage.setItem('fp_token', mockToken);
       const error = new Error('Network error');
       mockAuthService.logout?.mockReturnValue(throwError(() => error));
 
-      // Act
-      authStore.logout().subscribe({
-        next: () => done.fail('should error'),
-        error: () => {
-          // Assert
-          expect(authStore.user()).toBeNull();
-          expect(authStore.token()).toBeNull();
-          expect(authStore.isAuthenticated()).toBe(false);
-          expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-          expect(localStorage.getItem('fp_token')).toBeNull();
-          done();
-        },
-      });
+      // Act & Assert
+      await expect(
+        firstValueFrom(authStore.logout())
+      ).rejects.toBeDefined();
+
+      expect(authStore.user()).toBeNull();
+      expect(authStore.token()).toBeNull();
+      expect(authStore.isAuthenticated()).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(localStorage.getItem('fp_token')).toBeNull();
     });
   });
 
   describe('refreshToken', () => {
-    it('should successfully refresh token', (done) => {
+    it('should successfully refresh token', async () => {
       // Arrange
+      const authStore = createAuthStore();
       const newToken = 'new-jwt-token';
       const response = { token: newToken };
       mockAuthService.refreshToken?.mockReturnValue(of(response));
 
       // Act
-      authStore.refreshToken().subscribe({
-        next: () => {
-          // Assert
-          expect(authStore.token()).toBe(newToken);
-          done();
-        },
-        error: () => done.fail('should not error'),
-      });
+      await firstValueFrom(authStore.refreshToken());
+
+      // Assert
+      expect(authStore.token()).toBe(newToken);
     });
 
-    it('should logout user if token refresh fails', (done) => {
+    it('should logout user if token refresh fails', async () => {
       // Arrange
+      const authStore = createAuthStore();
       localStorage.setItem('fp_token', mockToken);
       const error = new Error('Refresh failed');
       mockAuthService.refreshToken?.mockReturnValue(throwError(() => error));
 
-      // Act
-      authStore.refreshToken().subscribe({
-        next: () => done.fail('should error'),
-        error: () => {
-          // Assert
-          expect(authStore.user()).toBeNull();
-          expect(authStore.token()).toBeNull();
-          expect(authStore.isAuthenticated()).toBe(false);
-          expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-          expect(localStorage.getItem('fp_token')).toBeNull();
-          done();
-        },
-      });
+      // Act & Assert
+      await expect(
+        firstValueFrom(authStore.refreshToken())
+      ).rejects.toBeDefined();
+
+      expect(authStore.user()).toBeNull();
+      expect(authStore.token()).toBeNull();
+      expect(authStore.isAuthenticated()).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+      expect(localStorage.getItem('fp_token')).toBeNull();
     });
   });
 
   describe('clearAuthData', () => {
     it('should clear all auth data and localStorage', () => {
-      // Arrange - set up authenticated state
+      // Arrange
+      const authStore = createAuthStore();
       localStorage.setItem('fp_user', JSON.stringify(mockUser));
       localStorage.setItem('fp_token', mockToken);
 
@@ -298,6 +290,7 @@ describe('AuthStore', () => {
 
     it('should be safe to call multiple times', () => {
       // Arrange
+      const authStore = createAuthStore();
       localStorage.setItem('fp_token', mockToken);
 
       // Act
@@ -313,8 +306,9 @@ describe('AuthStore', () => {
   });
 
   describe('clearError', () => {
-    it('should clear error message', (done) => {
-      // Arrange - trigger an error
+    it('should clear error message', async () => {
+      // Arrange
+      const authStore = createAuthStore();
       const credentials: LoginCredentials = {
         email: mockUser.email,
         password: 'wrong-password',
@@ -322,25 +316,26 @@ describe('AuthStore', () => {
       const error = { status: 401 };
       mockAuthService.login?.mockReturnValue(throwError(() => error));
 
-      authStore.login(credentials).subscribe({
-        error: () => {
-          // Verify error is set
-          expect(authStore.error()).toBe('Invalid email or password');
+      // Trigger an error
+      await expect(
+        firstValueFrom(authStore.login(credentials))
+      ).rejects.toBeDefined();
 
-          // Act
-          authStore.clearError();
+      // Verify error is set
+      expect(authStore.error()).toBe('Invalid email or password');
 
-          // Assert
-          expect(authStore.error()).toBeNull();
-          done();
-        },
-      });
+      // Act
+      authStore.clearError();
+
+      // Assert
+      expect(authStore.error()).toBeNull();
     });
   });
 
   describe('error message extraction', () => {
-    it('should extract custom error message', (done) => {
+    it('should extract custom error message', async () => {
       // Arrange
+      const authStore = createAuthStore();
       const credentials: LoginCredentials = {
         email: mockUser.email,
         password: 'password',
@@ -348,18 +343,17 @@ describe('AuthStore', () => {
       const error = { error: { message: 'Custom error message' } };
       mockAuthService.login?.mockReturnValue(throwError(() => error));
 
-      // Act
-      authStore.login(credentials).subscribe({
-        error: () => {
-          // Assert
-          expect(authStore.error()).toBe('Custom error message');
-          done();
-        },
-      });
+      // Act & Assert
+      await expect(
+        firstValueFrom(authStore.login(credentials))
+      ).rejects.toBeDefined();
+
+      expect(authStore.error()).toBe('Custom error message');
     });
 
-    it('should handle 400 Bad Request errors', (done) => {
+    it('should handle 400 Bad Request errors', async () => {
       // Arrange
+      const authStore = createAuthStore();
       const credentials: LoginCredentials = {
         email: 'invalid-email',
         password: 'password',
@@ -367,18 +361,17 @@ describe('AuthStore', () => {
       const error = { status: 400 };
       mockAuthService.login?.mockReturnValue(throwError(() => error));
 
-      // Act
-      authStore.login(credentials).subscribe({
-        error: () => {
-          // Assert
-          expect(authStore.error()).toBe('Invalid data provided');
-          done();
-        },
-      });
+      // Act & Assert
+      await expect(
+        firstValueFrom(authStore.login(credentials))
+      ).rejects.toBeDefined();
+
+      expect(authStore.error()).toBe('Invalid data provided');
     });
 
-    it('should handle unknown errors with generic message', (done) => {
+    it('should handle unknown errors with generic message', async () => {
       // Arrange
+      const authStore = createAuthStore();
       const credentials: LoginCredentials = {
         email: mockUser.email,
         password: 'password',
@@ -386,20 +379,21 @@ describe('AuthStore', () => {
       const error = { status: 500 };
       mockAuthService.login?.mockReturnValue(throwError(() => error));
 
-      // Act
-      authStore.login(credentials).subscribe({
-        error: () => {
-          // Assert
-          expect(authStore.error()).toBe('An unexpected error occurred. Please try again.');
-          done();
-        },
-      });
+      // Act & Assert
+      await expect(
+        firstValueFrom(authStore.login(credentials))
+      ).rejects.toBeDefined();
+
+      expect(authStore.error()).toBe(
+        'An unexpected error occurred. Please try again.'
+      );
     });
   });
 
   describe('computed signals', () => {
-    it('should update isAuthenticated when user and token are set', () => {
-      // Arrange - initially not authenticated
+    it('should update isAuthenticated when user and token are set', async () => {
+      // Arrange
+      const authStore = createAuthStore();
       expect(authStore.isAuthenticated()).toBe(false);
 
       // Act - simulate successful login
@@ -410,14 +404,15 @@ describe('AuthStore', () => {
       const response = { user: mockUser, token: mockToken };
       mockAuthService.login?.mockReturnValue(of(response));
 
-      authStore.login(credentials).subscribe();
+      await firstValueFrom(authStore.login(credentials));
 
       // Assert
       expect(authStore.isAuthenticated()).toBe(true);
     });
 
-    it('should update isAuthenticated to false after logout', (done) => {
-      // Arrange - set up authenticated state
+    it('should update isAuthenticated to false after logout', async () => {
+      // Arrange
+      const authStore = createAuthStore();
       const credentials: LoginCredentials = {
         email: mockUser.email,
         password: 'password123',
@@ -425,19 +420,15 @@ describe('AuthStore', () => {
       const response = { user: mockUser, token: mockToken };
       mockAuthService.login?.mockReturnValue(of(response));
 
-      authStore.login(credentials).subscribe(() => {
-        expect(authStore.isAuthenticated()).toBe(true);
+      await firstValueFrom(authStore.login(credentials));
+      expect(authStore.isAuthenticated()).toBe(true);
 
-        // Act
-        mockAuthService.logout?.mockReturnValue(of(void 0));
-        authStore.logout().subscribe({
-          next: () => {
-            // Assert
-            expect(authStore.isAuthenticated()).toBe(false);
-            done();
-          },
-        });
-      });
+      // Act
+      mockAuthService.logout?.mockReturnValue(of(void 0));
+      await firstValueFrom(authStore.logout());
+
+      // Assert
+      expect(authStore.isAuthenticated()).toBe(false);
     });
   });
 });

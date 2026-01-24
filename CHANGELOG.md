@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
 - Simplified dashboard to rely on the main sticky navigation only.
 - Combined the member legend and filter into a single button set with ordered members.
 - Reduced week-view grid row height for a more compact, uniform layout.
