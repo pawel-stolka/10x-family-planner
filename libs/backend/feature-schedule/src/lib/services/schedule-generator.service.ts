@@ -78,7 +78,63 @@ export class ScheduleGeneratorService {
       `📌 Found ${recurringCommitments.length} recurring commitments`
     );
 
-    // 5. Generate schedule using OpenAI
+    // 5. Check if schedule already exists for this week and load manually added blocks
+    const existingSchedule = await this.scheduleRepository.findOne({
+      where: {
+        userId,
+        weekStartDate: weekStart,
+        deletedAt: IsNull(),
+      },
+      relations: ['timeBlocks'],
+    });
+
+    // Filter to keep only manually added blocks (not AI-generated)
+    const manuallyAddedBlocks =
+      existingSchedule?.timeBlocks?.filter(
+        (block) =>
+          !block.deletedAt &&
+          block.metadata?.generatedBy !== 'ai' &&
+          block.metadata?.source !== 'fixed'
+      ) || [];
+
+    this.logger.log(
+      `📝 Found ${manuallyAddedBlocks.length} manually added activities to preserve`
+    );
+
+    // Convert manually added blocks to format for AI prompt
+    const existingBlocksForAI = manuallyAddedBlocks.map((block) => {
+      const dayIndex = block.timeRange.start.getDay();
+      const dayNames = [
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+      ];
+      const dayName = dayNames[dayIndex];
+      const startTime = block.timeRange.start
+        .toISOString()
+        .split('T')[1]
+        .substring(0, 5);
+      const endTime = block.timeRange.end
+        .toISOString()
+        .split('T')[1]
+        .substring(0, 5);
+
+      return {
+        title: block.title,
+        blockType: block.blockType,
+        day: dayName,
+        startTime,
+        endTime,
+        familyMemberId: block.familyMemberId || null,
+        isShared: block.isShared,
+      };
+    });
+
+    // 6. Generate schedule using OpenAI
     this.logger.log('🤖 Calling OpenAI to generate schedule...');
     const aiBlocks = await this.openAIService.generateSchedule({
       weekStartDate: weekStart,
@@ -111,13 +167,69 @@ export class ScheduleGeneratorService {
         familyMemberId: c.familyMemberId || null,
         isShared: c.isShared,
       })),
+      existingTimeBlocks: existingBlocksForAI,
       strategy: dto.strategy || 'balanced',
     });
 
     this.logger.log(`✅ AI generated ${aiBlocks.length} time blocks`);
 
-    // 5. Check if schedule already exists for this week
-    const existingSchedule = await this.scheduleRepository.findOne({
+    // 7. Handle existing schedule: delete only AI-generated blocks, keep manual ones
+    if (existingSchedule) {
+      this.logger.log(
+        `📝 Schedule already exists for week ${dto.weekStartDate}, preserving manually added blocks...`
+      );
+
+      // Delete only AI-generated blocks (keep manually added ones)
+      const aiGeneratedBlocks = existingSchedule.timeBlocks.filter(
+        (block) =>
+          !block.deletedAt &&
+          (block.metadata?.generatedBy === 'ai' ||
+            block.metadata?.source === 'goal')
+      );
+
+      if (aiGeneratedBlocks.length > 0) {
+        await this.timeBlockRepository.delete(
+          aiGeneratedBlocks.map((b) => b.blockId)
+        );
+        this.logger.log(
+          `🗑️  Deleted ${aiGeneratedBlocks.length} AI-generated blocks`
+        );
+      }
+
+      // Reuse existing schedule entity
+      existingSchedule.isAiGenerated = true;
+      existingSchedule.metadata = {
+        ...existingSchedule.metadata,
+        strategy: dto.strategy || 'balanced',
+        preferences: dto.preferences || {},
+        generatedAt: new Date().toISOString(),
+        model: 'gpt-4-turbo-preview',
+      };
+
+      const savedSchedule = await this.scheduleRepository.save(
+        existingSchedule
+      );
+      this.logger.log(`✅ Updated schedule ${savedSchedule.scheduleId}`);
+    } else {
+      // 8. Create new weekly schedule entity
+      const newSchedule = this.scheduleRepository.create({
+        userId,
+        weekStartDate: weekStart,
+        isAiGenerated: true,
+        metadata: {
+          strategy: dto.strategy || 'balanced',
+          preferences: dto.preferences || {},
+          generatedAt: new Date().toISOString(),
+          model: 'gpt-4-turbo-preview',
+        },
+      });
+
+      const savedSchedule = await this.scheduleRepository.save(newSchedule);
+      this.logger.log(`✅ Created schedule ${savedSchedule.scheduleId}`);
+    }
+
+    // Get the schedule (either existing or newly created)
+    const savedSchedule = await this.scheduleRepository.findOne({
       where: {
         userId,
         weekStartDate: weekStart,
@@ -125,40 +237,11 @@ export class ScheduleGeneratorService {
       },
     });
 
-    if (existingSchedule) {
-      this.logger.log(
-        `📝 Schedule already exists for week ${dto.weekStartDate}, deleting old one...`
-      );
-
-      // Delete existing time blocks first (cascade should handle this, but being explicit)
-      await this.timeBlockRepository.delete({
-        scheduleId: existingSchedule.scheduleId,
-      });
-
-      // Delete old schedule
-      await this.scheduleRepository.delete(existingSchedule.scheduleId);
-      this.logger.log(
-        `🗑️  Deleted old schedule ${existingSchedule.scheduleId}`
-      );
+    if (!savedSchedule) {
+      throw new Error('Failed to retrieve schedule after save');
     }
 
-    // 6. Create new weekly schedule entity
-    const schedule = this.scheduleRepository.create({
-      userId,
-      weekStartDate: weekStart,
-      isAiGenerated: true,
-      metadata: {
-        strategy: dto.strategy || 'balanced',
-        preferences: dto.preferences || {},
-        generatedAt: new Date().toISOString(),
-        model: 'gpt-4-turbo-preview',
-      },
-    });
-
-    const savedSchedule = await this.scheduleRepository.save(schedule);
-    this.logger.log(`✅ Created schedule ${savedSchedule.scheduleId}`);
-
-    // 6. Create a mapping from AI familyMemberId to actual UUID
+    // 9. Create a mapping from AI familyMemberId to actual UUID
     const familyMemberMap = new Map(
       familyMembers.map((fm) => [fm.familyMemberId, fm.familyMemberId])
     );
@@ -168,7 +251,7 @@ export class ScheduleGeneratorService {
       familyMemberMap.set(fm.name, fm.familyMemberId);
     });
 
-    // 7. Create time blocks from AI-generated schedule
+    // 10. Create time blocks from AI-generated schedule (manually added blocks are already in DB)
     const aiTimeBlockEntities = aiBlocks.map((block) => {
       // Convert day name + time to full datetime
       const dayIndex = this.getDayIndex(block.day);
@@ -215,9 +298,12 @@ export class ScheduleGeneratorService {
       return entity;
     });
 
-    // 8. Create fixed time blocks from recurring commitments
-    const fixedTimeBlockEntities = recurringCommitments.flatMap(
-      (commitment) => {
+    // 11. Create fixed time blocks from recurring commitments
+    // Note: Fixed blocks should not conflict with manually added blocks since
+    // they're recurring commitments that should already exist. But we'll filter
+    // them just in case there's an edge case.
+    const fixedTimeBlockEntities = recurringCommitments
+      .flatMap((commitment) => {
         // Expand each commitment to the specific week dates
         // dayOfWeek is 1=Monday ... 7=Sunday, we need 0-based for array offset
         const dayIndex = commitment.dayOfWeek - 1;
@@ -254,33 +340,124 @@ export class ScheduleGeneratorService {
         };
 
         return entity;
-      }
-    );
+      })
+      .filter((fixedBlock) => {
+        // Filter out fixed blocks that conflict with manually added blocks
+        // (shouldn't happen, but safety check)
+        if (fixedBlock.isShared || !fixedBlock.familyMemberId) {
+          return true;
+        }
 
-    // 9. Combine AI and fixed blocks
+        for (const manualBlock of manuallyAddedBlocks) {
+          if (manualBlock.isShared || !manualBlock.familyMemberId) {
+            continue;
+          }
+
+          if (manualBlock.familyMemberId !== fixedBlock.familyMemberId) {
+            continue;
+          }
+
+          const manualStart = new Date(manualBlock.timeRange.start);
+          const manualEnd = new Date(manualBlock.timeRange.end);
+          const fixedStart = new Date(fixedBlock.timeRange.start);
+          const fixedEnd = new Date(fixedBlock.timeRange.end);
+
+          if (fixedStart < manualEnd && fixedEnd > manualStart) {
+            this.logger.warn(
+              `⚠️  Fixed commitment "${fixedBlock.title}" conflicts with manually added block "${manualBlock.title}" - skipping fixed block (manual block takes precedence)`
+            );
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+    // 12. Filter out AI blocks that conflict with manually added blocks or fixed commitments
+    const allExistingBlocks = [
+      ...manuallyAddedBlocks,
+      ...fixedTimeBlockEntities,
+    ];
+
+    const nonConflictingAiBlocks = aiTimeBlockEntities.filter((newBlock) => {
+      // Skip conflict check for shared blocks (they can overlap by design)
+      if (newBlock.isShared || !newBlock.familyMemberId) {
+        return true;
+      }
+
+      // Check against all existing blocks (manually added + fixed commitments)
+      for (const existingBlock of allExistingBlocks) {
+        // Skip if existing block is shared or has no member (can overlap)
+        if (existingBlock.isShared || !existingBlock.familyMemberId) {
+          continue;
+        }
+
+        // Only check conflicts for same family member
+        if (existingBlock.familyMemberId !== newBlock.familyMemberId) {
+          continue;
+        }
+
+        // Check for time overlap
+        const existingStart = new Date(existingBlock.timeRange.start);
+        const existingEnd = new Date(existingBlock.timeRange.end);
+        const newStart = new Date(newBlock.timeRange.start);
+        const newEnd = new Date(newBlock.timeRange.end);
+
+        if (newStart < existingEnd && newEnd > existingStart) {
+          const blockType =
+            existingBlock.metadata?.source === 'fixed'
+              ? 'fixed commitment'
+              : 'manually added block';
+          this.logger.warn(
+            `⚠️  Filtered out AI block "${
+              newBlock.title
+            }" (${newBlock.timeRange.start.toISOString()} - ${newBlock.timeRange.end.toISOString()}) due to conflict with ${blockType} "${
+              existingBlock.title
+            }"`
+          );
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // 13. Combine AI and fixed blocks (manually added blocks are already in DB)
     const timeBlockEntities = [
       ...fixedTimeBlockEntities,
-      ...aiTimeBlockEntities,
+      ...nonConflictingAiBlocks,
     ];
 
     const savedBlocks = await this.timeBlockRepository.save(timeBlockEntities);
+    const filteredCount =
+      aiTimeBlockEntities.length - nonConflictingAiBlocks.length;
+    if (filteredCount > 0) {
+      this.logger.warn(
+        `⚠️  Filtered out ${filteredCount} AI-generated blocks due to conflicts with manually added activities`
+      );
+    }
     this.logger.log(
-      `✅ Saved ${savedBlocks.length} time blocks (${fixedTimeBlockEntities.length} fixed + ${aiTimeBlockEntities.length} AI-generated)`
+      `✅ Saved ${savedBlocks.length} time blocks (${fixedTimeBlockEntities.length} fixed + ${nonConflictingAiBlocks.length} AI-generated + ${manuallyAddedBlocks.length} manually added preserved)`
     );
 
-    // 10. Calculate summary
+    // 14. Load all blocks (AI + fixed + manual) for response
+    const allBlocks = await this.timeBlockRepository.find({
+      where: { scheduleId: savedSchedule.scheduleId, deletedAt: IsNull() },
+    });
+
+    // 15. Calculate summary
     const summary = this.calculateSummary(
-      savedBlocks,
+      allBlocks,
       recurringGoals.length,
       recurringCommitments.length
     );
 
-    // 9. Return response
+    // 16. Return response
     return {
       scheduleId: savedSchedule.scheduleId,
       weekStartDate: dto.weekStartDate,
       summary,
-      timeBlocks: savedBlocks.map((block) => ({
+      timeBlocks: allBlocks.map((block) => ({
         blockId: block.blockId,
         scheduleId: block.scheduleId,
         recurringGoalId: block.recurringGoalId,
