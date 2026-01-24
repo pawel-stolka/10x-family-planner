@@ -4,17 +4,30 @@ import {
   output,
   computed,
   effect,
+  signal,
   ChangeDetectionStrategy,
   HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivityInCell } from '../../models/week-grid.models';
-import { calculateDuration } from '../../utils/time.utils';
+import {
+  ActivityInCell,
+  FamilyMemberViewModel,
+} from '../../models/week-grid.models';
+import { BlockType } from '@family-planner/shared/models-schedule';
+import {
+  calculateDuration,
+  isValidTimeRange,
+  buildTimeRange,
+} from '../../utils/time.utils';
+import {
+  parseISODate,
+  formatDisplayDateWithYear,
+} from '../../utils/date.utils';
 import { trigger, transition, style, animate } from '@angular/animations';
 
 /**
  * Activity Detail Modal Component
- * Full-screen modal with activity details
+ * Full-screen modal with activity details and edit capability
  */
 @Component({
   selector: 'app-activity-detail-modal',
@@ -26,16 +39,32 @@ import { trigger, transition, style, animate } from '@angular/animations';
         <div class="modal-content" (click)="onContentClick($event)" @slideIn>
           <!-- Header -->
           <div class="modal-header">
-            <h2>
-              @if (activity()!.block.emoji) {
-                <span class="emoji">{{ activity()!.block.emoji }}</span>
-              }
-              {{ activity()!.block.title }}
-            </h2>
+            <div class="header-main">
+              <h2>
+                @if (isEditMode()) {
+                  <input
+                    type="text"
+                    class="title-input"
+                    [value]="editTitle()"
+                    (input)="editTitle.set($any($event.target).value)"
+                    placeholder="Nazwa aktywności"
+                  />
+                } @else {
+                  @if (activity()!.block.emoji) {
+                    <span class="emoji">{{ activity()!.block.emoji }}</span>
+                  }
+                  {{ activity()!.block.title }}
+                }
+              </h2>
+              <p class="day-label">
+                {{ dayLabel() }}
+              </p>
+            </div>
             <button 
               class="close-btn" 
               (click)="onClose()"
               aria-label="Zamknij"
+              type="button"
             >
               ✕
             </button>
@@ -43,68 +72,190 @@ import { trigger, transition, style, animate } from '@angular/animations';
 
           <!-- Body -->
           <div class="modal-body">
-            <!-- Time section -->
-            <div class="detail-section">
-              <h3>⏰ Czas</h3>
-              <p class="time-range">
-                {{ activity()!.block.startTime }} - {{ activity()!.block.endTime }}
-              </p>
-              <p class="duration">Czas trwania: {{ duration() }}</p>
-            </div>
-
-            <!-- Participants section -->
-            <div class="detail-section">
-              <h3>👥 Uczestnicy</h3>
-              <div class="participants-list">
-                <div 
-                  class="participant-chip"
-                  [style.background]="activity()!.member.color"
-                >
-                  {{ activity()!.member.name }}
+            @if (isEditMode()) {
+              <!-- Edit Mode -->
+              
+              <!-- Time section -->
+              <div class="detail-section">
+                <h3>⏰ Czas</h3>
+                <div class="time-inputs">
+                  <div class="time-input-group">
+                    <label>Od:</label>
+                    <input
+                      type="time"
+                      [value]="editStartTime()"
+                      (input)="editStartTime.set($any($event.target).value)"
+                      class="time-input"
+                    />
+                  </div>
+                  <div class="time-input-group">
+                    <label>Do:</label>
+                    <input
+                      type="time"
+                      [value]="editEndTime()"
+                      (input)="editEndTime.set($any($event.target).value)"
+                      class="time-input"
+                    />
+                  </div>
                 </div>
-                @if (activity()!.isShared) {
-                  <span class="shared-badge">+ wspólna aktywność rodzinna</span>
+                @if (timeError()) {
+                  <p class="error-message">{{ timeError() }}</p>
                 }
+                <p class="duration">Czas trwania: {{ editDuration() }}</p>
               </div>
-            </div>
 
-            <!-- Description section -->
-            @if (activity()!.block.description) {
+              <!-- Participants section -->
+              <div class="detail-section">
+                <h3>👥 Uczestnicy</h3>
+                <div class="participants-edit">
+                  <label class="checkbox-label">
+                    <input
+                      type="checkbox"
+                      [checked]="editIsShared()"
+                      (change)="onSharedChange($any($event.target).checked)"
+                      class="checkbox-input"
+                    />
+                    <span>Wspólna aktywność rodzinna</span>
+                  </label>
+                  @if (!editIsShared()) {
+                    <select
+                      [value]="editFamilyMemberId() || ''"
+                      (change)="editFamilyMemberId.set($any($event.target).value || null)"
+                      class="member-select"
+                    >
+                      <option value="">Wybierz członka rodziny</option>
+                      @for (member of availableMembers(); track member.id) {
+                        <option [value]="member.id">{{ member.name }}</option>
+                      }
+                    </select>
+                    @if (memberError()) {
+                      <p class="error-message">{{ memberError() }}</p>
+                    }
+                  }
+                </div>
+              </div>
+
+              <!-- Type section -->
+              <div class="detail-section">
+                <h3>🏷️ Typ</h3>
+                <select
+                  [value]="editBlockType()"
+                  (change)="editBlockType.set($any($event.target).value)"
+                  class="type-select"
+                >
+                  @for (type of blockTypes(); track type.value) {
+                    <option [value]="type.value">{{ type.label }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Description section -->
               <div class="detail-section">
                 <h3>📝 Opis</h3>
-                <p class="description">{{ activity()!.block.description }}</p>
+                <textarea
+                  [value]="editDescription()"
+                  (input)="editDescription.set($any($event.target).value)"
+                  class="description-textarea"
+                  placeholder="Dodatkowe informacje (opcjonalnie)"
+                  rows="3"
+                ></textarea>
               </div>
-            }
 
-            <!-- Type section -->
-            <div class="detail-section">
-              <h3>🏷️ Typ i kategoria</h3>
-              <div class="badges">
-                <span class="type-badge">{{ activity()!.block.type }}</span>
-                <span class="goal-badge" [class.is-goal]="activity()!.block.isGoal">
-                  {{ activity()!.block.isGoal ? 'Cel' : 'Stałe' }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Conflict warning -->
-            @if (activity()!.hasConflict) {
-              <div class="detail-section conflict-warning">
-                <h3>⚠️ Konflikt harmonogramu</h3>
-                <p>
-                  Ta aktywność pokrywa się z inną w tym samym czasie dla tego członka rodziny.
-                  Rozważ przesunięcie jednej z aktywności.
+              @if (errorMessage()) {
+                <div class="detail-section error-section">
+                  <p class="error-message">{{ errorMessage() }}</p>
+                </div>
+              }
+            } @else {
+              <!-- View Mode -->
+              
+              <!-- Time section -->
+              <div class="detail-section">
+                <h3>⏰ Czas</h3>
+                <p class="time-range">
+                  {{ activity()!.block.startTime }} - {{ activity()!.block.endTime }}
                 </p>
+                <p class="duration">Czas trwania: {{ duration() }}</p>
               </div>
+
+              <!-- Participants section -->
+              <div class="detail-section">
+                <h3>👥 Uczestnicy</h3>
+                <div class="participants-list">
+                  <div 
+                    class="participant-chip"
+                    [style.background]="activity()!.member.color"
+                  >
+                    {{ activity()!.member.name }}
+                  </div>
+                  @if (activity()!.isShared) {
+                    <span class="shared-badge">+ wspólna aktywność rodzinna</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Description section -->
+              @if (activity()!.block.description) {
+                <div class="detail-section">
+                  <h3>📝 Opis</h3>
+                  <p class="description">{{ activity()!.block.description }}</p>
+                </div>
+              }
+
+              <!-- Type section -->
+              <div class="detail-section">
+                <h3>🏷️ Typ i kategoria</h3>
+                <div class="badges">
+                  <span class="type-badge">{{ activity()!.block.type }}</span>
+                  <span class="goal-badge" [class.is-goal]="activity()!.block.isGoal">
+                    {{ activity()!.block.isGoal ? 'Cel' : 'Stałe' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Conflict warning -->
+              @if (activity()!.hasConflict) {
+                <div class="detail-section conflict-warning">
+                  <h3>⚠️ Konflikt harmonogramu</h3>
+                  <p>
+                    Ta aktywność pokrywa się z inną w tym samym czasie dla tego członka rodziny.
+                    Rozważ przesunięcie jednej z aktywności.
+                  </p>
+                </div>
+              }
             }
           </div>
 
           <!-- Footer -->
           <div class="modal-footer">
-            <!-- Phase 2: Edit/Delete buttons will be added here -->
-            <button class="btn-secondary" (click)="onClose()">
-              Zamknij
-            </button>
+            @if (isEditMode()) {
+              <button class="btn-secondary" (click)="cancelEdit()" [disabled]="isSaving()">
+                Anuluj
+              </button>
+              <button class="btn-primary" (click)="onSave()" [disabled]="!canSave() || isSaving()">
+                @if (isSaving()) {
+                  <span class="spinner"></span>
+                  <span>Zapisywanie...</span>
+                } @else {
+                  Zapisz zmiany
+                }
+              </button>
+            } @else {
+              <button class="btn-danger" (click)="onDelete()" [disabled]="isDeleting()">
+                @if (isDeleting()) {
+                  <span class="spinner"></span>
+                  <span>Usuwanie...</span>
+                } @else {
+                  Usuń
+                }
+              </button>
+              <button class="btn-primary" (click)="startEdit()">
+                Edytuj
+              </button>
+              <button class="btn-secondary" (click)="onClose()">
+                Zamknij
+              </button>
+            }
           </div>
         </div>
       </div>
@@ -145,6 +296,13 @@ import { trigger, transition, style, animate } from '@angular/animations';
       border-bottom: 2px solid #e5e7eb;
     }
 
+    .header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
     .modal-header h2 {
       font-size: 24px;
       font-weight: 700;
@@ -153,6 +311,28 @@ import { trigger, transition, style, animate } from '@angular/animations';
       display: flex;
       align-items: center;
       gap: 12px;
+    }
+
+    .day-label {
+      font-size: 13px;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    .title-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      font-family: inherit;
+    }
+
+    .title-input:focus {
+      outline: none;
+      border-color: #3b82f6;
     }
 
     .emoji {
@@ -217,11 +397,81 @@ import { trigger, transition, style, animate } from '@angular/animations';
       margin: 0;
     }
 
+    .time-inputs {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+
+    .time-input-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .time-input-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .time-input {
+      padding: 10px 12px;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+    }
+
+    .time-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
     .participants-list {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
+    }
+
+    .participants-edit {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    .checkbox-input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .member-select,
+    .type-select {
+      padding: 10px 12px;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .member-select:focus,
+    .type-select:focus {
+      outline: none;
+      border-color: #3b82f6;
     }
 
     .participant-chip {
@@ -247,6 +497,22 @@ import { trigger, transition, style, animate } from '@angular/animations';
       line-height: 1.6;
       color: #374151;
       margin: 0;
+    }
+
+    .description-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .description-textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
     }
 
     .badges {
@@ -297,6 +563,19 @@ import { trigger, transition, style, animate } from '@angular/animations';
       line-height: 1.5;
     }
 
+    .error-section {
+      padding: 12px;
+      background: #fef2f2;
+      border: 2px solid #fecaca;
+      border-radius: 8px;
+    }
+
+    .error-message {
+      font-size: 14px;
+      color: #dc2626;
+      margin: 8px 0 0 0;
+    }
+
     .modal-footer {
       padding: 20px 24px;
       border-top: 2px solid #e5e7eb;
@@ -317,13 +596,87 @@ import { trigger, transition, style, animate } from '@angular/animations';
       transition: all 0.2s ease;
     }
 
-    .btn-secondary:hover {
+    .btn-secondary:hover:not(:disabled) {
       background: #f9fafb;
       border-color: #9ca3af;
     }
 
-    .btn-secondary:active {
+    .btn-secondary:active:not(:disabled) {
       transform: scale(0.98);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      padding: 10px 24px;
+      border: none;
+      background: #3b82f6;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #2563eb;
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-danger {
+      padding: 10px 24px;
+      border: none;
+      background: #dc2626;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #b91c1c;
+    }
+
+    .btn-danger:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-danger:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     /* Custom scrollbar */
@@ -368,10 +721,82 @@ import { trigger, transition, style, animate } from '@angular/animations';
 })
 export class ActivityDetailModalComponent {
   activity = input<ActivityInCell | null>(null);
+  scheduleId = input.required<string>();
+  availableMembers = input.required<FamilyMemberViewModel[]>();
+  errorMessage = input<string | null>(null);
   close = output<void>();
+  save = output<{
+    blockId: string;
+    scheduleId: string;
+    title: string;
+    blockType: BlockType;
+    familyMemberId?: string | null;
+    timeRange: { start: string; end: string };
+    isShared: boolean;
+    metadata?: Record<string, any>;
+  }>();
+  delete = output<{ scheduleId: string; blockId: string }>();
+
+  // Edit mode state
+  readonly isEditMode = signal<boolean>(false);
+  readonly isSaving = signal<boolean>(false);
+  readonly isDeleting = signal<boolean>(false);
+
+  // Form state
+  readonly editTitle = signal<string>('');
+  readonly editStartTime = signal<string>('');
+  readonly editEndTime = signal<string>('');
+  readonly editBlockType = signal<BlockType>(BlockType.ACTIVITY);
+  readonly editIsShared = signal<boolean>(false);
+  readonly editFamilyMemberId = signal<string | null>(null);
+  readonly editDescription = signal<string>('');
+
+  // Block types for select
+  readonly blockTypes = computed(() => [
+    { value: BlockType.WORK, label: 'Praca' },
+    { value: BlockType.ACTIVITY, label: 'Aktywność' },
+    { value: BlockType.MEAL, label: 'Posiłek' },
+    { value: BlockType.OTHER, label: 'Inne' },
+  ]);
+
+  // Validation
+  readonly timeError = computed(() => {
+    if (!this.isEditMode()) return null;
+    const start = this.editStartTime();
+    const end = this.editEndTime();
+    if (!start || !end) return null;
+    if (!isValidTimeRange(start, end)) {
+      return 'Czas zakończenia musi być późniejszy niż czas rozpoczęcia';
+    }
+    return null;
+  });
+
+  readonly memberError = computed(() => {
+    if (!this.isEditMode() || this.editIsShared()) return null;
+    if (!this.editFamilyMemberId()) {
+      return 'Wybierz członka rodziny lub zaznacz jako wspólną aktywność';
+    }
+    return null;
+  });
+
+  readonly editDuration = computed(() => {
+    if (!this.isEditMode()) return '';
+    const start = this.editStartTime();
+    const end = this.editEndTime();
+    if (!start || !end || this.timeError()) return '';
+    return calculateDuration(start, end);
+  });
+
+  readonly canSave = computed(() => {
+    if (!this.isEditMode()) return false;
+    if (!this.editTitle().trim()) return false;
+    if (this.timeError()) return false;
+    if (this.memberError()) return false;
+    return true;
+  });
 
   /**
-   * Computed: Duration string
+   * Computed: Duration string (view mode)
    */
   readonly duration = computed(() => {
     const act = this.activity();
@@ -380,18 +805,74 @@ export class ActivityDetailModalComponent {
   });
 
   /**
+   * Computed: Day of week + date label
+   */
+  readonly dayLabel = computed(() => {
+    const act = this.activity();
+    if (!act) return '';
+
+    const date = parseISODate(act.day);
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
+    const dayNames = [
+      'Poniedziałek',
+      'Wtorek',
+      'Środa',
+      'Czwartek',
+      'Piątek',
+      'Sobota',
+      'Niedziela',
+    ];
+
+    const jsDay = date.getDay(); // 0=Sunday ... 6=Saturday
+    const index = jsDay === 0 ? 6 : jsDay - 1;
+
+    const dayName = dayNames[index] ?? '';
+    const dateText = formatDisplayDateWithYear(date);
+
+    return dayName ? `${dayName}, ${dateText}` : dateText;
+  });
+
+  /**
+   * Initialize form when activity changes
+   */
+  private readonly activityEffect = effect(() => {
+    const act = this.activity();
+    if (act) {
+      this.editTitle.set(act.block.title);
+      this.editStartTime.set(act.block.startTime);
+      this.editEndTime.set(act.block.endTime);
+      this.editBlockType.set(act.block.type);
+      this.editIsShared.set(act.isShared);
+      this.editFamilyMemberId.set(act.isShared ? null : act.member.id);
+      this.editDescription.set(act.block.description || '');
+      this.isEditMode.set(false);
+      this.isSaving.set(false);
+      this.isDeleting.set(false);
+    }
+  });
+
+  /**
    * Handle Escape key
    */
   @HostListener('document:keydown.escape')
   onEscapeKey(): void {
-    this.onClose();
+    if (this.isEditMode()) {
+      this.cancelEdit();
+    } else {
+      this.onClose();
+    }
   }
 
   /**
    * Handle backdrop click
    */
   onBackdropClick(): void {
-    this.onClose();
+    if (!this.isEditMode()) {
+      this.onClose();
+    }
   }
 
   /**
@@ -406,5 +887,98 @@ export class ActivityDetailModalComponent {
    */
   onClose(): void {
     this.close.emit();
+  }
+
+  /**
+   * Start edit mode
+   */
+  startEdit(): void {
+    this.isEditMode.set(true);
+  }
+
+  /**
+   * Cancel edit mode
+   */
+  cancelEdit(): void {
+    const act = this.activity();
+    if (act) {
+      // Reset form to original values
+      this.editTitle.set(act.block.title);
+      this.editStartTime.set(act.block.startTime);
+      this.editEndTime.set(act.block.endTime);
+      this.editBlockType.set(act.block.type);
+      this.editIsShared.set(act.isShared);
+      this.editFamilyMemberId.set(act.isShared ? null : act.member.id);
+      this.editDescription.set(act.block.description || '');
+    }
+    this.isEditMode.set(false);
+  }
+
+  /**
+   * Handle shared checkbox change
+   */
+  onSharedChange(checked: boolean): void {
+    this.editIsShared.set(checked);
+    if (checked) {
+      this.editFamilyMemberId.set(null);
+    }
+  }
+
+  /**
+   * Save changes
+   */
+  onSave(): void {
+    if (!this.canSave() || this.isSaving()) return;
+
+    const act = this.activity();
+    if (!act) return;
+
+    const day = act.day;
+    const startTime = this.editStartTime();
+    const endTime = this.editEndTime();
+
+    if (!startTime || !endTime) return;
+
+    const timeRange = buildTimeRange(day, startTime, endTime);
+
+    const metadata: Record<string, any> = {};
+    const description = this.editDescription().trim();
+    if (description) {
+      metadata['description'] = description;
+    }
+    // Preserve emoji if it exists
+    if (act.block.emoji) {
+      metadata['emoji'] = act.block.emoji;
+    }
+
+    this.save.emit({
+      blockId: act.block.id,
+      scheduleId: this.scheduleId(),
+      title: this.editTitle().trim(),
+      blockType: this.editBlockType(),
+      familyMemberId: this.editIsShared() ? null : this.editFamilyMemberId(),
+      timeRange,
+      isShared: this.editIsShared(),
+      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+    });
+  }
+
+  /**
+   * Delete activity
+   */
+  onDelete(): void {
+    if (this.isDeleting()) return;
+
+    const act = this.activity();
+    if (!act) return;
+
+    if (!confirm('Czy na pewno chcesz usunąć tę aktywność?')) {
+      return;
+    }
+
+    this.delete.emit({
+      scheduleId: this.scheduleId(),
+      blockId: act.block.id,
+    });
   }
 }

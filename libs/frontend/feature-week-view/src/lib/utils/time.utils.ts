@@ -159,10 +159,13 @@ export function buildTimeRange(
   startTime: string,
   endTime: string
 ): { start: string; end: string } {
-  // Combine day with time to create ISO datetime strings
-  // Format: YYYY-MM-DDTHH:mm:ssZ
-  const start = `${day}T${startTime}:00Z`;
-  const end = `${day}T${endTime}:00Z`;
+  // Combine day with time to create ISO-like datetime strings in local time.
+  // We intentionally DO NOT append 'Z' here so that when parsed with new Date(...)
+  // the browser treats them as local wall-clock times and the calendar grid aligns
+  // exactly with the visible hour lines (no timezone shift).
+  // Format: YYYY-MM-DDTHH:mm:ss
+  const start = `${day}T${startTime}:00`;
+  const end = `${day}T${endTime}:00`;
 
   return { start, end };
 }

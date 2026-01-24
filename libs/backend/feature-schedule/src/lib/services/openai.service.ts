@@ -95,6 +95,15 @@ export class OpenAIService {
       familyMemberId: string | null;
       isShared: boolean;
     }>;
+    existingTimeBlocks?: Array<{
+      title: string;
+      blockType: string;
+      day: string;
+      startTime: string;
+      endTime: string;
+      familyMemberId: string | null;
+      isShared: boolean;
+    }>;
     strategy?: string;
   }): Promise<
     Array<{
@@ -126,7 +135,7 @@ export class OpenAIService {
         messages: [
           {
             role: 'system',
-            content: this.getSystemPrompt(),
+            content: this.getSystemPromptV2(),
           },
           {
             role: 'user',
@@ -211,6 +220,7 @@ export class OpenAIService {
     familyMembers: Array<any>;
     recurringGoals: Array<any>;
     recurringCommitments?: Array<any>;
+    existingTimeBlocks?: Array<any>;
     strategy?: string;
   }): string {
     const weekEnd = new Date(params.weekStartDate);
@@ -253,6 +263,21 @@ export class OpenAIService {
             .join('\n')
         : '  (none)';
 
+    const existingBlocksText =
+      params.existingTimeBlocks && params.existingTimeBlocks.length > 0
+        ? params.existingTimeBlocks
+            .map((b) => {
+              const member = b.familyMemberId
+                ? params.familyMembers.find((m) => m.id === b.familyMemberId)
+                : null;
+              const owner = b.isShared
+                ? 'Shared/Family'
+                : member?.name || 'Unknown';
+              return `  - ${b.title} (${owner}): ${b.day} ${b.startTime}-${b.endTime} [MANUALLY ADDED - DO NOT OVERLAP OR MODIFY]`;
+            })
+            .join('\n')
+        : '  (none)';
+
     return `Generate a weekly schedule for the following family:
 
 **Week:** ${params.weekStartDate.toISOString().split('T')[0]} to ${
@@ -269,18 +294,22 @@ ${goalsText}
 **Fixed Commitments (MUST NOT OVERLAP - These are hard constraints):**
 ${commitmentsText}
 
+**Existing Manually Added Activities (MUST NOT OVERLAP - These are user-added blocks that must be preserved):**
+${existingBlocksText}
+
 **Requirements:**
 1. Schedule ALL goals exactly ${params.recurringGoals.reduce(
       (sum, g) => sum + g.frequencyPerWeek,
       0
     )} times total across the week
 2. **CRITICAL: Never overlap with fixed commitments** - they are non-negotiable time blocks
-3. Respect time preferences (MORNING: 6-12am, AFTERNOON: 12-5pm, EVENING: 5-10pm)
-4. Distribute goals evenly across days (avoid cramming all on one day)
-5. Consider priority levels (HIGH first, then MEDIUM, then LOW)
-6. Avoid overlapping blocks for same family member
-7. Balance workload across days
-8. Each block must be realistic (start before end)
+3. **CRITICAL: Never overlap with existing manually added activities** - these are user-created blocks that must be preserved exactly as they are
+4. Respect time preferences (MORNING: 6-12am, AFTERNOON: 12-5pm, EVENING: 5-10pm)
+5. Distribute goals evenly across days (avoid cramming all on one day)
+6. Consider priority levels (HIGH first, then MEDIUM, then LOW)
+7. Avoid overlapping blocks for same family member
+8. Balance workload across days
+9. Each block must be realistic (start before end)
 
 **Return format:** JSON object with "timeBlocks" array containing:
 - title: string (goal name)
@@ -315,7 +344,8 @@ Example:
    * System prompt defining GPT-4's role
    */
   private getSystemPrompt(): string {
-    return `You are an expert family schedule optimizer AI assistant. Your job is to create realistic, balanced weekly schedules for families.
+    return `You are an expert family schedule optimizer AI assistant. 
+    Your job is to create realistic, balanced weekly schedules for families.
 
 Key principles:
 - Be practical: Real families have limited time and energy
@@ -326,6 +356,55 @@ Key principles:
 - Explain: Add notes about why you scheduled things when you did
 
 Always return valid JSON matching the requested format exactly.`;
+  }
+
+  /**
+   * Improved system prompt for schedule generation (used by generateSchedule)
+   * v3: also respects manually added activities / existing time blocks.
+   */
+  private getSystemPromptV2(): string {
+    return `You are an expert family weekly-planning assistant.
+Your job is to create realistic, constraint-aware weekly schedules for real families,
+optimized for work, family, hobbies and relationships.
+
+Context you will receive:
+- A concrete Monday week start date (target week = Monday–Sunday only)
+- A list of family members with ids, names, roles and sometimes ages
+- A list of recurring goals (fitness, hobbies, relationship time, side projects, etc.)
+- A list of fixed recurring commitments that are HARD constraints (work blocks, trips, appointments)
+- Optionally: a list of already scheduled activities / time blocks (manually added by the user)
+- A requested strategy (for now typically "balanced").
+
+Core principles:
+- Be practical: real parents have limited time, energy and context-switching capacity.
+- Balance: spread blocks across the week; avoid having one or two "overloaded" days.
+- Respect time-of-day preferences (morning / afternoon / evening) and typical sleep hours.
+- Respect priorities: schedule higher priority goals first, then medium, then low.
+- Respect identity: do not invent new family members, days of week, or goals.
+- No conflicts: the same person cannot be in two places at once.
+- No fixed-block conflicts: NEVER overlap with fixed commitments – they always win.
+- No manual-block conflicts: NEVER overlap with existing manually added activities – these are user-created blocks stored in the database that must be preserved exactly as they are.
+- Realistic timing: each block must have startTime < endTime and fit inside the target week.
+- Specificity: use exact times (HH:MM), not vague ranges.
+- Explain: fill the "notes" field with short, concrete reasons for important scheduling choices.
+
+Output contract (CRITICAL):
+- You must follow the "Requirements" and "Return format" from the user message exactly.
+- Always return a single JSON OBJECT with a top-level "timeBlocks" array.
+- Do NOT wrap JSON in markdown, prose, or backticks.
+- Do NOT include any fields other than those explicitly requested.
+- All string values must be valid JSON strings (no trailing commas, no comments).
+
+Safety / conflict handling:
+- If it is hard to satisfy everything, prioritize in this order:
+  1) Never overlap fixed commitments (recurring work/appointments).
+  2) Never overlap existing manually added activities (user-created blocks from database).
+  3) Avoid overlapping blocks for the same family member.
+  4) Keep blocks realistic in length and position (no impossible days / times).
+  5) Keep distribution balanced across the week and members.
+- When forced to choose between perfect evenness and respecting constraints, always respect constraints first.
+
+Always return valid JSON that strictly matches the requested schema and is easy to parse.`;
   }
 
   /**

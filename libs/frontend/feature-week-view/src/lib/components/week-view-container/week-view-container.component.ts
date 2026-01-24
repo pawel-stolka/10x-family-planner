@@ -186,10 +186,15 @@ import { buildTimeRange } from '../../utils/time.utils';
       </div>
 
       <!-- Modal -->
-      @if (selectedActivity()) {
+      @if (selectedActivity() && currentScheduleId()) {
       <app-activity-detail-modal
         [activity]="selectedActivity()"
+        [scheduleId]="currentScheduleId()!"
+        [availableMembers]="orderedMembers()"
+        [errorMessage]="activityModalError()"
         (close)="closeActivityModal()"
+        (save)="onActivityUpdate($event)"
+        (delete)="onActivityDelete($event)"
       />
       } @if (isScheduleGeneratorOpen()) {
       <app-schedule-generator-panel
@@ -623,6 +628,7 @@ export class WeekViewContainerComponent implements OnInit {
   );
   readonly currentScheduleId = signal<string | null>(null);
   readonly isAddingActivity = signal<boolean>(false);
+  readonly activityModalError = signal<string | null>(null);
   private readonly useMockData = false;
   private readonly layoutStorageKey = 'weekViewLayout';
 
@@ -993,6 +999,93 @@ export class WeekViewContainerComponent implements OnInit {
    */
   closeActivityModal(): void {
     this.selectedActivity.set(null);
+    this.activityModalError.set(null);
+  }
+
+  /**
+   * Handle activity update from modal
+   */
+  async onActivityUpdate(event: {
+    blockId: string;
+    scheduleId: string;
+    title: string;
+    blockType: BlockType;
+    familyMemberId?: string | null;
+    timeRange: { start: string; end: string };
+    isShared: boolean;
+    metadata?: Record<string, any>;
+  }): Promise<void> {
+    this.activityModalError.set(null);
+
+    try {
+      await lastValueFrom(
+        this.scheduleService.updateTimeBlock(event.scheduleId, event.blockId, {
+          title: event.title,
+          blockType: event.blockType,
+          familyMemberId: event.familyMemberId,
+          timeRange: event.timeRange,
+          isShared: event.isShared,
+          metadata: event.metadata,
+        })
+      );
+
+      // Success: close modal and reload week data
+      this.closeActivityModal();
+      await this.loadWeekData();
+    } catch (error) {
+      // Error: show message and keep modal open
+      const httpError = error as HttpErrorResponse;
+      let errorMsg = 'Nie udało się zaktualizować aktywności.';
+
+      if (httpError.status === 400) {
+        errorMsg =
+          httpError.error?.message ||
+          'Nieprawidłowe dane. Sprawdź czy czas nie koliduje z innymi aktywnościami.';
+      } else if (httpError.status === 404) {
+        errorMsg =
+          'Aktywność nie została znaleziona. Odśwież stronę i spróbuj ponownie.';
+      } else if (httpError.status === 409) {
+        errorMsg =
+          'Ta aktywność koliduje z inną aktywnością. Wybierz inny czas.';
+      } else if (httpError.status >= 500) {
+        errorMsg = 'Błąd serwera. Spróbuj ponownie za chwilę.';
+      }
+
+      this.activityModalError.set(errorMsg);
+    }
+  }
+
+  /**
+   * Handle activity delete from modal
+   */
+  async onActivityDelete(event: {
+    scheduleId: string;
+    blockId: string;
+  }): Promise<void> {
+    this.activityModalError.set(null);
+
+    try {
+      await lastValueFrom(
+        this.scheduleService.deleteTimeBlock(event.scheduleId, event.blockId)
+      );
+
+      // Success: close modal and reload week data
+      this.closeActivityModal();
+      await this.loadWeekData();
+    } catch (error) {
+      // Error: show message and keep modal open
+      const httpError = error as HttpErrorResponse;
+      let errorMsg = 'Nie udało się usunąć aktywności.';
+
+      if (httpError.status === 404) {
+        errorMsg =
+          'Aktywność nie została znaleziona. Odśwież stronę i spróbuj ponownie.';
+      } else if (httpError.status >= 500) {
+        errorMsg = 'Błąd serwera. Spróbuj ponownie za chwilę.';
+      }
+
+      this.activityModalError.set(errorMsg);
+    }
   }
 
   /**

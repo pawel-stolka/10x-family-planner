@@ -4,12 +4,14 @@ import {
   Logger,
   InternalServerErrorException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource, IsNull } from 'typeorm';
 import { WeeklyScheduleEntity } from '../entities/weekly-schedule.entity';
 import { TimeBlockEntity } from '../entities/time-block.entity';
 import { CreateTimeBlockDto } from '../dto/create-time-block.dto';
+import { UpdateTimeBlockDto } from '../dto/update-time-block.dto';
 
 /**
  * Schedule Service
@@ -371,6 +373,256 @@ export class ScheduleService {
 
       this.logger.error(
         `Database error creating time block in schedule ${scheduleId}: ${errorMessage}`,
+        errorStack
+      );
+      throw new InternalServerErrorException('An unexpected error occurred');
+    }
+  }
+
+  /**
+   * Update an existing time block in a schedule
+   *
+   * @param scheduleId - UUID of the schedule containing the block
+   * @param blockId - UUID of the time block to update
+   * @param userId - UUID of the authenticated user (from JWT)
+   * @param dto - Time block update data (all fields optional)
+   * @returns Updated TimeBlockEntity
+   * @throws NotFoundException if schedule or block not found or user doesn't own it
+   * @throws BadRequestException if validation fails
+   * @throws ConflictException if updated time range conflicts with other blocks
+   * @throws InternalServerErrorException on database errors
+   */
+  async updateTimeBlock(
+    scheduleId: string,
+    blockId: string,
+    userId: string,
+    dto: UpdateTimeBlockDto
+  ): Promise<TimeBlockEntity> {
+    try {
+      // Set RLS context
+      const sanitizedUserId = userId.replace(/'/g, "''");
+      await this.dataSource.query(
+        `SET LOCAL app.user_id = '${sanitizedUserId}'`
+      );
+
+      // Verify schedule exists and user owns it
+      const schedule = await this.findScheduleById(scheduleId, userId);
+
+      // Find the time block
+      const timeBlock = await this.timeBlockRepository.findOne({
+        where: {
+          blockId,
+          scheduleId: schedule.scheduleId,
+          deletedAt: IsNull(),
+        },
+        relations: ['familyMember', 'recurringGoal'],
+      });
+
+      if (!timeBlock) {
+        this.logger.warn(
+          `Time block not found: ${blockId} in schedule ${scheduleId} for user ${userId}`
+        );
+        throw new NotFoundException('Time block not found');
+      }
+
+      // Determine final values (use DTO if provided, otherwise keep existing)
+      const isShared =
+        dto.isShared !== undefined ? dto.isShared : timeBlock.isShared;
+      const familyMemberId =
+        dto.familyMemberId !== undefined
+          ? dto.familyMemberId
+          : timeBlock.familyMemberId;
+
+      // Validate shared block rules
+      if (isShared && familyMemberId) {
+        throw new BadRequestException(
+          'Shared time blocks cannot have familyMemberId'
+        );
+      }
+      if (!isShared && !familyMemberId) {
+        throw new BadRequestException(
+          'familyMemberId is required when isShared is false'
+        );
+      }
+
+      // Handle time range update
+      let timeRange = timeBlock.timeRange;
+      if (dto.timeRange) {
+        const newTimeRange = {
+          start: new Date(dto.timeRange.start),
+          end: new Date(dto.timeRange.end),
+        };
+
+        // Validate time range
+        if (newTimeRange.start >= newTimeRange.end) {
+          throw new BadRequestException('End time must be after start time');
+        }
+
+        timeRange = newTimeRange;
+
+        // Check for conflicts with other blocks (excluding current block)
+        // Only check if time range changed and if it's not a shared block
+        if (!isShared && familyMemberId) {
+          const conflictingBlocks = await this.timeBlockRepository.find({
+            where: {
+              scheduleId: schedule.scheduleId,
+              familyMemberId,
+              deletedAt: IsNull(),
+            },
+          });
+
+          // Check if new time range overlaps with any other block
+          for (const block of conflictingBlocks) {
+            if (block.blockId === blockId) continue; // Skip current block
+
+            const blockStart = new Date(block.timeRange.start);
+            const blockEnd = new Date(block.timeRange.end);
+
+            // Check for overlap
+            if (
+              newTimeRange.start < blockEnd &&
+              newTimeRange.end > blockStart
+            ) {
+              this.logger.warn(
+                `Time conflict detected: block ${blockId} overlaps with block ${block.blockId}`
+              );
+              throw new ConflictException(
+                'Updated time range conflicts with another activity for this family member'
+              );
+            }
+          }
+        }
+      }
+
+      // Update fields
+      if (dto.title !== undefined) {
+        timeBlock.title = dto.title;
+      }
+      if (dto.blockType !== undefined) {
+        timeBlock.blockType = dto.blockType;
+      }
+      if (dto.timeRange !== undefined) {
+        timeBlock.timeRange = timeRange;
+      }
+      if (dto.isShared !== undefined) {
+        timeBlock.isShared = isShared;
+      }
+      if (dto.familyMemberId !== undefined) {
+        timeBlock.familyMemberId = isShared
+          ? undefined
+          : familyMemberId || undefined;
+      }
+      if (dto.metadata !== undefined) {
+        timeBlock.metadata = dto.metadata;
+      }
+
+      // Update timestamp
+      timeBlock.updatedAt = new Date();
+
+      const savedBlock = await this.timeBlockRepository.save(timeBlock);
+
+      // Reload with relations for complete response
+      const blockWithRelations = await this.timeBlockRepository.findOne({
+        where: { blockId: savedBlock.blockId },
+        relations: ['familyMember', 'recurringGoal'],
+      });
+
+      if (!blockWithRelations) {
+        throw new InternalServerErrorException(
+          'Failed to reload updated time block'
+        );
+      }
+
+      this.logger.log(
+        `Successfully updated time block ${blockId} in schedule ${scheduleId}`
+      );
+
+      return blockWithRelations;
+    } catch (error) {
+      // Re-throw known exceptions
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+
+      // Log and wrap database errors
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(
+        `Database error updating time block ${blockId} in schedule ${scheduleId}: ${errorMessage}`,
+        errorStack
+      );
+      throw new InternalServerErrorException('An unexpected error occurred');
+    }
+  }
+
+  /**
+   * Delete (soft delete) a time block from a schedule
+   *
+   * @param scheduleId - UUID of the schedule containing the block
+   * @param blockId - UUID of the time block to delete
+   * @param userId - UUID of the authenticated user (from JWT)
+   * @throws NotFoundException if schedule or block not found or user doesn't own it
+   * @throws InternalServerErrorException on database errors
+   */
+  async deleteTimeBlock(
+    scheduleId: string,
+    blockId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      // Set RLS context
+      const sanitizedUserId = userId.replace(/'/g, "''");
+      await this.dataSource.query(
+        `SET LOCAL app.user_id = '${sanitizedUserId}'`
+      );
+
+      // Verify schedule exists and user owns it
+      await this.findScheduleById(scheduleId, userId);
+
+      // Find the time block
+      const timeBlock = await this.timeBlockRepository.findOne({
+        where: {
+          blockId,
+          scheduleId,
+          deletedAt: IsNull(),
+        },
+      });
+
+      if (!timeBlock) {
+        this.logger.warn(
+          `Time block not found: ${blockId} in schedule ${scheduleId} for user ${userId}`
+        );
+        throw new NotFoundException('Time block not found');
+      }
+
+      // Soft delete
+      timeBlock.deletedAt = new Date();
+      timeBlock.updatedAt = new Date();
+
+      await this.timeBlockRepository.save(timeBlock);
+
+      this.logger.log(
+        `Successfully deleted time block ${blockId} from schedule ${scheduleId}`
+      );
+    } catch (error) {
+      // Re-throw known exceptions
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      // Log and wrap database errors
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(
+        `Database error deleting time block ${blockId} from schedule ${scheduleId}: ${errorMessage}`,
         errorStack
       );
       throw new InternalServerErrorException('An unexpected error occurred');
