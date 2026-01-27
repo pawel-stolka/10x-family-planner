@@ -1,7 +1,7 @@
 # MVP Implementation Plan - Unified Family Planner
 
 **Created:** 2026-01-13  
-**Status:** Planning Phase  
+**Status:** Partially Implemented (Phases 1, 2, 4, 5 done; Phase 3 pending)  
 **Priority:** HIGH (Phase 1 MVP)  
 **Estimated Time:** 35-50 hours (5-7 days)
 
@@ -46,14 +46,15 @@ Calendar View (SEE the generated schedule)
 - ✅ HTTP interceptor with JWT
 - ✅ Basic schedule generator endpoint (mock algorithm)
 - ✅ Demo user for development
+- ✅ Family Members: backend CRUD API + Angular UI (list, create, edit, delete, validation)
+- ✅ Recurring Goals: backend CRUD API + Angular UI (filters, sorting, grouping by priority)
+- ✅ Weekly calendar view (`/schedule/week`) with navigation, grid layout, and schedule rendering
+- ✅ Navigation between `family`, `goals`, `commitments`, and `schedule` features
 
-#### ❌ What's Missing:
+#### 🚧 Still Missing / To Improve:
 
-1. ❌ **Family Members:** Backend CRUD + Frontend UI
-2. ❌ **Recurring Goals:** Backend CRUD + Frontend UI
-3. ❌ **Setup Flow:** User onboarding experience
-4. ❌ **Calendar View:** Display generated schedules
-5. ❌ **Navigation:** Links between features
+1. 🚧 **Setup Flow:** Guided user onboarding experience (first-time flow across family + goals + schedule)
+2. 🚧 **Schedule Generation UI polish:** Progress indicator, richer success/error feedback, and tighter integration with family/goals metadata
 
 ---
 
@@ -2139,14 +2140,14 @@ export const goalsRoutes: Route[] = [
 ### Must Have (Phase 1 MVP):
 
 - [x] User can register and login
-- [ ] User can add/edit/delete family members
-- [ ] User can add/edit/delete recurring goals
-- [ ] User can generate a weekly schedule
-- [ ] User can view generated schedule in calendar
-- [ ] All CRUD operations work correctly
-- [ ] Authorization prevents accessing other users' data
-- [ ] Loading states displayed during operations
-- [ ] Error messages displayed when operations fail
+- [x] User can add/edit/delete family members
+- [x] User can add/edit/delete recurring goals
+- [x] User can generate a weekly schedule
+- [x] User can view generated schedule in calendar
+- [x] All CRUD operations work correctly (family members, recurring goals, schedule generation)
+- [x] Authorization prevents accessing other users' data (JWT + RLS + per-user queries)
+- [x] Loading states displayed during operations (family/goals stores + schedule UI)
+- [x] Error messages displayed when operations fail (family/goals stores + schedule UI)
 
 ### Nice to Have (Post-MVP):
 
@@ -2238,7 +2239,7 @@ export const goalsRoutes: Route[] = [
 
 ---
 
-**Last Updated:** 2026-01-13  
-**Status:** Planning Complete - Ready for Implementation  
+**Last Updated:** 2026-01-27  
+**Status:** Phases 1, 2, 4, 5 Implemented; Phase 3 (Onboarding) Pending  
 **Priority:** HIGH (Phase 1 MVP)
 **Depends On:** Authentication ✅, Database Schema ✅, TypeORM Entities ✅
