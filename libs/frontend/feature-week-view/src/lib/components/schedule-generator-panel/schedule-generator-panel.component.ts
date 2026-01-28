@@ -22,6 +22,7 @@ import {
   formatISODate,
 } from '../../utils/date.utils';
 
+/* eslint-disable @angular-eslint/no-output-native */
 @Component({
   selector: 'app-schedule-generator-panel',
   standalone: true,

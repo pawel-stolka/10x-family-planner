@@ -33,6 +33,8 @@ import { TOOLTIP_DELAY } from '../../constants/week-grid.constants';
       (mouseenter)="onMouseEnter()"
       (mouseleave)="onMouseLeave()"
       (click)="onClick()"
+      (keyup.enter)="onClick()"
+      tabindex="0"
     >
       <div class="activity-content">
         @if (shouldShowLabel()) {

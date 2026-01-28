@@ -29,691 +29,721 @@ import { trigger, transition, style, animate } from '@angular/animations';
  * Activity Detail Modal Component
  * Full-screen modal with activity details and edit capability
  */
+/* eslint-disable @angular-eslint/no-output-native */
 @Component({
   selector: 'app-activity-detail-modal',
   standalone: true,
   imports: [CommonModule],
   template: `
     @if (activity()) {
-      <div class="modal-backdrop" (click)="onBackdropClick()" @fadeIn>
-        <div class="modal-content" (click)="onContentClick($event)" @slideIn>
-          <!-- Header -->
-          <div class="modal-header">
-            <div class="header-main">
-              <h2>
-                @if (isEditMode()) {
-                  <input
-                    type="text"
-                    class="title-input"
-                    [value]="editTitle()"
-                    (input)="editTitle.set($any($event.target).value)"
-                    placeholder="Nazwa aktywności"
-                  />
-                } @else {
-                  @if (activity()!.block.emoji) {
-                    <span class="emoji">{{ activity()!.block.emoji }}</span>
-                  }
-                  {{ activity()!.block.title }}
-                }
-              </h2>
-              <p class="day-label">
-                {{ dayLabel() }}
-              </p>
+    <div
+      class="modal-backdrop"
+      role="button"
+      tabindex="0"
+      (click)="onBackdropClick()"
+      (keyup.enter)="onBackdropClick()"
+      @fadeIn
+    >
+      <div
+        class="modal-content"
+        tabindex="-1"
+        (click)="onContentClick($event)"
+        (keyup.enter)="onContentClick($event)"
+        @slideIn
+      >
+        <!-- Header -->
+        <div class="modal-header">
+          <div class="header-main">
+            <h2>
+              @if (isEditMode()) {
+              <input
+                type="text"
+                class="title-input"
+                [value]="editTitle()"
+                (input)="editTitle.set($any($event.target).value)"
+                placeholder="Nazwa aktywności"
+              />
+              } @else { @if (activity()!.block.emoji) {
+              <span class="emoji">{{ activity()!.block.emoji }}</span>
+              }
+              {{ activity()!.block.title }}
+              }
+            </h2>
+            <p class="day-label">
+              {{ dayLabel() }}
+            </p>
+          </div>
+          <button
+            class="close-btn"
+            (click)="onClose()"
+            aria-label="Zamknij"
+            type="button"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body">
+          @if (isEditMode()) {
+          <!-- Edit Mode -->
+
+          <!-- Time section -->
+          <div class="detail-section">
+            <h3>⏰ Czas</h3>
+            <div class="time-inputs">
+              <div class="time-input-group">
+                <label for="edit-start-time">Od:</label>
+                <input
+                  id="edit-start-time"
+                  type="time"
+                  [value]="editStartTime()"
+                  (input)="editStartTime.set($any($event.target).value)"
+                  class="time-input"
+                />
+              </div>
+              <div class="time-input-group">
+                <label for="edit-end-time">Do:</label>
+                <input
+                  id="edit-end-time"
+                  type="time"
+                  [value]="editEndTime()"
+                  (input)="editEndTime.set($any($event.target).value)"
+                  class="time-input"
+                />
+              </div>
             </div>
-            <button 
-              class="close-btn" 
-              (click)="onClose()"
-              aria-label="Zamknij"
-              type="button"
+            @if (timeError()) {
+            <p class="error-message">{{ timeError() }}</p>
+            }
+            <p class="duration">Czas trwania: {{ editDuration() }}</p>
+          </div>
+
+          <!-- Participants section -->
+          <div class="detail-section">
+            <h3>👥 Uczestnicy</h3>
+            <div class="participants-edit">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  [checked]="editIsShared()"
+                  (change)="onSharedChange($any($event.target).checked)"
+                  class="checkbox-input"
+                />
+                <span>Wspólna aktywność rodzinna</span>
+              </label>
+              @if (!editIsShared()) {
+              <select
+                [value]="editFamilyMemberId() || ''"
+                (change)="
+                  editFamilyMemberId.set($any($event.target).value || null)
+                "
+                class="member-select"
+              >
+                <option value="">Wybierz członka rodziny</option>
+                @for (member of availableMembers(); track member.id) {
+                <option [value]="member.id">{{ member.name }}</option>
+                }
+              </select>
+              @if (memberError()) {
+              <p class="error-message">{{ memberError() }}</p>
+              } }
+            </div>
+          </div>
+
+          <!-- Type section -->
+          <div class="detail-section">
+            <h3>🏷️ Typ</h3>
+            <select
+              [value]="editBlockType()"
+              (change)="editBlockType.set($any($event.target).value)"
+              class="type-select"
             >
-              ✕
-            </button>
+              @for (type of blockTypes(); track type.value) {
+              <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select>
           </div>
 
-          <!-- Body -->
-          <div class="modal-body">
-            @if (isEditMode()) {
-              <!-- Edit Mode -->
-              
-              <!-- Time section -->
-              <div class="detail-section">
-                <h3>⏰ Czas</h3>
-                <div class="time-inputs">
-                  <div class="time-input-group">
-                    <label>Od:</label>
-                    <input
-                      type="time"
-                      [value]="editStartTime()"
-                      (input)="editStartTime.set($any($event.target).value)"
-                      class="time-input"
-                    />
-                  </div>
-                  <div class="time-input-group">
-                    <label>Do:</label>
-                    <input
-                      type="time"
-                      [value]="editEndTime()"
-                      (input)="editEndTime.set($any($event.target).value)"
-                      class="time-input"
-                    />
-                  </div>
-                </div>
-                @if (timeError()) {
-                  <p class="error-message">{{ timeError() }}</p>
-                }
-                <p class="duration">Czas trwania: {{ editDuration() }}</p>
-              </div>
-
-              <!-- Participants section -->
-              <div class="detail-section">
-                <h3>👥 Uczestnicy</h3>
-                <div class="participants-edit">
-                  <label class="checkbox-label">
-                    <input
-                      type="checkbox"
-                      [checked]="editIsShared()"
-                      (change)="onSharedChange($any($event.target).checked)"
-                      class="checkbox-input"
-                    />
-                    <span>Wspólna aktywność rodzinna</span>
-                  </label>
-                  @if (!editIsShared()) {
-                    <select
-                      [value]="editFamilyMemberId() || ''"
-                      (change)="editFamilyMemberId.set($any($event.target).value || null)"
-                      class="member-select"
-                    >
-                      <option value="">Wybierz członka rodziny</option>
-                      @for (member of availableMembers(); track member.id) {
-                        <option [value]="member.id">{{ member.name }}</option>
-                      }
-                    </select>
-                    @if (memberError()) {
-                      <p class="error-message">{{ memberError() }}</p>
-                    }
-                  }
-                </div>
-              </div>
-
-              <!-- Type section -->
-              <div class="detail-section">
-                <h3>🏷️ Typ</h3>
-                <select
-                  [value]="editBlockType()"
-                  (change)="editBlockType.set($any($event.target).value)"
-                  class="type-select"
-                >
-                  @for (type of blockTypes(); track type.value) {
-                    <option [value]="type.value">{{ type.label }}</option>
-                  }
-                </select>
-              </div>
-
-              <!-- Description section -->
-              <div class="detail-section">
-                <h3>📝 Opis</h3>
-                <textarea
-                  [value]="editDescription()"
-                  (input)="editDescription.set($any($event.target).value)"
-                  class="description-textarea"
-                  placeholder="Dodatkowe informacje (opcjonalnie)"
-                  rows="3"
-                ></textarea>
-              </div>
-
-              @if (errorMessage()) {
-                <div class="detail-section error-section">
-                  <p class="error-message">{{ errorMessage() }}</p>
-                </div>
-              }
-            } @else {
-              <!-- View Mode -->
-              
-              <!-- Time section -->
-              <div class="detail-section">
-                <h3>⏰ Czas</h3>
-                <p class="time-range">
-                  {{ activity()!.block.startTime }} - {{ activity()!.block.endTime }}
-                </p>
-                <p class="duration">Czas trwania: {{ duration() }}</p>
-              </div>
-
-              <!-- Participants section -->
-              <div class="detail-section">
-                <h3>👥 Uczestnicy</h3>
-                <div class="participants-list">
-                  <div 
-                    class="participant-chip"
-                    [style.background]="activity()!.member.color"
-                  >
-                    {{ activity()!.member.name }}
-                  </div>
-                  @if (activity()!.isShared) {
-                    <span class="shared-badge">+ wspólna aktywność rodzinna</span>
-                  }
-                </div>
-              </div>
-
-              <!-- Description section -->
-              @if (activity()!.block.description) {
-                <div class="detail-section">
-                  <h3>📝 Opis</h3>
-                  <p class="description">{{ activity()!.block.description }}</p>
-                </div>
-              }
-
-              <!-- Type section -->
-              <div class="detail-section">
-                <h3>🏷️ Typ i kategoria</h3>
-                <div class="badges">
-                  <span class="type-badge">{{ activity()!.block.type }}</span>
-                  <span class="goal-badge" [class.is-goal]="activity()!.block.isGoal">
-                    {{ activity()!.block.isGoal ? 'Cel' : 'Stałe' }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Conflict warning -->
-              @if (activity()!.hasConflict) {
-                <div class="detail-section conflict-warning">
-                  <h3>⚠️ Konflikt harmonogramu</h3>
-                  <p>
-                    Ta aktywność pokrywa się z inną w tym samym czasie dla tego członka rodziny.
-                    Rozważ przesunięcie jednej z aktywności.
-                  </p>
-                </div>
-              }
-            }
+          <!-- Description section -->
+          <div class="detail-section">
+            <h3>📝 Opis</h3>
+            <textarea
+              [value]="editDescription()"
+              (input)="editDescription.set($any($event.target).value)"
+              class="description-textarea"
+              placeholder="Dodatkowe informacje (opcjonalnie)"
+              rows="3"
+            ></textarea>
           </div>
 
-          <!-- Footer -->
-          <div class="modal-footer">
-            @if (isEditMode()) {
-              <button class="btn-secondary" (click)="cancelEdit()" [disabled]="isSaving()">
-                Anuluj
-              </button>
-              <button class="btn-primary" (click)="onSave()" [disabled]="!canSave() || isSaving()">
-                @if (isSaving()) {
-                  <span class="spinner"></span>
-                  <span>Zapisywanie...</span>
-                } @else {
-                  Zapisz zmiany
-                }
-              </button>
-            } @else {
-              <button class="btn-danger" (click)="onDelete()" [disabled]="isDeleting()">
-                @if (isDeleting()) {
-                  <span class="spinner"></span>
-                  <span>Usuwanie...</span>
-                } @else {
-                  Usuń
-                }
-              </button>
-              <button class="btn-primary" (click)="startEdit()">
-                Edytuj
-              </button>
-              <button class="btn-secondary" (click)="onClose()">
-                Zamknij
-              </button>
-            }
+          @if (errorMessage()) {
+          <div class="detail-section error-section">
+            <p class="error-message">{{ errorMessage() }}</p>
           </div>
+          } } @else {
+          <!-- View Mode -->
+
+          <!-- Time section -->
+          <div class="detail-section">
+            <h3>⏰ Czas</h3>
+            <p class="time-range">
+              {{ activity()!.block.startTime }} -
+              {{ activity()!.block.endTime }}
+            </p>
+            <p class="duration">Czas trwania: {{ duration() }}</p>
+          </div>
+
+          <!-- Participants section -->
+          <div class="detail-section">
+            <h3>👥 Uczestnicy</h3>
+            <div class="participants-list">
+              <div
+                class="participant-chip"
+                [style.background]="activity()!.member.color"
+              >
+                {{ activity()!.member.name }}
+              </div>
+              @if (activity()!.isShared) {
+              <span class="shared-badge">+ wspólna aktywność rodzinna</span>
+              }
+            </div>
+          </div>
+
+          <!-- Description section -->
+          @if (activity()!.block.description) {
+          <div class="detail-section">
+            <h3>📝 Opis</h3>
+            <p class="description">{{ activity()!.block.description }}</p>
+          </div>
+          }
+
+          <!-- Type section -->
+          <div class="detail-section">
+            <h3>🏷️ Typ i kategoria</h3>
+            <div class="badges">
+              <span class="type-badge">{{ activity()!.block.type }}</span>
+              <span
+                class="goal-badge"
+                [class.is-goal]="activity()!.block.isGoal"
+              >
+                {{ activity()!.block.isGoal ? 'Cel' : 'Stałe' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Conflict warning -->
+          @if (activity()!.hasConflict) {
+          <div class="detail-section conflict-warning">
+            <h3>⚠️ Konflikt harmonogramu</h3>
+            <p>
+              Ta aktywność pokrywa się z inną w tym samym czasie dla tego
+              członka rodziny. Rozważ przesunięcie jednej z aktywności.
+            </p>
+          </div>
+          } }
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+          @if (isEditMode()) {
+          <button
+            class="btn-secondary"
+            (click)="cancelEdit()"
+            [disabled]="isSaving()"
+          >
+            Anuluj
+          </button>
+          <button
+            class="btn-primary"
+            (click)="onSave()"
+            [disabled]="!canSave() || isSaving()"
+          >
+            @if (isSaving()) {
+            <span class="spinner"></span>
+            <span>Zapisywanie...</span>
+            } @else { Zapisz zmiany }
+          </button>
+          } @else {
+          <button
+            class="btn-danger"
+            (click)="onDelete()"
+            [disabled]="isDeleting()"
+          >
+            @if (isDeleting()) {
+            <span class="spinner"></span>
+            <span>Usuwanie...</span>
+            } @else { Usuń }
+          </button>
+          <button class="btn-primary" (click)="startEdit()">Edytuj</button>
+          <button class="btn-secondary" (click)="onClose()">Zamknij</button>
+          }
         </div>
       </div>
+    </div>
     }
   `,
-  styles: [`
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      padding: 20px;
-    }
+  styles: [
+    `
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 20px;
+      }
 
-    .modal-content {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-      width: 100%;
-      max-width: 600px;
-      max-height: 90vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
+      .modal-content {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        width: 100%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
 
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 24px 24px 20px;
-      border-bottom: 2px solid #e5e7eb;
-    }
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 24px 20px;
+        border-bottom: 2px solid #e5e7eb;
+      }
 
-    .header-main {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex: 1;
-    }
+      .header-main {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+      }
 
-    .modal-header h2 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #111827;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+      .modal-header h2 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
 
-    .day-label {
-      font-size: 13px;
-      color: #6b7280;
-      margin: 0;
-    }
+      .day-label {
+        font-size: 13px;
+        color: #6b7280;
+        margin: 0;
+      }
 
-    .title-input {
-      flex: 1;
-      padding: 8px 12px;
-      border: 2px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 24px;
-      font-weight: 700;
-      color: #111827;
-      font-family: inherit;
-    }
+      .title-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 2px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 24px;
+        font-weight: 700;
+        color: #111827;
+        font-family: inherit;
+      }
 
-    .title-input:focus {
-      outline: none;
-      border-color: #3b82f6;
-    }
+      .title-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+      }
 
-    .emoji {
-      font-size: 28px;
-    }
+      .emoji {
+        font-size: 28px;
+      }
 
-    .close-btn {
-      width: 36px;
-      height: 36px;
-      border: none;
-      background: #f3f4f6;
-      border-radius: 8px;
-      font-size: 20px;
-      color: #6b7280;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+      .close-btn {
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: #f3f4f6;
+        border-radius: 8px;
+        font-size: 20px;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-    .close-btn:hover {
-      background: #e5e7eb;
-      color: #111827;
-    }
+      .close-btn:hover {
+        background: #e5e7eb;
+        color: #111827;
+      }
 
-    .close-btn:active {
-      transform: scale(0.95);
-    }
+      .close-btn:active {
+        transform: scale(0.95);
+      }
 
-    .modal-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-    }
+      .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+      }
 
-    .detail-section {
-      margin-bottom: 24px;
-    }
+      .detail-section {
+        margin-bottom: 24px;
+      }
 
-    .detail-section:last-child {
-      margin-bottom: 0;
-    }
+      .detail-section:last-child {
+        margin-bottom: 0;
+      }
 
-    .detail-section h3 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #374151;
-      margin: 0 0 12px 0;
-    }
+      .detail-section h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #374151;
+        margin: 0 0 12px 0;
+      }
 
-    .time-range {
-      font-size: 20px;
-      font-weight: 700;
-      color: #111827;
-      margin: 0 0 8px 0;
-    }
+      .time-range {
+        font-size: 20px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 8px 0;
+      }
 
-    .duration {
-      font-size: 14px;
-      color: #6b7280;
-      margin: 0;
-    }
+      .duration {
+        font-size: 14px;
+        color: #6b7280;
+        margin: 0;
+      }
 
-    .time-inputs {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 8px;
-    }
+      .time-inputs {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
 
-    .time-input-group {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+      .time-input-group {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
 
-    .time-input-group label {
-      font-size: 14px;
-      font-weight: 600;
-      color: #374151;
-    }
+      .time-input-group label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+      }
 
-    .time-input {
-      padding: 10px 12px;
-      border: 2px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 16px;
-      font-family: inherit;
-    }
+      .time-input {
+        padding: 10px 12px;
+        border: 2px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 16px;
+        font-family: inherit;
+      }
 
-    .time-input:focus {
-      outline: none;
-      border-color: #3b82f6;
-    }
+      .time-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+      }
 
-    .participants-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
+      .participants-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
 
-    .participants-edit {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+      .participants-edit {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      color: #374151;
-    }
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #374151;
+      }
 
-    .checkbox-input {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
+      .checkbox-input {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
 
-    .member-select,
-    .type-select {
-      padding: 10px 12px;
-      border: 2px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 14px;
-      font-family: inherit;
-      background: #fff;
-      cursor: pointer;
-    }
+      .member-select,
+      .type-select {
+        padding: 10px 12px;
+        border: 2px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        background: #fff;
+        cursor: pointer;
+      }
 
-    .member-select:focus,
-    .type-select:focus {
-      outline: none;
-      border-color: #3b82f6;
-    }
+      .member-select:focus,
+      .type-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+      }
 
-    .participant-chip {
-      padding: 8px 16px;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 600;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
+      .participant-chip {
+        padding: 8px 16px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
 
-    .shared-badge {
-      padding: 6px 12px;
-      background: #f3f4f6;
-      border-radius: 6px;
-      font-size: 13px;
-      color: #6b7280;
-      font-style: italic;
-    }
+      .shared-badge {
+        padding: 6px 12px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #6b7280;
+        font-style: italic;
+      }
 
-    .description {
-      font-size: 15px;
-      line-height: 1.6;
-      color: #374151;
-      margin: 0;
-    }
+      .description {
+        font-size: 15px;
+        line-height: 1.6;
+        color: #374151;
+        margin: 0;
+      }
 
-    .description-textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border: 2px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 14px;
-      font-family: inherit;
-      resize: vertical;
-      min-height: 80px;
-    }
+      .description-textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        resize: vertical;
+        min-height: 80px;
+      }
 
-    .description-textarea:focus {
-      outline: none;
-      border-color: #3b82f6;
-    }
+      .description-textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+      }
 
-    .badges {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+      .badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
 
-    .type-badge,
-    .goal-badge {
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-    }
+      .type-badge,
+      .goal-badge {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+      }
 
-    .type-badge {
-      background: #dbeafe;
-      color: #1e40af;
-    }
+      .type-badge {
+        background: #dbeafe;
+        color: #1e40af;
+      }
 
-    .goal-badge {
-      background: #f3f4f6;
-      color: #6b7280;
-    }
+      .goal-badge {
+        background: #f3f4f6;
+        color: #6b7280;
+      }
 
-    .goal-badge.is-goal {
-      background: #dcfce7;
-      color: #15803d;
-    }
+      .goal-badge.is-goal {
+        background: #dcfce7;
+        color: #15803d;
+      }
 
-    .conflict-warning {
-      padding: 16px;
-      background: #fef2f2;
-      border: 2px solid #fecaca;
-      border-radius: 8px;
-    }
+      .conflict-warning {
+        padding: 16px;
+        background: #fef2f2;
+        border: 2px solid #fecaca;
+        border-radius: 8px;
+      }
 
-    .conflict-warning h3 {
-      color: #dc2626;
-      margin-bottom: 8px;
-    }
+      .conflict-warning h3 {
+        color: #dc2626;
+        margin-bottom: 8px;
+      }
 
-    .conflict-warning p {
-      font-size: 14px;
-      color: #991b1b;
-      margin: 0;
-      line-height: 1.5;
-    }
+      .conflict-warning p {
+        font-size: 14px;
+        color: #991b1b;
+        margin: 0;
+        line-height: 1.5;
+      }
 
-    .error-section {
-      padding: 12px;
-      background: #fef2f2;
-      border: 2px solid #fecaca;
-      border-radius: 8px;
-    }
+      .error-section {
+        padding: 12px;
+        background: #fef2f2;
+        border: 2px solid #fecaca;
+        border-radius: 8px;
+      }
 
-    .error-message {
-      font-size: 14px;
-      color: #dc2626;
-      margin: 8px 0 0 0;
-    }
+      .error-message {
+        font-size: 14px;
+        color: #dc2626;
+        margin: 8px 0 0 0;
+      }
 
-    .modal-footer {
-      padding: 20px 24px;
-      border-top: 2px solid #e5e7eb;
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-    }
+      .modal-footer {
+        padding: 20px 24px;
+        border-top: 2px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+      }
 
-    .btn-secondary {
-      padding: 10px 24px;
-      border: 2px solid #d1d5db;
-      background: #fff;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #374151;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
+      .btn-secondary {
+        padding: 10px 24px;
+        border: 2px solid #d1d5db;
+        background: #fff;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
 
-    .btn-secondary:hover:not(:disabled) {
-      background: #f9fafb;
-      border-color: #9ca3af;
-    }
+      .btn-secondary:hover:not(:disabled) {
+        background: #f9fafb;
+        border-color: #9ca3af;
+      }
 
-    .btn-secondary:active:not(:disabled) {
-      transform: scale(0.98);
-    }
+      .btn-secondary:active:not(:disabled) {
+        transform: scale(0.98);
+      }
 
-    .btn-secondary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+      .btn-secondary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
 
-    .btn-primary {
-      padding: 10px 24px;
-      border: none;
-      background: #3b82f6;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+      .btn-primary {
+        padding: 10px 24px;
+        border: none;
+        background: #3b82f6;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-    .btn-primary:hover:not(:disabled) {
-      background: #2563eb;
-    }
+      .btn-primary:hover:not(:disabled) {
+        background: #2563eb;
+      }
 
-    .btn-primary:active:not(:disabled) {
-      transform: scale(0.98);
-    }
+      .btn-primary:active:not(:disabled) {
+        transform: scale(0.98);
+      }
 
-    .btn-primary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
 
-    .btn-danger {
-      padding: 10px 24px;
-      border: none;
-      background: #dc2626;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+      .btn-danger {
+        padding: 10px 24px;
+        border: none;
+        background: #dc2626;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-    .btn-danger:hover:not(:disabled) {
-      background: #b91c1c;
-    }
+      .btn-danger:hover:not(:disabled) {
+        background: #b91c1c;
+      }
 
-    .btn-danger:active:not(:disabled) {
-      transform: scale(0.98);
-    }
+      .btn-danger:active:not(:disabled) {
+        transform: scale(0.98);
+      }
 
-    .btn-danger:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+      .btn-danger:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
 
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-    }
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-    /* Custom scrollbar */
-    .modal-body::-webkit-scrollbar {
-      width: 8px;
-    }
+      /* Custom scrollbar */
+      .modal-body::-webkit-scrollbar {
+        width: 8px;
+      }
 
-    .modal-body::-webkit-scrollbar-track {
-      background: #f3f4f6;
-    }
+      .modal-body::-webkit-scrollbar-track {
+        background: #f3f4f6;
+      }
 
-    .modal-body::-webkit-scrollbar-thumb {
-      background: #d1d5db;
-      border-radius: 4px;
-    }
+      .modal-body::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+      }
 
-    .modal-body::-webkit-scrollbar-thumb:hover {
-      background: #9ca3af;
-    }
-  `],
+      .modal-body::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+      }
+    `,
+  ],
   animations: [
     trigger('fadeIn', [
       transition(':enter', [
         style({ opacity: 0 }),
         animate('200ms ease-out', style({ opacity: 1 })),
       ]),
-      transition(':leave', [
-        animate('200ms ease-in', style({ opacity: 0 })),
-      ]),
+      transition(':leave', [animate('200ms ease-in', style({ opacity: 0 }))]),
     ]),
     trigger('slideIn', [
       transition(':enter', [
         style({ opacity: 0, transform: 'scale(0.95) translateY(20px)' }),
-        animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1) translateY(0)' })),
+        animate(
+          '200ms ease-out',
+          style({ opacity: 1, transform: 'scale(1) translateY(0)' })
+        ),
       ]),
       transition(':leave', [
-        animate('200ms ease-in', style({ opacity: 0, transform: 'scale(0.95) translateY(20px)' })),
+        animate(
+          '200ms ease-in',
+          style({ opacity: 0, transform: 'scale(0.95) translateY(20px)' })
+        ),
       ]),
     ]),
   ],

@@ -6,8 +6,11 @@
 
   <div class="filters-bar">
     <div class="filter-group">
-      <label>Filter by Member:</label>
-      <select (change)="onFilterChange($any($event.target).value || null)">
+      <label for="memberFilter">Filter by Member:</label>
+      <select
+        id="memberFilter"
+        (change)="onFilterChange($any($event.target).value || null)"
+      >
         <option value="">All Members</option>
         @for (member of members(); track member.familyMemberId) {
         <option [value]="member.familyMemberId">{{ member.name }}</option>
@@ -16,8 +19,9 @@
     </div>
 
     <div class="filter-group">
-      <label>Sort by:</label>
+      <label for="sortBy">Sort by:</label>
       <select
+        id="sortBy"
         [value]="sortBy()"
         (change)="onSortChange($any($event.target).value)"
       >

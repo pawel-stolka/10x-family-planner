@@ -126,11 +126,17 @@ test.describe('Auth – basic flows', () => {
     });
 
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    // Wait for the login view to render instead of using networkidle
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Welcome Back' })
+    ).toBeVisible();
     expect(page.url()).not.toMatch(/\/login(\?|$)/);
 
     await page.goto('/register');
-    await page.waitForLoadState('networkidle');
+    // Wait for the register view to render instead of using networkidle
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Create Account' })
+    ).toBeVisible();
     expect(page.url()).not.toMatch(/\/register(\?|$)/);
   });
 

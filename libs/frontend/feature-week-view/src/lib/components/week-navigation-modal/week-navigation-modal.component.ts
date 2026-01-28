@@ -33,6 +33,7 @@ import {
  * Week Navigation Modal Component
  * (Now used as Quick Add Activity modal for a specific cell: day + time)
  */
+/* eslint-disable @angular-eslint/no-output-native */
 @Component({
   selector: 'app-week-navigation-modal',
   standalone: true,
@@ -46,8 +47,21 @@ import {
     MatCheckboxModule,
   ],
   template: `
-    <div class="modal-backdrop" (click)="onBackdropClick()" @fadeIn>
-      <div class="modal-content" (click)="onContentClick($event)" @slideIn>
+    <div
+      class="modal-backdrop"
+      role="button"
+      tabindex="0"
+      (click)="onBackdropClick()"
+      (keyup.enter)="onBackdropClick()"
+      @fadeIn
+    >
+      <div
+        class="modal-content"
+        tabindex="-1"
+        (click)="onContentClick($event)"
+        (keyup.enter)="onContentClick($event)"
+        @slideIn
+      >
         <!-- Header -->
         <div class="modal-header">
           <h2>➕ Nowa aktywność</h2>
@@ -72,7 +86,9 @@ import {
               <div
                 class="activity-item"
                 [class.expanded]="expandedActivityId() === activity.id"
+                tabindex="0"
                 (click)="toggleActivityDetails(activity.id)"
+                (keyup.enter)="toggleActivityDetails(activity.id)"
               >
                 <div class="activity-header">
                   <div class="activity-title">
@@ -589,8 +605,6 @@ export class WeekNavigationModalComponent {
     const dayName = dayOfWeek === 0 ? dayNames[6] : dayNames[dayOfWeek - 1];
     return `${dayName}, ${info.timeSlot}`;
   });
-
-  constructor() {}
 
   /**
    * Handle Escape key

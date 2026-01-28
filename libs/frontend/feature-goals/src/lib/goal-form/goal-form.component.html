@@ -74,9 +74,13 @@
     </div>
 
     <div class="form-group">
-      <label>Preferred Days (optional)</label>
+      <p id="preferred-days-label">Preferred Days (optional)</p>
       <small class="hint">Leave empty to allow scheduling on any day</small>
-      <div class="checkbox-group">
+      <div
+        class="checkbox-group"
+        role="group"
+        aria-labelledby="preferred-days-label"
+      >
         @for (day of daysOfWeekOptions; track day.value) {
         <label class="checkbox-label">
           <input
@@ -91,8 +95,12 @@
     </div>
 
     <div class="form-group">
-      <label>Preferred Time of Day</label>
-      <div class="checkbox-group">
+      <p id="preferred-time-label">Preferred Time of Day</p>
+      <div
+        class="checkbox-group"
+        role="group"
+        aria-labelledby="preferred-time-label"
+      >
         @for (option of timeOfDayOptions; track option.value) {
         <label class="checkbox-label">
           <input
@@ -109,7 +117,7 @@
     </div>
 
     <div class="form-group">
-      <label>Priority *</label>
+      <p>Priority *</p>
       <div class="radio-group">
         @for (option of priorityOptions; track option.value) {
         <label class="radio-label">
