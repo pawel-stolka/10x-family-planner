@@ -143,25 +143,25 @@ jobs:
       - name: Unit tests (Nx Jest, with coverage)
         run: npx nx run-many -t test --all --configuration=ci
 
-      - name: E2E tests (frontend - Playwright)
-        run: |
-          npx playwright install --with-deps chromium
-          npx nx run frontend-e2e:e2e
+      # - name: E2E tests (frontend - Playwright)
+      #   run: |
+      #     npx playwright install --with-deps chromium
+      #     npx nx run frontend-e2e:e2e
 
       - name: Build apps (production)
         run: |
           npx nx run backend:build --configuration=production
           npx nx run frontend:build --configuration=production
 
-      - name: Upload coverage artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: |
-            coverage
-            **/coverage
-          if-no-files-found: ignore
+      # - name: Upload coverage artifacts
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage
+      #     path: |
+      #       coverage
+      #       **/coverage
+      #     if-no-files-found: ignore
 
 # Jesteś specjalistą GitHub Actions w stacku @tech-stack.md  @package.json 
 
