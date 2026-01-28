@@ -3,6 +3,7 @@ export default {
   preset: '../../../jest.preset.js',
   // Używamy jsdom, bo store korzysta z localStorage (API przeglądarkowe)
   testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
   coverageDirectory: '../../../coverage/libs/frontend/data-access-auth',
   transform: {
     '^.+\\.(ts|mjs|js|html)$': [
