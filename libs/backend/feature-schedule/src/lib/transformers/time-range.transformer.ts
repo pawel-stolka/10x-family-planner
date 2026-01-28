@@ -44,7 +44,7 @@ export class TimeRangeTransformer implements ValueTransformer {
     }
 
     // PostgreSQL TSTZRANGE format: '[start,end)' or '(start,end]' etc.
-    const matches = value.match(/[\[\(](.+?),(.+?)[\]\)]/);
+    const matches = value.match(/[[(](.+?),(.+?)[\])]/);
 
     if (!matches || matches.length < 3) {
       return null;
