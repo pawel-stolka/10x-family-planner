@@ -13,8 +13,8 @@ import { test, expect } from '@playwright/test';
  * Adjust seeding or env vars to match your actual dev user.
  */
 
-const E2E_USER_EMAIL = process.env['E2E_USER_EMAIL'] || 'e2e.user@example.com';
-const E2E_USER_PASSWORD = process.env['E2E_USER_PASSWORD'] || 'Password123!';
+const E2E_USER_EMAIL = process.env['E2E_USER_EMAIL'];
+const E2E_USER_PASSWORD = process.env['E2E_USER_PASSWORD'];
 
 test.describe('Auth – basic flows', () => {
   test('unauthenticated user is redirected from / to /login', async ({
@@ -30,6 +30,14 @@ test.describe('Auth – basic flows', () => {
   });
 
   test('login happy path with seeded dev user', async ({ page }) => {
+    // Validate credentials are set
+    if (!E2E_USER_EMAIL || !E2E_USER_PASSWORD) {
+      throw new Error(
+        'E2E_USER_EMAIL and E2E_USER_PASSWORD environment variables must be set. ' +
+          'Set them in your environment or in a .env file.'
+      );
+    }
+
     // Listen for console errors and network failures
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
@@ -49,10 +57,12 @@ test.describe('Auth – basic flows', () => {
 
     await page.goto('/login');
 
+    // Fill email field
     await page.getByLabel('Email').fill(E2E_USER_EMAIL);
-    await page
-      .getByRole('textbox', { name: 'Password' })
-      .fill(E2E_USER_PASSWORD);
+
+    // Fill password field - use getByPlaceholder or getByLabel to avoid strict mode issues
+    const passwordInput = page.locator('input[type="password"]').first();
+    await passwordInput.fill(E2E_USER_PASSWORD);
 
     await page.getByRole('button', { name: /sign in/i }).click();
 
@@ -98,11 +108,15 @@ test.describe('Auth – basic flows', () => {
   test('guards: authenticated user cannot access /login or /register', async ({
     page,
   }) => {
+    if (!E2E_USER_EMAIL || !E2E_USER_PASSWORD) {
+      test.skip();
+      return;
+    }
+
     await page.goto('/login');
     await page.getByLabel('Email').fill(E2E_USER_EMAIL);
-    await page
-      .getByRole('textbox', { name: 'Password' })
-      .fill(E2E_USER_PASSWORD);
+    const passwordInput = page.locator('input[type="password"]').first();
+    await passwordInput.fill(E2E_USER_PASSWORD);
 
     await page.getByRole('button', { name: /sign in/i }).click();
 
@@ -121,11 +135,15 @@ test.describe('Auth – basic flows', () => {
   });
 
   test('logout returns user to public nav + /login', async ({ page }) => {
+    if (!E2E_USER_EMAIL || !E2E_USER_PASSWORD) {
+      test.skip();
+      return;
+    }
+
     await page.goto('/login');
     await page.getByLabel('Email').fill(E2E_USER_EMAIL);
-    await page
-      .getByRole('textbox', { name: 'Password' })
-      .fill(E2E_USER_PASSWORD);
+    const passwordInput = page.locator('input[type="password"]').first();
+    await passwordInput.fill(E2E_USER_PASSWORD);
 
     await page.getByRole('button', { name: /sign in/i }).click();
 
