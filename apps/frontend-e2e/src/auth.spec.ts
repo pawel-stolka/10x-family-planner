@@ -13,8 +13,8 @@ import { test, expect } from '@playwright/test';
  * Adjust seeding or env vars to match your actual dev user.
  */
 
-const E2E_USER_EMAIL = process.env['E2E_USER_EMAIL'] || 'e2e.user@example.com';
-const E2E_USER_PASSWORD = process.env['E2E_USER_PASSWORD'] || 'Password123!';
+const E2E_USER_EMAIL = process.env['E2E_USER_EMAIL'];
+const E2E_USER_PASSWORD = process.env['E2E_USER_PASSWORD'];
 
 test.describe('Auth – basic flows', () => {
   test('unauthenticated user is redirected from / to /login', async ({
