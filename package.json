@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "playwright-ui": "npx playwright test --ui",
+    "playwright-e2e": "npx nx run frontend-e2e:e2e",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
