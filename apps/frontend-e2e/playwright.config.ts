@@ -21,6 +21,12 @@ export default defineConfig({
     baseURL,
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    /* Enable video recording for failed tests */
+    video: 'retain-on-failure',
+    /* Enable screenshots on failure */
+    screenshot: 'only-on-failure',
+    /* Slow down operations by 100ms to see what's happening (set to 0 for normal speed) */
+    // slowMo: 100,
   },
   /* Run your local dev server before starting the tests */
   webServer: {
