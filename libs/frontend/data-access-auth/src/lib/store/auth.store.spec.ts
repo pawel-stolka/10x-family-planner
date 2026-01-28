@@ -6,16 +6,19 @@ import { AuthService } from '../services/auth.service';
 import { User, LoginCredentials, RegistrationData } from '../models/user.model';
 
 describe('AuthStore', () => {
-  let mockAuthService: jest.Mocked<Partial<AuthService>>;
+  let mockAuthService: {
+    login: jest.Mock;
+    register: jest.Mock;
+    logout: jest.Mock;
+    refreshToken: jest.Mock;
+  };
   let mockRouter: jest.Mocked<Partial<Router>>;
   let mockInjector: Injector;
 
   const mockUser: User = {
-    userId: 'test-user-id',
+    id: 'test-user-id',
     email: 'test@example.com',
-    firstName: 'Test',
-    lastName: 'User',
-    hasCompletedOnboarding: false,
+    displayName: 'Test User',
     createdAt: new Date('2024-01-01'),
   };
 
@@ -106,8 +109,7 @@ describe('AuthStore', () => {
       const registrationData: RegistrationData = {
         email: mockUser.email,
         password: 'password123',
-        firstName: mockUser.firstName,
-        lastName: mockUser.lastName,
+        displayName: mockUser.displayName ?? 'Test User',
       };
       const response = { user: mockUser, token: mockToken };
       mockAuthService.register?.mockReturnValue(of(response));
@@ -131,8 +133,7 @@ describe('AuthStore', () => {
       const registrationData: RegistrationData = {
         email: mockUser.email,
         password: 'password123',
-        firstName: mockUser.firstName,
-        lastName: mockUser.lastName,
+        displayName: mockUser.displayName ?? 'Test User',
       };
       const error = { status: 409, error: { message: 'Email already exists' } };
       mockAuthService.register?.mockReturnValue(throwError(() => error));
@@ -222,9 +223,7 @@ describe('AuthStore', () => {
       mockAuthService.logout?.mockReturnValue(throwError(() => error));
 
       // Act & Assert
-      await expect(
-        firstValueFrom(authStore.logout())
-      ).rejects.toBeDefined();
+      await expect(firstValueFrom(authStore.logout())).rejects.toBeDefined();
 
       expect(authStore.user()).toBeNull();
       expect(authStore.token()).toBeNull();

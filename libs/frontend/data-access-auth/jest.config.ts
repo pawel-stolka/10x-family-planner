@@ -1,18 +1,22 @@
 export default {
   displayName: 'data-access-auth',
   preset: '../../../jest.preset.js',
-  testEnvironment: 'node',
-  transform: {
-    '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
-  },
-  moduleFileExtensions: ['ts', 'js', 'html'],
+  // Używamy jsdom, bo store korzysta z localStorage (API przeglądarkowe)
+  testEnvironment: 'jsdom',
   coverageDirectory: '../../../coverage/libs/frontend/data-access-auth',
-  transformIgnorePatterns: [
-    'node_modules/(?!(@angular|rxjs)/)',
-  ],
-  moduleNameMapper: {
-    '^@angular/common/http$': '<rootDir>/../../../node_modules/@angular/common/fesm2022/http.mjs',
-    '^@angular/core$': '<rootDir>/../../../node_modules/@angular/core/fesm2022/core.mjs',
-    '^@angular/router$': '<rootDir>/../../../node_modules/@angular/router/fesm2022/router.mjs',
+  transform: {
+    '^.+\\.(ts|mjs|js|html)$': [
+      'jest-preset-angular',
+      {
+        tsconfig: '<rootDir>/tsconfig.spec.json',
+        stringifyContentPathRegex: '\\.(html|svg)$',
+      },
+    ],
   },
+  transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
+  snapshotSerializers: [
+    'jest-preset-angular/build/serializers/no-ng-attributes',
+    'jest-preset-angular/build/serializers/ng-snapshot',
+    'jest-preset-angular/build/serializers/html-comment',
+  ],
 };
