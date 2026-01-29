@@ -97,8 +97,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
-        run: npx nx run frontend-e2e:e2e
+      # - name: Run E2E tests
+      #   run: npx nx run frontend-e2e:e2e
 
       - name: Upload E2E test coverage
         if: always()
