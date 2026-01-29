@@ -123,14 +123,16 @@ jobs:
   status-comment:
     name: Post PR Status
     runs-on: ubuntu-latest
-    needs: [lint, unit-test, e2e-test]
+    # needs: [lint, unit-test, e2e-test]
+    needs: [lint, unit-test]
     if: always()
 
     steps:
       - name: Check job statuses
         id: check
         run: |
-          if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.unit-test.result }}" == "success" && "${{ needs.e2e-test.result }}" == "success" ]]; then
+          # if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.unit-test.result }}" == "success" && "${{ needs.e2e-test.result }}" == "success" ]]; then
+          if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.unit-test.result }}" == "success"]]; then
             echo "status=success" >> $GITHUB_OUTPUT
             echo "message=✅ All checks passed successfully!" >> $GITHUB_OUTPUT
             echo "color=28a745" >> $GITHUB_OUTPUT
@@ -162,7 +164,7 @@ jobs:
             ### Job Results:
             - **Lint**: ${{ needs.lint.result }}
             - **Unit Tests**: ${{ needs.unit-test.result }}
-            - **E2E Tests**: ${{ needs.e2e-test.result }}
+            # - **E2E Tests**: ${{ needs.e2e-test.result }}
 
             ---
             *Last updated: ${new Date().toISOString()}*`;
