@@ -1,17 +1,14 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthStore } from '@family-planner/frontend/data-access-auth';
 import { ScheduleStore } from '@family-planner/frontend/data-access-schedule';
 
 /**
- * DashboardPlaceholderComponent - Temporary dashboard for testing navigation
+ * DashboardPlaceholderComponent - Redirects to schedule view
  *
- * This is a placeholder component to test:
- * - Successful login/register flow
- * - AuthGuard protection
- * - Logout functionality
- * - User data display
+ * This component redirects to the schedule/week route since that's the main dashboard.
+ * The week view is lazy-loaded to maintain proper code splitting.
  */
 @Component({
   selector: 'fp-dashboard-placeholder',
@@ -19,13 +16,9 @@ import { ScheduleStore } from '@family-planner/frontend/data-access-schedule';
   template: `
     <div class="dashboard-placeholder">
       <div class="dashboard-container">
-        <!-- Placeholder content while main dashboard is being developed -->
-        <div class="welcome-card">
-          <h2 class="welcome-title">Family Planner Dashboard</h2>
-          <p class="welcome-text">
-            You are successfully logged in. Use the navigation to manage your
-            family, goals, commitments and weekly schedule.
-          </p>
+        <div class="loading-card">
+          <h2 class="loading-title">Loading Dashboard...</h2>
+          <p class="loading-text">Redirecting to your weekly schedule...</p>
         </div>
       </div>
     </div>
@@ -46,21 +39,22 @@ import { ScheduleStore } from '@family-planner/frontend/data-access-schedule';
         gap: 1.5rem;
       }
 
-      .welcome-card {
+      .loading-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-radius: 12px;
         padding: 2.5rem;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        text-align: center;
       }
 
-      .welcome-title {
+      .loading-title {
         font-size: 1.75rem;
         font-weight: 700;
         margin: 0 0 1rem 0;
       }
 
-      .welcome-text {
+      .loading-text {
         font-size: 1.1rem;
         margin: 0;
         opacity: 0.95;
@@ -276,65 +270,13 @@ import { ScheduleStore } from '@family-planner/frontend/data-access-schedule';
     `,
   ],
 })
-export class DashboardPlaceholderComponent {
+export class DashboardPlaceholderComponent implements OnInit {
   protected readonly authStore = inject(AuthStore);
   protected readonly scheduleStore = inject(ScheduleStore);
+  private readonly router = inject(Router);
 
-  /**
-   * Handle logout
-   */
-  protected onLogout(): void {
-    this.authStore.logout().subscribe({
-      next: () => {
-        console.log('Logout successful');
-      },
-      error: (error) => {
-        console.error('Logout failed:', error);
-      },
-    });
-  }
-
-  /**
-   * Handle schedule generation
-   */
-  protected onGenerateSchedule(): void {
-    // Get next Monday as start date
-    // const nextMonday = this.getNextMonday();
-    const nextMonday = '2026-01-26';
-
-    console.log('🚀 Generating schedule for week starting:', nextMonday);
-
-    this.scheduleStore
-      .generateSchedule({
-        weekStartDate: nextMonday,
-        strategy: 'balanced',
-        preferences: {
-          respectFixedBlocks: true,
-          includeAllGoals: true,
-          preferMornings: false,
-          maximizeFamilyTime: true,
-        },
-      })
-      .subscribe({
-        next: (response) => {
-          console.log('✅ Schedule generated:', response);
-        },
-        error: (error) => {
-          console.error('❌ Generation failed:', error);
-        },
-      });
-  }
-
-  /**
-   * Get next Monday's date in ISO format (YYYY-MM-DD)
-   */
-  private getNextMonday(): string {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-    const nextMonday = new Date(today);
-    nextMonday.setDate(today.getDate() + daysUntilMonday);
-
-    return nextMonday.toISOString().split('T')[0];
+  ngOnInit(): void {
+    // Redirect to the main schedule view (lazy-loaded)
+    this.router.navigate(['/schedule/week']);
   }
 }
