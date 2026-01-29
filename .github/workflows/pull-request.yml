@@ -132,7 +132,7 @@ jobs:
         id: check
         run: |
           # if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.unit-test.result }}" == "success" && "${{ needs.e2e-test.result }}" == "success" ]]; then
-          if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.unit-test.result }}" == "success"]]; then
+          if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.unit-test.result }}" == "success" ]]; then
             echo "status=success" >> $GITHUB_OUTPUT
             echo "message=✅ All checks passed successfully!" >> $GITHUB_OUTPUT
             echo "color=28a745" >> $GITHUB_OUTPUT
