@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "test": "nx run-many -t test",
+    "test:coverage": "nx run-many -t test --coverage --coverageReporters=json-summary --coverageReporters=html --coverageReporters=lcov && node scripts/coverage-summary.js",
+    "test:coverage:summary": "nx run-many -t test --coverage --coverageReporters=json-summary && node scripts/coverage-summary.js",
+    "test:coverage:detailed": "nx run-many -t test --coverage --coverageReporters=text --coverageReporters=html",
+    "test:coverage:table": "node scripts/coverage-summary.js",
     "playwright-ui": "npx playwright test --ui",
     "playwright-e2e": "npx nx run frontend-e2e:e2e",
     "supabase:start": "supabase start",
