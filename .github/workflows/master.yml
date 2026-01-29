@@ -1,116 +1,3 @@
-# name: deploy to test (with AAD)
-
-# on:
-#   push:
-#     branches:
-#       - master
-#   pull_request:
-#     types: [opened, synchronize, reopened, closed]
-#     branches:
-#       - master
-
-# jobs:
-#   build_and_deploy_job:
-#     if: |
-#       (github.event_name == 'push' && github.ref == 'refs/heads/master') || 
-#       (github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.base.ref == 'master')
-#     runs-on: ubuntu-latest
-#     name: Build and Deploy Job
-#     steps:
-#       - uses: actions/checkout@v3
-#         with:
-#           submodules: true
-#           lfs: false
-#           fetch-depth: 0 # Ensure full history is fetched to compare branches
-
-#       - name: Install dependencies
-#         run: npm install --legacy-peer-deps # Install all dependencies with legacy peer deps handling
-
-#       - name: Fetch all branches
-#         run: git fetch --all
-#       # - name: Fetch base branch for comparison
-#       #   run: git fetch origin master
-
-#       - name: Lint affected libs/apps
-#         id: run_lint
-#         run: npx nx affected --target=lint --parallel=3 --base=origin/master --head=HEAD --verbose
-
-#       - name: Run code coverage for all projects
-#         id: run_coverage
-#         run: npm run test-all:coverage-all
-#         continue-on-error: true # Don't fail the build if coverage fails, but still generate reports
-
-#       - name: Add AAD Autentication on prod admin
-#         run: cp staticwebapp.config.test.json staticwebapp.config.json
-
-#       - name: Insert build number and commit hash
-#         run: |
-#           COMMIT_HASH=$(git rev-parse --short HEAD)
-#           echo "Build number: ${{ github.run_number }}"
-#           echo "Commit hash: ${COMMIT_HASH}"
-#           cat libs/shared/data-access/src/lib/configs/environment.ts
-#           sed -i "s/__BUILD_NUMBER__/${{ github.run_number }}/g" libs/shared/data-access/src/lib/configs/environment.ts
-#           sed -i "s/__COMMIT_HASH__/${COMMIT_HASH}/g" libs/shared/data-access/src/lib/configs/environment.ts
-#           echo "After replacement:"
-#           cat libs/shared/data-access/src/lib/configs/environment.ts
-
-#       - name: Build And Deploy
-#         id: builddeploy
-#         if: |
-#           success() && 
-#           ((github.event_name == 'push' && github.ref == 'refs/heads/master') || 
-#           (github.event_name == 'pull_request' && github.event.action != 'closed' && !github.event.pull_request.merged))
-#         uses: Azure/static-web-apps-deploy@v1
-#         with:
-#           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ICY_BUSH_0E00EBB03 }}
-#           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
-#           action: 'upload'
-#           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-#           app_location: '/' # App source code path
-#           api_location: '' # Api source code path - optional
-#           output_location: 'dist/apps/fdr-frontend/browser' # Built app content directory - optional
-#           ###### End of Repository/Build Configurations ######
-
-#   close_pull_request_job:
-#     if: github.event_name == 'pull_request' && github.event.action == 'closed'
-#     runs-on: ubuntu-latest
-#     name: Close Pull Request Job
-#     steps:
-#       - name: Close Pull Request
-#         id: closepullrequest
-#         uses: Azure/static-web-apps-deploy@v1
-#         with:
-#           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ICY_BUSH_0E00EBB03 }}
-#           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
-#           action: 'close'
-#           app_location: '/' # App source code path
-#           api_location: '' # Api source code path - optional
-#           output_location: 'dist/apps/fdr-frontend/browser' # Built app content directory - optional
-
-#       - name: Delete branch after merge
-#         if: github.event.pull_request.merged == true
-#         uses: actions/github-script@v7
-#         with:
-#           script: |
-#             const ref = context.payload.pull_request.head.ref;
-#             const owner = context.repo.owner;
-#             const repo = context.repo.repo;
-
-#             console.log(`Attempting to delete branch: ${ref}`);
-
-#             try {
-#               await github.rest.git.deleteRef({
-#                 owner: owner,
-#                 repo: repo,
-#                 ref: `heads/${ref}`
-#               });
-#               console.log(`Successfully deleted branch: ${ref}`);
-#             } catch (error) {
-#               // Branch might already be deleted, which is fine
-#               console.log(`Could not delete branch ${ref}: ${error.message}`);
-#             }
-
-
 name: Test & Build Master
 
 on:
@@ -143,10 +30,10 @@ jobs:
       - name: Unit tests (Nx Jest, with coverage)
         run: npx nx run-many -t test --all --configuration=ci
 
-      - name: E2E tests (frontend - Playwright)
-        run: |
-          npx playwright install --with-deps chromium
-          npx nx run frontend-e2e:e2e
+      # - name: E2E tests (frontend - Playwright) - temporary disabled due to GH envs problems
+      #   run: |
+      #     npx playwright install --with-deps chromium
+      #     npx nx run frontend-e2e:e2e
 
       - name: Build apps (production)
         run: |
@@ -163,27 +50,3 @@ jobs:
             **/coverage
           if-no-files-found: ignore
 
-# Jesteś specjalistą GitHub Actions w stacku @tech-stack.md  @package.json 
-
-# Na podstawie stanu projektu i dostępnych narzędzi (m.in. linter, uruchamianie testów, coverage, testów e2e, itp)
-# zaprojektuj minimalny setup CI/CD potwierdzający poprawne działanie testów oraz build w wersji produkcyjnej.
-
-# Scenariusz może być uruchamiany:
-# - manualnie
-# - po aktualizacji mastera
-
-
-# Utwórz scenariusz "pull-request.yml" na podstawie @github-action.mdc
-
-# Workflow:
-# Scenariusz "pull-request.yml" powinien działać następująco:
-
-# - Lintowanie kodu
-# - Następnie dwa równoległe - unit-test i e2e-test
-# - Finalnie - status-comment (komentarz do PRa o statusie całości)
-
-# Dodatkowe uwagi:
-# - status-comment uruchamia się tylko kiedy poprzedni zestaw 3 przejdzie poprawnie
-# - w jobie e2e pobieraj przeglądarki wg @playwright.config.ts
-# - w jobie e2e ustaw środowisko "integration" i zmienne z sekretów wg @.env.example
-# - zbieraj coverage unit testów i testów e2e
