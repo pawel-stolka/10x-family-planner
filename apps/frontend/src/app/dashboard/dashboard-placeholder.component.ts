@@ -1,8 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthStore } from '@family-planner/frontend/data-access-auth';
 import { ScheduleStore } from '@family-planner/frontend/data-access-schedule';
+import { WeekViewContainerComponent } from '@family-planner/frontend/feature-week-view';
 
 /**
  * DashboardPlaceholderComponent - Temporary dashboard for testing navigation
@@ -15,17 +16,12 @@ import { ScheduleStore } from '@family-planner/frontend/data-access-schedule';
  */
 @Component({
   selector: 'fp-dashboard-placeholder',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, WeekViewContainerComponent],
   template: `
     <div class="dashboard-placeholder">
       <div class="dashboard-container">
-        <!-- Placeholder content while main dashboard is being developed -->
-        <div class="welcome-card">
-          <h2 class="welcome-title">Family Planner Dashboard</h2>
-          <p class="welcome-text">
-            You are successfully logged in. Use the navigation to manage your
-            family, goals, commitments and weekly schedule.
-          </p>
+        <div class="week-view-shell">
+          <app-week-view-container />
         </div>
       </div>
     </div>
