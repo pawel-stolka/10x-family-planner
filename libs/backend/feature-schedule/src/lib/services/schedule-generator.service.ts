@@ -251,6 +251,14 @@ export class ScheduleGeneratorService {
       familyMemberMap.set(fm.name, fm.familyMemberId);
     });
 
+    // Create a mapping for recurringGoalId validation
+    const recurringGoalMap = new Map(
+      recurringGoals.map((goal) => [goal.goalId, goal.goalId])
+    );
+    this.logger.debug(
+      `📋 Created goal ID map with ${recurringGoalMap.size} valid goal IDs`
+    );
+
     // 10. Create time blocks from AI-generated schedule (manually added blocks are already in DB)
     const aiTimeBlockEntities = aiBlocks.map((block) => {
       // Convert day name + time to full datetime
@@ -275,8 +283,17 @@ export class ScheduleGeneratorService {
           ? familyMemberMap.get(block.familyMemberId) || undefined
           : undefined;
 
-      // Persist link to the recurring goal, if provided
-      const recurringGoalId = block.recurringGoalId || undefined;
+      // Validate and map recurringGoalId - only use if it exists in the database
+      const recurringGoalId = block.recurringGoalId
+        ? recurringGoalMap.get(block.recurringGoalId) || undefined
+        : undefined;
+
+      // Log warning if AI provided an invalid goal ID
+      if (block.recurringGoalId && !recurringGoalId) {
+        this.logger.warn(
+          `⚠️  AI provided invalid recurringGoalId "${block.recurringGoalId}" for block "${block.title}" - ignoring`
+        );
+      }
 
       const entity = new TimeBlockEntity();
       entity.scheduleId = savedSchedule.scheduleId;
