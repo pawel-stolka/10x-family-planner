@@ -1,4 +1,6 @@
-<fp-navigation></fp-navigation>
-<main class="app-content">
+@if (!isAuthPage()) {
+  <fp-navigation></fp-navigation>
+}
+<main [class.app-content]="!isAuthPage()" [class.auth-content]="isAuthPage()">
   <router-outlet></router-outlet>
 </main>

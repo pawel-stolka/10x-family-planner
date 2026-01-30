@@ -53,47 +53,50 @@ import {
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
+        height: 100vh;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1rem;
+        overflow: hidden;
       }
 
       .login-container {
         background: white;
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        padding: 2.5rem;
+        padding: 2rem 2.5rem;
         width: 100%;
         max-width: 420px;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
       }
 
       .login-header {
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
       }
 
       .app-title {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #667eea;
-        margin: 0 0 1rem 0;
+        margin: 0 0 0.75rem 0;
       }
 
       .login-title {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         font-weight: 600;
         color: #1a202c;
         margin: 0 0 0.5rem 0;
       }
 
       .login-subtitle {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         color: #718096;
         margin: 0;
       }
 
       .login-footer {
-        margin-top: 1.5rem;
+        margin-top: 1.25rem;
         text-align: center;
         font-size: 0.9rem;
         color: #4a5568;
@@ -112,16 +115,52 @@ import {
 
       /* Responsive */
       @media (max-width: 768px) {
+        .login-view {
+          padding: 0.5rem;
+        }
+
         .login-container {
-          padding: 2rem 1.5rem;
+          padding: 1.5rem;
+          max-height: calc(100vh - 1rem);
+        }
+
+        .login-header {
+          margin-bottom: 1.25rem;
         }
 
         .app-title {
-          font-size: 1.5rem;
+          font-size: 1.35rem;
         }
 
         .login-title {
-          font-size: 1.25rem;
+          font-size: 1.2rem;
+        }
+      }
+
+      @media (max-height: 700px) {
+        .login-container {
+          padding: 1.5rem 2rem;
+        }
+
+        .login-header {
+          margin-bottom: 1rem;
+        }
+
+        .app-title {
+          font-size: 1.35rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .login-title {
+          font-size: 1.2rem;
+        }
+
+        .login-subtitle {
+          font-size: 0.85rem;
+        }
+
+        .login-footer {
+          margin-top: 1rem;
         }
       }
     `,

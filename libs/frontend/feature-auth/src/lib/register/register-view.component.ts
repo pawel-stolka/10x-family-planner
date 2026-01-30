@@ -52,47 +52,50 @@ import { AuthStore, RegistrationData } from '@family-planner/frontend/data-acces
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      height: 100vh;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 2rem 1rem;
+      padding: 1rem;
+      overflow: hidden;
     }
 
     .register-container {
       background: white;
       border-radius: 12px;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-      padding: 2.5rem;
+      padding: 2rem 2.5rem;
       width: 100%;
       max-width: 480px;
+      max-height: calc(100vh - 2rem);
+      overflow-y: auto;
     }
 
     .register-header {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
 
     .app-title {
-      font-size: 1.75rem;
+      font-size: 1.5rem;
       font-weight: 700;
       color: #667eea;
-      margin: 0 0 1rem 0;
+      margin: 0 0 0.75rem 0;
     }
 
     .register-title {
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       font-weight: 600;
       color: #1a202c;
       margin: 0 0 0.5rem 0;
     }
 
     .register-subtitle {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       color: #718096;
       margin: 0;
     }
 
     .register-footer {
-      margin-top: 1.5rem;
+      margin-top: 1.25rem;
       text-align: center;
       font-size: 0.9rem;
       color: #4a5568;
@@ -112,19 +115,51 @@ import { AuthStore, RegistrationData } from '@family-planner/frontend/data-acces
     /* Responsive */
     @media (max-width: 768px) {
       .register-view {
-        padding: 1.5rem 1rem;
+        padding: 0.5rem;
       }
 
       .register-container {
-        padding: 2rem 1.5rem;
+        padding: 1.5rem;
+        max-height: calc(100vh - 1rem);
+      }
+
+      .register-header {
+        margin-bottom: 1.25rem;
       }
 
       .app-title {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
       }
 
       .register-title {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
+      }
+    }
+
+    @media (max-height: 700px) {
+      .register-container {
+        padding: 1.5rem 2rem;
+      }
+
+      .register-header {
+        margin-bottom: 1rem;
+      }
+
+      .app-title {
+        font-size: 1.35rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .register-title {
+        font-size: 1.2rem;
+      }
+
+      .register-subtitle {
+        font-size: 0.85rem;
+      }
+
+      .register-footer {
+        margin-top: 1rem;
       }
     }
   `]
