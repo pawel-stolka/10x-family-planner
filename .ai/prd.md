@@ -1,7 +1,20 @@
 # Dokument Wymagań Produktu (PRD) – Family Life Planner
 
+> **Status:** Phase 1A ✅ Ukończona | Phase 1B 🚧 85% Complete  
+> **Ostatnia aktualizacja:** Styczeń 2026  
+> **Wersja:** 1.2
+
 ## 1. Przegląd
 Family Life Planner to desktopowa aplikacja webowa, która konsoliduje wszystkie zobowiązania rodziny (praca, cele, posiłki, aktywności) i umożliwia generowanie tygodniowego planu za pomocą AI (GPT-4o Turbo). Użytkownik wprowadza priorytety, a system podpowiada harmonogramy, pomysły na aktywności i posiłki, które można ręcznie dopracować.
+
+**Kluczowe cechy zaimplementowane:**
+- ✅ AI-powered schedule generation (GPT-4o Turbo)
+- ✅ Interactive week grid calendar z dual orientation
+- ✅ JWT authentication + PostgreSQL/Supabase persistence
+- ✅ Family member & recurring goals management
+- ✅ Smart filtering z member color coding
+- ✅ Conflict detection z visual indicators
+- ✅ CI/CD z GitHub Actions
 
 ## 2. Problem użytkownika
 Jesteśmy rodzicami trójki dzieci; jedno z nas pracuje w ciągu dnia, ma poboczne projekty i osobiste cele (fitness, hobby, czas wspólny 1:1 z żoną/mężem), a druga osoba jest na urlopie wychowawczym. Brakuje nam jednego miejsca, w którym:
@@ -23,7 +36,9 @@ Jesteśmy rodzicami trójki dzieci; jedno z nas pracuje w ciągu dnia, ma pobocz
    - możliwość usunięcia konta i powiązanych planów na żądanie.
 
 4. **Przechowywanie i skalowalność**
-   - dane użytkowników przechowywane bezpiecznie, z myślą o przyszłym skalowaniu (localStorage → baza).
+   - dane użytkowników przechowywane bezpiecznie w PostgreSQL z Supabase,
+   - Row-Level Security (RLS) dla izolacji danych między użytkownikami,
+   - migracje bazy danych zarządzane przez Supabase CLI.
 
 5. **Statystyki generowania planów**
    - śledzenie, ile sugestii wygenerowano i ile z nich zaakceptowano (feedback thumbs up/down).
@@ -39,14 +54,14 @@ Jesteśmy rodzicami trójki dzieci; jedno z nas pracuje w ciągu dnia, ma pobocz
 - **Optymalizacja:** Angular signals z memoizacją, OnPush change detection, lazy rendering dla viewport.
 - **MVP exclusions:** Brak powiadomień, udostępniania i Google Calendar w MVP.
 
-## 5. Historyjki użytkowników
+## 5. Historyjki użytkowników (Podsumowanie)
 - Wprowadzenie fixed blocks (praca, wyjazdy) → system zna ograniczenia.
 - Definiowanie recurring goals (fitness, hobby, relacje) → algorytm je planuje.
 - Generowanie tygodniowego kalendarza → użytkownik widzi trade-offy i konflikty.
 - Poprawianie planu i feedback (thumbs up/down) → AI się uczy.
 - Znalezienie aktywności lub przepisów w oparciu o kontekst (czas, pogoda, składniki).
 
-## 5. Historyjki użytkowników
+### Szczegółowe user stories
 
 ID: US-001
 Tytuł: Rejestracja konta
@@ -119,6 +134,52 @@ Kryteria akceptacji:
 - Filtr jest debounced (150ms) przy szybkich przełączeniach.
 - Legenda na górze widoku pokazuje kolory wszystkich członków rodziny.
 
+ID: US-009
+Tytuł: Szybkie dodawanie aktywności
+Opis: Jako zalogowany użytkownik chcę móc szybko dodać nową aktywność do kalendarza bez generowania całego tygodnia od nowa, aby elastycznie reagować na zmiany w planach.
+Kryteria akceptacji:
+- Modal "Quick Add Activity" dostępny z widoku kalendarza.
+- Możliwość wyboru dnia, godziny rozpoczęcia i zakończenia, typu aktywności.
+- Możliwość przypisania aktywności do członka rodziny lub oznaczenia jako wspólna.
+- Nowa aktywność pojawia się natychmiast w kalendarzu po zapisaniu.
+- System wykrywa konflikty z istniejącymi aktywnościami.
+
+ID: US-010
+Tytuł: Zarządzanie członkami rodziny
+Opis: Jako zalogowany użytkownik chcę zarządzać listą członków rodziny (dodawać, edytować, usuwać), aby system mógł uwzględnić wszystkie osoby w generowaniu harmonogramu.
+Kryteria akceptacji:
+- Możliwość dodania członka rodziny z danymi: imię, rola (USER/SPOUSE/CHILD), wiek, kolor.
+- Możliwość edycji danych członka rodziny.
+- Możliwość usunięcia członka rodziny (soft delete).
+- Każdy członek rodziny ma unikalny kolor używany w kalendarzu.
+
+ID: US-011
+Tytuł: Zarządzanie celami cyklicznymi
+Opis: Jako zalogowany użytkownik chcę definiować cele cykliczne (np. fitness 3x w tygodniu, 45 min), aby AI mogło je uwzględnić w generowaniu harmonogramu.
+Kryteria akceptacji:
+- Możliwość utworzenia celu z parametrami: nazwa, opis, częstotliwość/tydzień, preferowany czas trwania, preferowana pora dnia.
+- Możliwość przypisania celu do członka rodziny.
+- Możliwość edycji i usunięcia celu.
+- Cele są uwzględniane w procesie generowania AI.
+
+ID: US-012
+Tytuł: Regeneracja tygodnia z zachowaniem ręcznych aktywności
+Opis: Jako zalogowany użytkownik chcę móc wygenerować tydzień ponownie, zachowując ręcznie dodane aktywności, aby AI zaproponowało nowy układ bez utraty moich zmian.
+Kryteria akceptacji:
+- Przycisk "Reschedule Week" w widoku kalendarza.
+- AI usuwa tylko aktywności wygenerowane przez AI, zachowując ręcznie dodane.
+- Ręczne aktywności są przekazywane do AI jako ograniczenia przy generowaniu.
+- Użytkownik widzi potwierdzenie, które aktywności zostaną zachowane.
+
+ID: US-013
+Tytuł: Nawigacja między tygodniami
+Opis: Jako zalogowany użytkownik chcę móc przeglądać różne tygodnie (poprzedni, następny, dzisiejszy), aby planować długoterminowo i przeglądać historię.
+Kryteria akceptacji:
+- Przyciski nawigacji: "Previous Week", "Next Week", "Today".
+- Widoczna data początku i końca aktualnie wyświetlanego tygodnia.
+- Płynne przejścia między tygodniami.
+- Automatyczne ładowanie harmonogramu dla wybranego tygodnia (jeśli istnieje).
+
 
 
 ## 6. Moduły MVP (Phase 1)
@@ -159,17 +220,26 @@ Kryteria akceptacji:
 - Integracja z Google Calendar i generowanie list zakupów.
 
 ## 8. Stos technologiczny
-- **Frontend:** Angular 20+, standalone components, reactive forms, HttpClient, RxJS/Signals, SCSS.
+- **Frontend:** Angular 20+, standalone components, reactive forms, HttpClient, RxJS/Signals, SCSS, Angular Material.
   - **Layout:** CSS Grid dla week view, sticky positioning dla headers
   - **State Management:** Angular signals z computed i memoizacją
   - **Optymalizacja:** OnPush change detection, track functions, lazy rendering
   - **Animacje:** CSS transitions (200ms fade, 100ms hover)
   - **Icons:** Emoji (💼 💪 🍽️ 📌 👨‍👩‍👧‍👦) - zero dependencies
-- **Backend:** NestJS, REST, OpenAI SDK, (Zod validation).
-- **AI:** GPT-4o Turbo (max 15 s, fallback plan).
-- **Deployment:** AWS (Lambda/API Gateway).
-- **Storage:** localStorage na start, potem Postgres.
-- **Auth:** login/hasło, (później Cognito).
+- **Backend:** NestJS 11, REST API, TypeORM, OpenAI Node SDK, Swagger/OpenAPI.
+  - **Walidacja:** Class-validator, DTO patterns
+  - **Bezpieczeństwo:** JWT guards, bcrypt password hashing, CORS
+- **AI:** GPT-4o Turbo (≤15 s response time, structured JSON output).
+- **Database:** PostgreSQL z Supabase (local dev + cloud-ready).
+  - **Migracje:** Supabase CLI
+  - **Bezpieczeństwo:** Row-Level Security (RLS), parameteryzowane zapytania
+- **Auth:** JWT (bcrypt password hashing), email & hasło.
+- **DevOps:** 
+  - **Monorepo:** Nx workspace z wieloma projektami (apps + libs)
+  - **CI/CD:** GitHub Actions (lint, unit tests, coverage)
+  - **Testing:** Jest (unit tests), Playwright (E2E tests)
+  - **Code Quality:** ESLint, Prettier
+- **Deployment (Planned):** AWS Lambda / API Gateway lub ECS + Fargate.
 
 ## 9. Metryki sukcesu
 - Cotygodniowe korzystanie z generatora (cel: cotygodniowa sesja).
@@ -189,44 +259,283 @@ Kryteria akceptacji:
 (- Wykorzystanie modułów aktywności i posiłków 2–3 razy w tygodniu. - w następnej fazie projektu)
 
 
-## 10. Otwarte pytania
-1. Czy integracja z Google Calendar wchodzi do Phase 1? 
-    - Nie
-2. W którą fazę planujemy multi-user / family sharing? 
-    - Później
-3. Jak AI powinno zachować się po edycji planu przez użytkownika?
-    - TBD
-4. Jak wygląda fallback przy opóźnieniu/awarii Claude?
-    - TBD
-5. Ile danych profilu (np. okna dostępności, poziomy energii) musimy zebrać już w MVP?
-    - TBD
+## 10. Otwarte pytania i odpowiedzi
+1. **Czy integracja z Google Calendar wchodzi do Phase 1?**
+    - ❌ Nie - odłożone do Phase 2 (post-MVP)
 
-## 11. Kolejne kroki
-- Opisać osoby i rytmy tygodnia.
-- Sporządzić user journey (onboarding → profil → plan → feedback).
-- Zaprojektować UI: kalendarz tygodniowy, panel AI, feedback controls.
-- Zdefiniować mapę promptów i strategię wersjonowania dla Claude.
-- Określić strategię przechowywania feedbacku i historii planów.
+2. **W którą fazę planujemy multi-user / family sharing?**
+    - 🔄 Phase 2 lub później - obecnie każdy użytkownik zarządza członkami rodziny w swoim koncie
 
-## 12. Roadmap
-- **Phase 1A (2–3 tygodnie):** Weekly Schedule Generator - podstawowa funkcjonalność + AI generowanie.
-- **Phase 1B (4–6 tygodni):** Grid View Calendar Layout - implementacja widoku siatki tygodnia:
-  - Week 1: Core structure (CSS Grid, time column, day headers, sticky positioning)
-  - Week 2: Activity display (member colors, icons, stacking, multi-hour activities)
-  - Week 3: Interactions (tooltips, modal details, filtering with animations)
-  - Week 4: Advanced features (conflict detection, legend, performance optimization)
-  - Week 5: Accessibility (ARIA labels, keyboard navigation, screen reader)
-  - Week 6: Testing & refinement (unit/E2E tests, family feedback)
-- **Phase 2 (4–6 tygodni):** Activity Finder + Meal Planner, kontekst między modułami, Google Calendar export.
-- **Phase 3 (2–4 tygodni):** Responsive UI (mobile/tablet grid adaptations), ulubione, historia, shopping list.
-- **Phase 4 (2–4 tygodni):** Produkcyjny deploy (AWS), Cognito, baza danych, CI/CD, habit tracking.
+3. **Jak AI powinno zachować się po edycji planu przez użytkownika?**
+    - ✅ Zaimplementowane: AI zachowuje ręcznie dodane aktywności podczas regeneracji
+    - System rozróżnia aktywności wygenerowane przez AI (`metadata.generatedBy = 'ai'`) i ręczne
+    - Przy regeneracji tygodnia: usuwane są tylko aktywności AI, ręczne są zachowywane i przekazywane jako ograniczenia dla nowego generowania
 
-## 13. Ryzyka i mitigacje
-| Ryzyko | Mitigacja |
-|--------|-----------|
-| AI tworzy nierealistyczne plany | warstwa walidacji + pełna edycja manualna |
-| Koszty OpenAI rosną | przejście na tańsze modele, cache promptów |
-| Zbyt szerokie scope | trzymać się MVP, odkładać Phase 2+ |
-| Niska adopcja | priorytetowy moduł planera tygodnia + wsparcie feedbacku |
+4. **Jak wygląda fallback przy opóźnieniu/awarii OpenAI?**
+    - ✅ Zaimplementowane:
+      - Timeout 30s dla API OpenAI
+      - Obsługa błędów z informatywnymi komunikatami dla użytkownika
+      - Logowanie błędów w backendzie (NestJS Logger)
+      - Możliwość ponownej próby generowania przez użytkownika
+    - 🔄 Do rozważenia: cache wcześniejszych odpowiedzi, fallback do prostszego modelu
+
+5. **Ile danych profilu (np. okna dostępności, poziomy energii) musimy zebrać już w MVP?**
+    - ✅ MVP zbiera:
+      - Członkowie rodziny: imię, rola, wiek, kolor
+      - Cele cykliczne: nazwa, opis, częstotliwość/tydzień, preferowany czas trwania, preferowana pora dnia, priorytet
+      - Zobowiązania cykliczne (fixed blocks): tytuł, typ, dzień tygodnia, godziny
+      - Strategia generowania: balanced / family-focused / productivity-first
+    - 🔄 Planowane w przyszłości: okna dostępności, poziomy energii, preferencje lokalizacji
+
+## 11. Status implementacji i kolejne kroki
+
+### ✅ Ukończone (Phase 1A + częściowo 1B):
+- ✅ Podstawowa struktura aplikacji (Nx monorepo, Angular + NestJS)
+- ✅ System uwierzytelniania (JWT, bcrypt, rejestracja, logowanie, logout)
+- ✅ Baza danych (PostgreSQL + Supabase, migracje, RLS)
+- ✅ Zarządzanie członkami rodziny (CRUD operations)
+- ✅ Zarządzanie celami cyklicznymi (recurring goals)
+- ✅ Zarządzanie zobowiązaniami cyklicznymi (fixed blocks)
+- ✅ Generowanie harmonogramu z AI (OpenAI GPT-4o Turbo, 3 strategie)
+- ✅ Grid calendar view (7 dni × sloty godzinowe, dual orientation)
+- ✅ Kolorowanie członków rodziny z inicjałami
+- ✅ Filtrowanie z przyciemnianiem (opacity + grayscale)
+- ✅ Szybkie dodawanie aktywności (Quick Add modal)
+- ✅ Szczegóły aktywności (tooltips + modal)
+- ✅ Detekcja konfliktów czasowych z wizualnymi wskaźnikami
+- ✅ Nawigacja między tygodniami (previous/next/today)
+- ✅ Regeneracja tygodnia z zachowaniem ręcznych aktywności
+- ✅ CI/CD (GitHub Actions: lint, unit tests, coverage)
+- ✅ Dokumentacja (README, Architecture, Constraints, Testing guides)
+
+### 🚧 W trakcie (Phase 1B - 85% complete):
+- 🚧 System feedbacku dla sugestii AI (thumbs up/down) - planowane
+- 🚧 Drag-and-drop edycja bloków czasowych - planowane
+- 🚧 Ulepszenia accessibility (keyboard navigation, ARIA labels) - w trakcie
+
+### 📋 Następne kroki (priorytety):
+1. **Dokończyć Phase 1B:**
+   - Implementacja systemu feedbacku (thumbs up/down)
+   - Drag-and-drop dla edycji bloków
+   - Kompletne wsparcie accessibility (WCAG 2.1 Level AA)
+   - Rozszerzone testy E2E (Playwright)
+
+2. **Przygotowanie do produkcji:**
+   - Deployment na AWS (Lambda/API Gateway lub ECS)
+   - Monitoring i logging (CloudWatch lub podobne)
+   - Backup i disaster recovery
+   - Performance testing i optymalizacja
+
+3. **Phase 2 (post-MVP):**
+   - Family Activity Finder (location + weather aware)
+   - Meal Planner (quick recipes)
+   - Google Calendar export
+   - Shared family calendar
+   - Responsive mobile/tablet UI
+
+## 12. Status projektu (aktualizacja: styczeń 2026)
+
+### Obecny stan: **MVP Phase 1A ✅ ukończona, Phase 1B 🚧 85% complete**
+
+**Metryki projektu:**
+- **Linie kodu:** ~15,000+ LOC (TypeScript)
+- **Testy jednostkowe:** 15 plików spec (Jest)
+- **Testy E2E:** 1 plik spec (Playwright) + infrastruktura gotowa
+- **Coverage:** Monitorowane przez CI/CD z artefaktami
+- **Projekty w monorepo:** 
+  - Apps: `frontend`, `backend`, `frontend-e2e`, `backend-e2e`
+  - Libs: `frontend/*`, `backend/*`, `shared/*` (struktura zgodna z Nx best practices)
+
+**Kluczowe komponenty zaimplementowane:**
+- 🔐 **Auth:** `libs/backend/feature-auth` (JWT, bcrypt, RLS)
+- 📅 **Schedule:** `libs/backend/feature-schedule` (generator AI, persistence)
+- 🎨 **Week View:** `libs/frontend/feature-week-view` (1546 LOC - główny komponent UI)
+- 💾 **Data Access:** `libs/frontend/data-access-auth`, `libs/frontend/data-access-schedule`
+- 🗄️ **Database:** Supabase migracje (5 plików SQL), TypeORM entities
+
+**Infrastruktura:**
+- ✅ CI/CD: GitHub Actions (lint, unit tests, coverage reports, PR comments)
+- ✅ Dokumentacja: README, ARCHITECTURE, CONSTRAINTS, TESTING_GUIDE, CHANGELOG
+- ✅ Quality gates: ESLint, Prettier, TypeScript strict mode
+- ✅ Local dev environment: Supabase local, Webpack dev server, proxy config
+
+**Następne milestones:**
+1. Dokończyć feedback system (thumbs up/down)
+2. Dodać drag-and-drop dla edycji
+3. Ukończyć accessibility testing
+4. Production deployment (AWS)
+
+## 13. Roadmap
+
+### ✅ Phase 1A - UKOŃCZONA (realizacja: 3 tygodnie)
+Weekly Schedule Generator - podstawowa funkcjonalność + AI generowanie:
+- ✅ Struktura Nx monorepo (Angular + NestJS)
+- ✅ System uwierzytelniania (JWT + bcrypt)
+- ✅ Baza danych (PostgreSQL + Supabase, migracje, RLS)
+- ✅ Zarządzanie członkami rodziny, celami, zobowiązaniami
+- ✅ Integracja OpenAI GPT-4o Turbo
+- ✅ Generowanie harmonogramu z 3 strategiami
+- ✅ CI/CD (GitHub Actions)
+
+### 🚧 Phase 1B - W TRAKCIE (85% complete, cel: 6 tygodni)
+Grid View Calendar Layout - implementacja widoku siatki tygodnia:
+- ✅ Week 1: Core structure (CSS Grid, time column, day headers, sticky positioning)
+- ✅ Week 2: Activity display (member colors, icons, stacking, multi-hour activities)
+- ✅ Week 3: Interactions (tooltips, modal details, filtering with animations)
+- ✅ Week 4: Advanced features (conflict detection, legend, performance optimization)
+- 🚧 Week 5: Accessibility (ARIA labels, keyboard navigation, screen reader) - w trakcie
+- 🚧 Week 6: Testing & refinement (unit/E2E tests, family feedback) - w trakcie
+
+**Pozostałe zadania Phase 1B:**
+- [ ] System feedbacku (thumbs up/down) dla sugestii AI
+- [ ] Drag-and-drop edycja bloków czasowych
+- [ ] Kompletne wsparcie accessibility (WCAG 2.1 Level AA)
+- [ ] Rozszerzone testy E2E (Playwright)
+- [ ] User acceptance testing z rodziną
+
+### 📋 Phase 2 - PLANOWANA (4–6 tygodni)
+Activity Finder + Meal Planner:
+- [ ] Module 2: Family Activity Finder (location + weather aware)
+- [ ] Module 3: Meal Planner (quick kid-friendly recipes)
+- [ ] Kontekst między modułami (aktywności → posiłki)
+- [ ] Google Calendar export
+- [ ] Shared family calendar (multi-user collaboration)
+
+### 📋 Phase 3 - PLANOWANA (2–4 tygodnie)
+Responsive UI & Advanced Features:
+- [ ] Mobile/tablet grid adaptations (responsive layout)
+- [ ] Ulubione aktywności i przepisy (favorites)
+- [ ] Historia planów (history view)
+- [ ] Shopping list generation (z meal planner)
+- [ ] Habit tracking (podstawowy)
+
+### 📋 Phase 4 - PLANOWANA (2–4 tygodnie)
+Production Deployment & Advanced Analytics:
+- [ ] Produkcyjny deploy na AWS (Lambda/API Gateway lub ECS + Fargate)
+- [ ] Monitoring i logging (CloudWatch)
+- [ ] Backup & disaster recovery
+- [ ] Performance monitoring i alerting
+- [ ] Advanced habit tracking & analytics
+- [ ] Cost optimization i caching strategies
+
+## 14. Model danych (skrót)
+
+### Kluczowe encje:
+- **users** - użytkownicy aplikacji (email, hashed password, timestamps)
+- **family_members** - członkowie rodziny (name, role, age, color, user_id FK)
+- **recurring_goals** - cele cykliczne (name, description, frequency_per_week, preferred_duration, preferred_time_of_day, family_member_id FK)
+- **recurring_commitments** - zobowiązania cykliczne (title, block_type, day_of_week, start_time, end_time, family_member_id FK)
+- **weekly_schedules** - harmonogramy tygodniowe (week_start_date, is_ai_generated, user_id FK)
+- **time_blocks** - bloki czasowe w harmonogramie (title, time_range TSTZRANGE, block_type, is_shared, metadata JSONB, schedule_id FK, family_member_id FK, recurring_goal_id FK)
+
+### Bezpieczeństwo:
+- Row-Level Security (RLS) dla izolacji danych użytkowników
+- Soft delete (deleted_at) dla wszystkich encji
+- Foreign keys z CASCADE dla spójności
+- Parametryzowane zapytania (TypeORM) przeciw SQL injection
+
+### Więcej szczegółów:
+Zobacz `supabase/migrations/*.sql` oraz `docs/ARCHITECTURE.md`
+
+## 15. Ograniczenia i założenia projektu
+
+### Ograniczenia czasowe i zasobowe:
+- **Główny developer:** 1 osoba (busy parent z fulltime job)
+- **Dostępność:** ~10-15h/tydzień na development
+- **Timeline MVP:** 2-4 miesiące (elastyczne)
+
+### Ograniczenia techniczne:
+- **Desktop-first:** Brak mobilnej wersji w MVP (tylko responsive web)
+- **Single-user:** Brak współdzielenia kalendarza między użytkownikami w MVP
+- **AI latency:** Max 15s dla generowania harmonogramu (constraint OpenAI)
+- **Offline mode:** Brak - wymaga połączenia internetowego
+
+### Założenia projektu:
+- Użytkownicy mają stabilne połączenie internetowe
+- Użytkownicy korzystają z nowoczesnych przeglądarek (Chrome/Edge/Firefox/Safari latest)
+- Dane użytkowników mieszczą się w reasonable limits (do 100 celów, 50 członków rodziny)
+- OpenAI API jest dostępne i stabilne (99%+ uptime)
+- Użytkownicy są gotowi na iteracyjne ulepszenia (MVP to punkt startowy, nie końcowy)
+
+### Scope OUT (nie w MVP):
+- ❌ Integracja z Google Calendar
+- ❌ Powiadomienia push/email
+- ❌ Aplikacja mobilna (native iOS/Android)
+- ❌ Multi-user real-time collaboration
+- ❌ Habit tracking & advanced analytics
+- ❌ Third-party integrations (Todoist, Notion, etc.)
+- ❌ Social features (sharing plans publicly)
+- ❌ Payment/subscription system
+
+### Więcej szczegółów:
+Zobacz `docs/CONSTRAINTS.md` dla pełnego opisu ograniczeń osobistych i projektowych.
+
+## 16. Ryzyka i mitigacje
+
+| Ryzyko | Prawdopodobieństwo | Wpływ | Mitigacja | Status |
+|--------|-------------------|-------|-----------|--------|
+| AI tworzy nierealistyczne plany | Średnie | Wysokie | ✅ Warstwa walidacji + pełna edycja manualna zaimplementowana | Zmitigowane |
+| Koszty OpenAI rosną ponad budżet | Średnie | Średnie | 🔄 Monitoring usage, cache promptów, możliwość przejścia na tańsze modele (gpt-4o-mini) | W monitoringu |
+| Zbyt szerokie scope (feature creep) | Wysokie | Wysokie | ✅ Trzymanie się MVP, odkładanie Phase 2+, regularne review | Zmitigowane |
+| Niska adopcja użytkowników | Średnie | Wysokie | 🔄 Priorytet na generator tygodnia, wsparcie feedbacku (w implementacji) | W trakcie |
+| Problemy z wydajnością UI (duże tygodnie) | Niskie | Średnie | ✅ OnPush detection, signals, lazy rendering, memoizacja | Zmitigowane |
+| Bezpieczeństwo danych (data breach) | Niskie | Krytyczne | ✅ JWT, bcrypt, RLS, parameterized queries, HTTPS | Zmitigowane |
+| Awarie OpenAI API | Średnie | Średnie | ✅ Timeout 30s, error handling, retry logic, user messaging | Zmitigowane |
+| Trudności z skalowaniem bazy | Niskie | Wysokie | ✅ PostgreSQL + Supabase (skalowalne), indeksy, connection pooling | Zmitigowane |
+| Problemy z CI/CD | Niskie | Niskie | ✅ GitHub Actions stable, automated testing, artifacts | Zmitigowane |
+| Developer burnout (1 osoba) | Średnie | Krytyczne | 🔄 Realistic timeline, MVP focus, breaks, family support | Monitorowane |
+
+## 17. Glosariusz
+
+**AI-generated blocks** - Bloki czasowe wygenerowane przez AI (OpenAI GPT-4o Turbo), oznaczone w metadata jako `generatedBy: 'ai'`
+
+**Block Type** - Typ aktywności (WORK, EXERCISE, HOBBY, MEAL, COMMITMENT, FAMILY_TIME, PERSONAL_TIME, OTHER)
+
+**Dual orientation** - Możliwość przełączania widoku kalendarza: dni jako kolumny (hours view) lub godziny jako kolumny (days view)
+
+**Family Member** - Członek rodziny z rolą (USER, SPOUSE, CHILD), przypisanym kolorem i inicjałami
+
+**Fixed blocks** - Zobowiązania cykliczne (recurring commitments) jak praca, które się powtarzają w stałych godzinach
+
+**Grid Calendar** - Widok tygodnia w formie siatki (7 dni × sloty godzinowe) oparty na CSS Grid
+
+**Manual blocks** - Bloki czasowe dodane ręcznie przez użytkownika (Quick Add), zachowywane podczas regeneracji
+
+**Member filtering** - Funkcja filtrowania aktywności według członków rodziny z visual dimming (opacity + grayscale)
+
+**MVP** - Minimum Viable Product - podstawowa wersja produktu z core features
+
+**Nx monorepo** - Struktura projektu z wieloma aplikacjami i bibliotekami zarządzanymi przez Nx
+
+**OnPush** - Strategia change detection w Angular optymalizująca wydajność
+
+**Quick Add** - Modal pozwalający na szybkie dodanie aktywności bez generowania całego tygodnia
+
+**Recurring Goals** - Cele cykliczne (np. fitness 3x/tydzień), uwzględniane przez AI podczas generowania
+
+**Reschedule** - Regeneracja tygodnia przez AI z zachowaniem ręcznie dodanych aktywności
+
+**RLS (Row-Level Security)** - Mechanizm bezpieczeństwa PostgreSQL izolujący dane użytkowników
+
+**Shared activity** - Aktywność rodzinna (wszyscy członkowie), oznaczona specjalnym wzorem
+
+**Soft delete** - Logiczne usuwanie rekordów (deleted_at) zamiast fizycznego usunięcia z bazy
+
+**Strategy** - Strategia generowania harmonogramu (balanced, family-focused, productivity-first)
+
+**Time Block** - Blok czasowy w harmonogramie z określonym zakresem godzin (TSTZRANGE)
+
+**TSTZRANGE** - PostgreSQL data type dla zakresu czasu z timezone
+
+**Week Start Date** - Data poniedziałku rozpoczynającego tydzień (harmonogram zawsze zaczyna się w poniedziałek)
+
+---
+
+**Dla pełnej dokumentacji technicznej zobacz:**
+- `README.md` - Getting started, commands, tech stack
+- `docs/ARCHITECTURE.md` - System architecture, data flow
+- `docs/CONSTRAINTS.md` - Project constraints, personal limitations
+- `TESTING_GUIDE.md` - Testing strategy, coverage
+- `CHANGELOG.md` - Version history, changes
 
 ---
