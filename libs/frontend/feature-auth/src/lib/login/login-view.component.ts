@@ -53,9 +53,9 @@ import {
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
+        min-height: calc(100vh - 60px);
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1rem;
+        padding: 2rem 1rem;
       }
 
       .login-container {
@@ -87,13 +87,13 @@ import {
       }
 
       .login-subtitle {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         color: #718096;
         margin: 0;
       }
 
       .login-footer {
-        margin-top: 1.5rem;
+        margin-top: 1.25rem;
         text-align: center;
         font-size: 0.9rem;
         color: #4a5568;

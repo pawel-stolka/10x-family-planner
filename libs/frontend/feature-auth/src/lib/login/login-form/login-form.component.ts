@@ -131,8 +131,8 @@ import { LoginCredentials } from '@family-planner/frontend/data-access-auth';
         background: #fed7d7;
         border: 1px solid #fc8181;
         border-radius: 8px;
-        padding: 0.875rem 1rem;
-        margin-bottom: 1.5rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
         animation: slideDown 0.3s ease-out;
       }
 
@@ -186,7 +186,7 @@ import { LoginCredentials } from '@family-planner/frontend/data-access-auth';
       }
 
       .form-group {
-        margin-bottom: 1.25rem;
+        margin-bottom: 1rem;
       }
 
       .form-label {
